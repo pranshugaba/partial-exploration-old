@@ -1,0 +1,113 @@
+// These need to be loaded and verified in plugins.gradle.
+plugins {
+    // https://github.com/tbroyer/gradle-apt-plugin
+    // https://plugins.gradle.org/plugin/net.ltgt.apt
+    // TODO: to be removed since gradle now natively supports these features
+    id 'net.ltgt.apt' version '0.18'
+    id 'net.ltgt.apt-idea' version '0.18'
+
+    // https://github.com/tbroyer/gradle-errorprone-plugin
+    // https://plugins.gradle.org/plugin/net.ltgt.errorprone
+    id 'net.ltgt.errorprone' version '0.6'
+
+    // https://github.com/johnrengelman/shadow
+    // https://plugins.gradle.org/plugin/com.github.johnrengelman.shadow
+    id 'com.github.johnrengelman.shadow' version '4.0.1'
+}
+
+// Base Plugins
+apply plugin: 'java'
+apply plugin: 'application'
+
+// Static Analysis
+apply plugin: 'pmd'
+apply plugin: 'checkstyle'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+}
+
+project.archivesBaseName = 'prism-heuristics'
+project.mainClassName = 'de.tum.in.prism.core.CoreChecker'
+project.mainClassName = 'owl.run.DefaultCli'
+project.sourceCompatibility = JavaVersion.VERSION_11
+project.targetCompatibility = JavaVersion.VERSION_11
+
+def defaultEncoding = 'UTF-8'
+
+tasks.withType(JavaCompile) {
+    options.encoding = defaultEncoding
+    options.errorprone.disableWarningsInGeneratedCode = true
+}
+
+tasks.withType(Javadoc) {
+    options.encoding = defaultEncoding
+}
+
+dependencies {
+    implementation files("lib/prism/prism/classes")
+    
+    // https://github.com/google/guava
+    implementation 'com.google.guava:guava:26.0-jre'
+    // https://github.com/incaseoftrouble/naturals-util
+    implementation 'de.tum.in:naturals-util:0.10.0'
+    // https://github.com/vigna/fastutil
+    implementation 'it.unimi.dsi:fastutil:8.2.1'
+    // https://immutables.github.io/
+    implementation 'org.immutables:value:2.7.1:annotations'
+
+    // https://github.com/google/gson
+    testImplementation 'com.google.code.gson:gson:2.8.5'
+    // https://github.com/junit-team/junit5/
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.3.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.3.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.3.0")
+
+    errorprone 'com.google.errorprone:error_prone_core:2.3.2'
+    annotationProcessor 'org.immutables:value:2.7.1'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// PMD
+// https://docs.gradle.org/current/dsl/org.gradle.api.plugins.quality.Pmd.html
+
+pmd {
+    toolVersion = "6.9.0" // https://pmd.github.io/
+    reportsDir = file("$project.buildDir/reports/pmd")
+    ruleSetFiles = files("$project.rootDir/config/pmd-rules.xml")
+    ruleSets = [] // We specify all rules in rules.xml
+    consoleOutput = false
+    ignoreFailures = false
+}
+//noinspection GroovyAssignabilityCheck
+tasks.withType(Pmd) {
+    reports {
+        xml.enabled = false
+        html.enabled = true
+    }
+}
+
+// Checkstyle
+// https://docs.gradle.org/current/dsl/org.gradle.api.plugins.quality.Checkstyle.html
+
+checkstyle {
+    toolVersion = "8.14" // http://checkstyle.sourceforge.net/releasenotes.html
+    configFile = file("$project.rootDir/config/checkstyle.xml")
+    ignoreFailures = false
+    maxWarnings = 0
+    showViolations = false // Don't litter console
+    checkstyleMain {
+        configProperties = ['suppression-file':
+                                "$project.rootDir/config/checkstyle-main-suppression.xml"]
+    }
+    checkstyleTest {
+        configProperties = ['suppression-file':
+                                "$project.rootDir/config/checkstyle-test-suppression.xml"]
+    }
+}
