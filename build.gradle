@@ -8,11 +8,11 @@ plugins {
 
     // https://github.com/tbroyer/gradle-errorprone-plugin
     // https://plugins.gradle.org/plugin/net.ltgt.errorprone
-    id 'net.ltgt.errorprone' version '0.6'
+    // id 'net.ltgt.errorprone' version '0.6'
 
     // https://github.com/johnrengelman/shadow
     // https://plugins.gradle.org/plugin/com.github.johnrengelman.shadow
-    id 'com.github.johnrengelman.shadow' version '4.0.1'
+    // id 'com.github.johnrengelman.shadow' version '4.0.1'
 }
 
 // Base Plugins
@@ -27,37 +27,38 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-}
-
 project.archivesBaseName = 'prism-heuristics'
 project.mainClassName = 'de.tum.in.prism.core.CoreChecker'
-project.mainClassName = 'owl.run.DefaultCli'
-project.sourceCompatibility = JavaVersion.VERSION_11
-project.targetCompatibility = JavaVersion.VERSION_11
+project.sourceCompatibility = JavaVersion.VERSION_1_8
+project.targetCompatibility = JavaVersion.VERSION_1_8
 
 def defaultEncoding = 'UTF-8'
 
 tasks.withType(JavaCompile) {
     options.encoding = defaultEncoding
-    options.errorprone.disableWarningsInGeneratedCode = true
+    // options.errorprone.disableWarningsInGeneratedCode = true
 }
 
 tasks.withType(Javadoc) {
     options.encoding = defaultEncoding
 }
 
+tasks.withType(JavaExec) {
+    environment "LD_LIBRARY_PATH", "prism/prism/lib"
+}
+
 dependencies {
     implementation files("lib/prism/prism/classes")
-    
+
     // https://github.com/google/guava
-    implementation 'com.google.guava:guava:26.0-jre'
+    implementation 'com.google.guava:guava:27.0-jre'
     // https://github.com/incaseoftrouble/naturals-util
-    implementation 'de.tum.in:naturals-util:0.10.0'
+    implementation 'de.tum.in:naturals-util:0.12.0'
     // https://github.com/vigna/fastutil
-    implementation 'it.unimi.dsi:fastutil:8.2.1'
+    // implementation 'it.unimi.dsi:fastutil:8.2.1'
     // https://immutables.github.io/
     implementation 'org.immutables:value:2.7.1:annotations'
+    implementation 'commons-cli:commons-cli:1.4'
 
     // https://github.com/google/gson
     testImplementation 'com.google.code.gson:gson:2.8.5'
@@ -66,11 +67,12 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.3.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.3.0")
 
-    errorprone 'com.google.errorprone:error_prone_core:2.3.2'
+    // errorprone 'com.google.errorprone:error_prone_core:2.3.2'
     annotationProcessor 'org.immutables:value:2.7.1'
 }
 
 test {
+    environment "LD_LIBRARY_PATH", "prism/prism/lib"
     useJUnitPlatform()
 }
 

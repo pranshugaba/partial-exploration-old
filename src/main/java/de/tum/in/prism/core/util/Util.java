@@ -1,153 +1,173 @@
 package de.tum.in.prism.core.util;
 
-import com.google.common.collect.Sets;
 import de.tum.in.naturals.set.BoundedNatBitSet;
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.unionfind.IntUnionFind;
-import de.tum.in.prism.core.bounds.StateUpdate;
+import de.tum.in.prism.core.bounds.StateUpdateUnbounded;
 import de.tum.in.prism.core.builder.AnnotatedModel;
 import de.tum.in.prism.core.explorer.Explorer;
+import de.tum.in.prism.util.Distribution;
+import de.tum.in.prism.util.Sample;
 import explicit.DTMC;
-import explicit.Distribution;
 import explicit.MDP;
 import explicit.MDPSimple;
 import explicit.SuccessorsIterator;
 import explicit.rewards.MDPRewards;
 import explicit.rewards.MDPRewardsSimple;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntSet;
-import java.io.FileWriter;
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
 import java.util.function.IntPredicate;
 import java.util.function.IntToDoubleFunction;
-import java.util.function.IntUnaryOperator;
+import java.util.function.ToDoubleFunction;
 import parser.State;
 import prism.ModelGenerator;
 import prism.PrismException;
 import prism.PrismUtils;
 
 public class Util {
-  private static final Random random = new Random();
-
-  public static double sumWeighted(Distribution distribution, IntToDoubleFunction function) {
-    double result = 0.0d;
-    for (Map.Entry<Integer, Double> entry : distribution) {
-      result += entry.getValue() * function.applyAsDouble(entry.getKey());
-    }
-    return result;
-  }
-
-  public static Distribution scale(Distribution distribution) {
-    double total = 0.0d;
-    for (Map.Entry<Integer, Double> entry : distribution) {
-      total += entry.getValue();
-    }
+  public static explicit.Distribution scale(Distribution distribution) {
+    double total = distribution.sum();
     if (total == 0.0d) {
       return null;
     }
     if (total == 1.0d) {
-      return distribution;
+      return new explicit.Distribution(distribution.objectIterator());
     }
     Map<Integer, Double> map = new HashMap<>(distribution.size());
     for (Map.Entry<Integer, Double> entry : distribution) {
       map.put(entry.getKey(), entry.getValue() / total);
     }
-    return new Distribution(map.entrySet().iterator());
+    return new explicit.Distribution(map.entrySet().iterator());
   }
 
-  public static Distribution map(Distribution distribution, IntUnaryOperator function) {
-    Map<Integer, Double> map = new HashMap<>(distribution.size());
-    for (Map.Entry<Integer, Double> entry : distribution) {
-      int newKey = function.applyAsInt(entry.getKey());
-      map.merge(newKey, entry.getValue(), Double::sum);
-    }
-    System.out.println(distribution);
-    System.out.println(map);
-    return new Distribution(map.entrySet().iterator());
-  }
-
-  public static boolean containsOneOf(Distribution distribution, Set<Integer> set) {
-    return !Sets.intersection(distribution.getSupport(), set).isEmpty();
-  }
-
-  public static int sample(Distribution distribution) {
-    if (distribution.isEmpty()) {
-      return -1;
-    }
-    if (distribution.size() == 1) {
-      return distribution.iterator().next().getKey();
-    }
-
-    int[] keys = new int[distribution.size()];
-    double[] values = new double[distribution.size()];
-
-    int index = 0;
-    for (Map.Entry<Integer, Double> entry : distribution) {
-      keys[index] = entry.getKey();
-      values[index] = entry.getValue();
-      index += 1;
-    }
-
-    int sample = sample(values);
-    return sample == -1 ? -1 : keys[sample];
-  }
-
-  public static int sample(double[] values) {
-    double sum = 0.0d;
-    for (double v : values) {
-      sum += v;
-    }
-
-    if (sum == 0.0d) {
+  public static int sampleNextState(List<Distribution> choices, SuccessorHeuristic heuristic,
+      IntToDoubleFunction bounds, ToDoubleFunction<Distribution> expectedBounds,
+      IntPredicate ignoreStates) {
+    if (choices.isEmpty()) {
       return -1;
     }
 
-    // Sample a random value in [0, sum)
-    double sampledValue = random.nextDouble() * sum;
-    // Search the successor corresponding to this value
-    double partialSum = 0d;
-    for (int i = 0; i < values.length; i++) {
-      partialSum += values[i];
-      if (partialSum >= sampledValue) {
-        return i;
+    if (heuristic == SuccessorHeuristic.GRAPH_WEIGHTED
+        || heuristic == SuccessorHeuristic.GRAPH_BOUNDS) {
+      Int2DoubleMap map = new Int2DoubleOpenHashMap();
+
+      for (Distribution choice : choices) {
+        choice.forEach(entry -> {
+          if (ignoreStates.test(entry.getIntKey())) {
+            return;
+          }
+          double value = bounds.applyAsDouble(entry.getIntKey());
+          if (heuristic == SuccessorHeuristic.GRAPH_WEIGHTED) {
+            value *= entry.getDoubleValue();
+          }
+          map.merge(entry.getIntKey(), value, Double::max);
+        });
       }
+
+      return Sample.sample(map);
     }
 
-    throw new AssertionError("Not sampling any value");
-  }
+    int choiceCount = choices.size();
+    Distribution distribution;
 
-  public static int sample(Int2DoubleMap distribution) {
+    if (choiceCount == 1) {
+      distribution = choices.get(0);
+    } else {
+      int maximalBestActions = 0;
+      double bestValue = 0d;
+      double[] actionUpperBounds = new double[choiceCount];
+      for (int choice = 0; choice < choiceCount; choice++) {
+        double upperBound = expectedBounds.applyAsDouble(choices.get(choice));
+        actionUpperBounds[choice] = upperBound;
+        if (upperBound > bestValue) {
+          maximalBestActions = PrismUtils.doublesAreEqual(upperBound, bestValue)
+              ? maximalBestActions + 1 : 1;
+          bestValue = upperBound;
+        } else if (PrismUtils.doublesAreEqual(upperBound, bestValue)) {
+          maximalBestActions += 1;
+        }
+      }
+
+      if (bestValue == 0.0d) {
+        // All successors have an upper bound == 0
+        return -1;
+      }
+
+      // maximalBestActions was an upper bound on the amount, compute precisely now
+      int bestActionCount = 0;
+      int[] bestActions = new int[maximalBestActions];
+      for (int choice = 0; choice < choiceCount; choice++) {
+        if (PrismUtils.doublesAreEqual(bestValue, actionUpperBounds[choice])) {
+          bestActions[bestActionCount] = choice;
+          bestActionCount += 1;
+        }
+      }
+
+      // There has to be a witness for the bestValue
+      assert bestActionCount > 0;
+      distribution = choices.get(Sample.sampleUniform(bestActions, bestActionCount));
+      assert PrismUtils.doublesAreEqual(bestValue, expectedBounds.applyAsDouble(distribution));
+    }
+
     if (distribution.isEmpty()) {
       return -1;
     }
     if (distribution.size() == 1) {
-      return distribution.keySet().iterator().nextInt();
+      int successor = distribution.getSupport().firstInt();
+      return ignoreStates.test(successor) ? -1 : successor;
     }
 
-    int[] keys = new int[distribution.size()];
-    double[] values = new double[distribution.size()];
+    // Selected the action, now sample the successor
+    NatBitSet support = distribution.getSupport();
+    int size = support.size();
+    int[] successors = new int[size];
+    double[] successorValues = new double[size];
 
     int index = 0;
-    for (Int2DoubleMap.Entry entry : distribution.int2DoubleEntrySet()) {
-      keys[index] = entry.getIntKey();
-      values[index] = entry.getDoubleValue();
+    IntIterator iterator = support.iterator();
+    while (iterator.hasNext()) {
+      int successor = iterator.nextInt();
+      if (ignoreStates.test(successor)) {
+        continue;
+      }
+
+      successors[index] = successor;
+      switch (heuristic) {
+        case BOUNDS:
+          successorValues[index] = bounds.applyAsDouble(successor);
+          break;
+        case WEIGHTED:
+          successorValues[index] = distribution.get(successor) * bounds.applyAsDouble(successor);
+          break;
+        case PROB:
+          successorValues[index] = distribution.get(successor);
+          break;
+        default:
+          throw new AssertionError();
+      }
       index += 1;
     }
-    int sample = sample(values);
-    return sample == -1 ? -1 : keys[sample];
+
+    int sample = Sample.sample(successorValues, index);
+    assert sample == -1 || !ignoreStates.test(successors[sample]);
+    return sample == -1 ? -1 : successors[sample];
   }
+
 
   public static List<NatBitSet> unionFindPartition(IntIterator iterator, IntUnionFind unionFind) {
     Int2ObjectMap<NatBitSet> unionRootMap = new Int2ObjectAVLTreeMap<>();
@@ -163,38 +183,8 @@ public class Util {
     return foundBitSets;
   }
 
-  public static int sampleUniform(IntList values) {
-    int size = values.size();
-    if (size == 0) {
-      return -1;
-    }
-    if (size == 1) {
-      return values.getInt(0);
-    }
-    return values.getInt(random.nextInt(size));
-  }
-
-  public static int sampleUniform(int[] values, int max) {
-    assert max <= values.length;
-    if (max == 0) {
-      return -1;
-    }
-    if (max == 1) {
-      return values[0];
-    }
-    return values[random.nextInt(max)];
-  }
-
-  public static <T> T sampleUniform(List<? extends T> values) {
-    int size = values.size();
-    if (size == 0) {
-      return null;
-    }
-    return size == 1 ? values.get(0) : values.get(random.nextInt(size));
-  }
-
   public static void mdpWithBoundsToDotFile(String filename, AnnotatedModel<MDP> annotatedModel,
-      StateUpdate bounds, IntPredicate stateFilter) {
+      StateUpdateUnbounded bounds, IntPredicate stateFilter) {
     MDP mdp = annotatedModel.model;
     NatBitSet exploredStates = annotatedModel.exploredStates;
 
@@ -270,15 +260,16 @@ public class Util {
       }
     }
     dotString.append("}\n");
-    try (FileWriter fileWriter = new FileWriter(filename)) {
-      fileWriter.append(dotString.toString());
+    try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(filename),
+        StandardCharsets.UTF_8)) {
+      writer.append(dotString.toString());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
   public static void dtmcWithBoundsToDotFile(String filename, AnnotatedModel<DTMC> annotatedModel,
-      StateUpdate bounds, IntPredicate stateFilter) {
+      StateUpdateUnbounded bounds, IntPredicate stateFilter) {
     DTMC dtmc = annotatedModel.model;
     NatBitSet exploredStates = annotatedModel.exploredStates;
 
@@ -339,8 +330,9 @@ public class Util {
       }
     }
     dotString.append("}\n");
-    try (FileWriter fileWriter = new FileWriter(filename)) {
-      fileWriter.append(dotString.toString());
+    try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(filename),
+        StandardCharsets.UTF_8)) {
+      writer.append(dotString.toString());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -348,8 +340,8 @@ public class Util {
 
   public static MDPRewards buildRewards(Explorer<MDP> explorer, int rewardIndex)
       throws PrismException {
-    MDP partialModel = explorer.getModel();
-    ModelGenerator generator = explorer.getGenerator();
+    MDP partialModel = explorer.model();
+    ModelGenerator generator = explorer.generator();
 
     int states = partialModel.getNumStates();
     MDPRewardsSimple rewards = new MDPRewardsSimple(states);
@@ -403,7 +395,7 @@ public class Util {
           removedActions.set(choiceIndex);
           continue;
         }
-        Distribution scaledDistribution = scale(distribution);
+        explicit.Distribution scaledDistribution = scale(distribution);
         restrictedModel.addActionLabelledChoice(restrictedState, scaledDistribution,
             mdp.getAction(originalState, choiceIndex));
         addedActions += 1;

@@ -21,7 +21,7 @@ public class StateCollapse {
     }
   }
 
-  public void exploreState(int state) {
+  public void setExplored(int state) {
     assert states.contains(state);
     exploredStates.set(state);
   }
@@ -33,7 +33,6 @@ public class StateCollapse {
       collapsedStates.set(state);
       return state;
     }
-
 
     int anyState = collapsedStatesRepresentatives.find(states.iterator().nextInt());
     states.forEach((int state) -> collapsedStatesRepresentatives.union(anyState, state));
@@ -49,27 +48,26 @@ public class StateCollapse {
     return representativeState;
   }
 
-  public boolean isExploredState(int number) {
+  public boolean isExplored(int number) {
     assert states.contains(number) : "State " + number + " not added";
     return exploredStates.contains(number);
   }
 
-  public boolean isCollapsedState(int stateNumber) {
-    assert (collapsedStatesRepresentatives.find(stateNumber) == stateNumber) == states
-        .contains(stateNumber);
-    return !states.contains(stateNumber);
+  public boolean isCollapsed(int state) {
+    assert (collapsedStatesRepresentatives.find(state) == state) == states.contains(state);
+    return !states.contains(state);
   }
 
-  public int exploredStatesCount() {
+  public int exploredCount() {
     return exploredStates.size();
   }
 
-  public int fringeStateCount() {
+  public int fringeCount() {
     return states.size() - exploredStates.size();
   }
 
-  public int getCollapsedRepresentative(int stateNumber) {
-    return collapsedStatesRepresentatives.find(stateNumber);
+  public int getRepresentative(int state) {
+    return collapsedStatesRepresentatives.find(state);
   }
 
   public List<NatBitSet> getCollapsedPartition() {

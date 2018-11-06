@@ -1,9 +1,7 @@
 package de.tum.in.prism.core.explorer;
 
-import com.google.common.collect.ImmutableList;
 import de.tum.in.naturals.set.NatBitSet;
-import explicit.DTMC;
-import explicit.Distribution;
+import de.tum.in.prism.util.Distribution;
 import explicit.Model;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import java.util.List;
@@ -12,38 +10,28 @@ import prism.ModelGenerator;
 import prism.PrismException;
 
 public interface Explorer<M extends Model> {
-  void exploreState(int stateNumber) throws PrismException;
+  void exploreState(int state) throws PrismException;
 
-  boolean isStateExplored(int number);
+  boolean isExploredState(int state);
 
-  IntIterable getInitialStates();
+  boolean isTargetState(int state);
+
+
+  IntIterable initialStates();
 
   int exploredStateCount();
 
-  NatBitSet getExploredStates();
+  NatBitSet exploredStates();
 
-  M getModel();
+  M model();
 
-  ModelGenerator getGenerator();
+  ModelGenerator generator();
 
-  State getState(int stateNumber);
+  State getState(int state);
 
   default int fringeStateCount() {
-    return getModel().getNumStates() - exploredStateCount();
+    return model().getNumStates() - exploredStateCount();
   }
 
   List<Distribution> getChoices(int state);
-
-  interface MDPExplorer extends Explorer<explicit.MDP> {
-    Distribution getChoice(int state, int action);
-  }
-
-  interface DTMCExplorer extends Explorer<DTMC> {
-    @Override
-    default List<Distribution> getChoices(int state) {
-      return ImmutableList.of(getDistribution(state));
-    }
-
-    Distribution getDistribution(int state);
-  }
 }

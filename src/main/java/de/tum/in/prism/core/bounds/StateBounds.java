@@ -1,24 +1,52 @@
 package de.tum.in.prism.core.bounds;
 
-import de.tum.in.prism.core.util.Util;
-import explicit.Distribution;
 
-public interface StateBounds {
-  double getUpperBound(int state);
+import de.tum.in.prism.util.annotation.Tuple;
+import org.immutables.value.Value;
 
-  default double getExpectedUpperBound(Distribution distribution) {
-    return Util.sumWeighted(distribution, this::getUpperBound);
+@Value.Immutable
+@Tuple
+public abstract class StateBounds {
+  public static final StateBounds ZERO = of(0.0d);
+  public static final StateBounds ONE = of(1.0d);
+  public static final StateBounds ZERO_ONE = of(0.0d, 1.0d);
+
+
+  abstract double upperBound();
+
+  abstract double lowerBound();
+
+
+  public static StateBounds of(double lower, double upper) {
+    return StateBoundsTuple.create(lower, upper);
   }
 
-  boolean isSolved(int state);
+  public static StateBounds of(double value) {
+    return StateBoundsTuple.create(value, value);
+  }
 
-  boolean isZero(int state);
 
-  void setUpperBound(int state, double value);
+  @Override
+  public String toString() {
+    return String.format("[%.2g,%.2g]", lowerBound(), upperBound());
+  }
 
-  void setZero(int state);
 
-  void setPrecision(double newPrecision);
+  double difference() {
+    assert upperBound() >= lowerBound();
+    return upperBound() - lowerBound();
+  }
 
-  void drop(int state);
+  StateBounds withUpper(double upperBound) {
+    return of(lowerBound(), upperBound);
+  }
+
+  StateBounds withLower(double lowerBound) {
+    return of(lowerBound, upperBound());
+  }
+
+  @Value.Check
+  protected void check() {
+    assert lowerBound() <= upperBound();
+  }
 }

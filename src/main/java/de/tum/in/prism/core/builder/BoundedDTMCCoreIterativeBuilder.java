@@ -4,8 +4,8 @@ import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.prism.core.explorer.DefaultDTMCExplorer;
 import de.tum.in.prism.core.explorer.Explorer;
-import explicit.DTMC;
-import explicit.Distribution;
+import de.tum.in.prism.util.DTMC;
+import de.tum.in.prism.util.Distribution;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntIterator;
@@ -17,33 +17,30 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import prism.ModelGenerator;
-import prism.PrismComponent;
 import prism.PrismException;
 
-public class BoundedDTMCCoreIterativeBuilder extends PrismComponent {
+public class BoundedDTMCCoreIterativeBuilder {
   private static final Logger logger =
       Logger.getLogger(BoundedDTMCCoreIterativeBuilder.class.getName());
 
-  private final Explorer.DTMCExplorer explorer;
+  private final Explorer<DTMC> explorer;
   private final int stepBound;
   private final double precision;
 
-  public BoundedDTMCCoreIterativeBuilder(PrismComponent parent, ModelGenerator generator,
-      int stepBound, double precision) throws PrismException {
-    super(parent);
+  public BoundedDTMCCoreIterativeBuilder(ModelGenerator generator, int stepBound, double precision)
+      throws PrismException {
     this.explorer = new DefaultDTMCExplorer(generator);
     this.stepBound = stepBound;
     this.precision = precision;
   }
 
   public AnnotatedModel<DTMC> build() throws PrismException {
-    getLog().println(String
-        .format("Building iterative core for step bound %d and precision %g", stepBound,
-            precision));
+    logger.log(Level.INFO, () -> String.format("Building iterative core for step bound %d and "
+            + "precision %g", stepBound, precision));
 
     long timer = System.nanoTime();
 
-    for (int initialState : explorer.getInitialStates()) {
+    for (int initialState : explorer.initialStates()) {
       double totalExitSum;
 
       boolean finished = false;
@@ -64,16 +61,16 @@ public class BoundedDTMCCoreIterativeBuilder extends PrismComponent {
           IntIterator iterator = exploredNonZeroStates.iterator();
           while (iterator.hasNext()) {
             int state = iterator.nextInt();
-            assert explorer.isStateExplored(state);
+            assert explorer.isExploredState(state);
 
             double stateWeight = weight.get(state);
-            assert stateWeight > 0;
+            assert stateWeight > 0.0d;
 
-            Distribution distribution = explorer.getDistribution(state);
+            Distribution distribution = explorer.getChoices(state).get(0);
             for (Map.Entry<Integer, Double> transitionEntry : distribution) {
               int successor = transitionEntry.getKey();
               double probability = transitionEntry.getValue();
-              assert probability > 0;
+              assert probability > 0.0d;
 
               double transitionWeight = stateWeight * probability;
               if (transitionWeight == 0.0d) {
@@ -81,7 +78,7 @@ public class BoundedDTMCCoreIterativeBuilder extends PrismComponent {
                 continue;
               }
 
-              if (explorer.isStateExplored(successor)) {
+              if (explorer.isExploredState(successor)) {
                 assert !fringeWeight.containsKey(successor);
 
                 newWeight.merge(successor, transitionWeight, Double::sum);
@@ -91,7 +88,7 @@ public class BoundedDTMCCoreIterativeBuilder extends PrismComponent {
 
                 double previousWeight = fringeWeight.remove(successor);
                 double weightSum = transitionWeight + previousWeight;
-                assert 0 < weightSum && weightSum <= 1.0d;
+                assert 0.0d < weightSum && weightSum <= 1.0d;
 
                 if (weightSum > precision) {
                   explorer.exploreState(successor);
@@ -143,7 +140,6 @@ public class BoundedDTMCCoreIterativeBuilder extends PrismComponent {
       logger.info(progressString);
     }
 
-    return new AnnotatedModel<>(explorer.getModel(), explorer::getState,
-        explorer.getExploredStates());
+    return new AnnotatedModel<>(explorer.model(), explorer::getState, explorer.exploredStates());
   }
 }

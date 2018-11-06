@@ -14,7 +14,7 @@ public class StateToIndex {
     stateMap.defaultReturnValue(-1);
   }
 
-  void addState(State state, int number) {
+  public void addState(State state, int number) {
     assert !indexMap.containsKey(number);
     stateMap.put(state, number);
     indexMap.put(number, state);

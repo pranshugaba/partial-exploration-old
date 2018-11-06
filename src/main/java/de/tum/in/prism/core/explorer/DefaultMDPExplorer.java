@@ -1,70 +1,32 @@
 package de.tum.in.prism.core.explorer;
 
-import de.tum.in.naturals.set.NatBitSet;
-import de.tum.in.naturals.set.NatBitSets;
-import explicit.Distribution;
-import explicit.MDPExplicit;
-import explicit.MDPSimple;
-import it.unimi.dsi.fastutil.ints.IntIterable;
-import it.unimi.dsi.fastutil.ints.IntIterators;
+import de.tum.in.prism.util.Action;
+import de.tum.in.prism.util.Distribution;
+import de.tum.in.prism.util.MDP;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.function.IntConsumer;
 import parser.State;
 import prism.ModelGenerator;
 import prism.PrismException;
 
-public class DefaultMDPExplorer implements Explorer.MDPExplorer {
-  private final MDPSimple partialModel = new MDPSimple();
-  private final ModelGenerator generator;
-  private final IntConsumer addedStateConsumer;
-  private final StateToIndex stateMap = new StateToIndex();
-  // All states which are in the partial model and explored
-  private final NatBitSet exploredStates = NatBitSets.set();
+public class DefaultMDPExplorer extends AbstractExplorer<MDP> {
+  public DefaultMDPExplorer(ModelGenerator generator) throws PrismException {
+    super(generator, new MDP());
+  }
 
-  public DefaultMDPExplorer(ModelGenerator generator, IntConsumer addedStateConsumer)
-      throws PrismException {
-    this.generator = generator;
-    this.addedStateConsumer = addedStateConsumer;
+  @Override
+  protected List<Action> getActionsOfExploredState(int stateNumber) throws PrismException {
+    ModelGenerator generator = generator();
 
-    for (State initialState : generator.getInitialStates()) {
-      int stateNumber = addState(initialState);
-      exploreState(stateNumber);
-      partialModel.addInitialState(stateNumber);
+    int actionCount = generator.getNumChoices();
+    if (actionCount == 0) {
+      return Collections.emptyList();
     }
-  }
+    List<Action> actions = new ArrayList<>(actionCount);
 
-  @Override
-  public ModelGenerator getGenerator() {
-    return generator;
-  }
-
-  @Override
-  public NatBitSet getExploredStates() {
-    return exploredStates;
-  }
-
-  @Override
-  public MDPExplicit getModel() {
-    return partialModel;
-  }
-
-  @Override
-  public void exploreState(int stateNumber) throws PrismException {
-    assert stateMap.check(stateNumber);
-    if (isStateExplored(stateNumber)) {
-      return;
-    }
-    exploredStates.set(stateNumber);
-
-    State state = stateMap.getState(stateNumber);
-    assert state != null;
-    generator.exploreState(state);
-
-    int actions = generator.getNumChoices();
-    int totalTransitions = 0;
-    for (int action = 0; action < actions; action++) {
+    for (int action = 0; action < actionCount; action++) {
       int transitionCount = generator.getNumTransitions(action);
-      totalTransitions += transitionCount;
 
       Distribution distribution = new Distribution();
       for (int transition = 0; transition < transitionCount; transition++) {
@@ -75,58 +37,9 @@ public class DefaultMDPExplorer implements Explorer.MDPExplorer {
       }
 
       Object actionLabel = generator.getChoiceAction(action);
-      int retVal = partialModel.addActionLabelledChoice(stateNumber, distribution, actionLabel);
-      assert retVal != -1;
-    }
-    if (totalTransitions == 0) {
-      partialModel.addDeadlockState(stateNumber);
-    }
-  }
-
-  @Override
-  public boolean isStateExplored(int number) {
-    return exploredStates.contains(number);
-  }
-
-  private int addState(State state) {
-    assert state != null;
-
-    int stateNumber = stateMap.getStateNumber(state);
-    if (stateNumber != -1) {
-      return stateNumber;
+      actions.add(Action.of(distribution, actionLabel));
     }
 
-    int newStateNumber = partialModel.addState();
-    assert newStateNumber == stateMap.size();
-    stateMap.addState(state, newStateNumber);
-    addedStateConsumer.accept(newStateNumber);
-    return newStateNumber;
-  }
-
-  @Override
-  public Distribution getChoice(int state, int action) {
-    assert isStateExplored(state);
-    return partialModel.getChoice(state, action);
-  }
-
-  @Override
-  public IntIterable getInitialStates() {
-    return () -> IntIterators.asIntIterator(partialModel.getInitialStates().iterator());
-  }
-
-  @Override
-  public int exploredStateCount() {
-    return exploredStates.size();
-  }
-
-  @Override
-  public List<Distribution> getChoices(int state) {
-    assert isStateExplored(state);
-    return partialModel.getChoices(state);
-  }
-
-  @Override
-  public State getState(int stateNumber) {
-    return stateMap.getState(stateNumber);
+    return actions;
   }
 }

@@ -1,22 +1,24 @@
 package de.tum.in.prism.core.builder;
 
-import com.google.common.collect.ImmutableList;
 import de.tum.in.naturals.set.BoundedNatBitSet;
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
-import de.tum.in.prism.core.bounds.StepBoundApproximation;
-import de.tum.in.prism.core.bounds.StepBoundApproximationSimple;
+import de.tum.in.prism.core.bounds.StateUpdateBounded;
+import de.tum.in.prism.core.bounds.StateUpdateBoundedCoreApproximationSimple;
 import de.tum.in.prism.core.explorer.DefaultDTMCExplorer;
 import de.tum.in.prism.core.explorer.DefaultMDPExplorer;
+import de.tum.in.prism.core.explorer.EmbeddingCTMCExplorer;
 import de.tum.in.prism.core.explorer.Explorer;
+import de.tum.in.prism.core.explorer.UniformizingCTMCExplorer;
 import de.tum.in.prism.core.util.SuccessorHeuristic;
 import de.tum.in.prism.core.util.Util;
-import explicit.Distribution;
+import de.tum.in.prism.util.DTMC;
+import de.tum.in.prism.util.Distribution;
+import de.tum.in.prism.util.MDP;
 import explicit.Model;
 import explicit.PredecessorRelation;
 import it.unimi.dsi.fastutil.ints.Int2DoubleAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -24,7 +26,6 @@ import it.unimi.dsi.fastutil.ints.IntStack;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntConsumer;
-import java.util.function.IntPredicate;
 import java.util.function.IntToDoubleFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,30 +34,29 @@ import prism.ModelGenerator;
 import prism.PrismComponent;
 import prism.PrismException;
 
-public abstract class BoundedSamplingBuilder<M extends Model> {
-  private static final Logger logger = Logger.getLogger(BoundedSamplingBuilder.class.getName());
+public abstract class CoreBoundedSamplingBuilder<M extends Model> {
+  private static final Logger logger = Logger.getLogger(CoreBoundedSamplingBuilder.class.getName());
 
   protected final PrismComponent prism;
+  protected final Explorer<M> explorer;
 
-  private final Explorer<M> explorer;
   private final SuccessorHeuristic heuristic;
   private final int stepBound;
   private final double precision;
+  private final StateUpdateBounded stateUpdateBounded;
 
-  private final StepBoundApproximation stepBoundApproximation;
+  private long sampleSteps = 0;
+  private long samples = 0;
+  private long longestPath = 0;
 
-  private int sampleSteps = 0;
-  private int samples = 0;
-  private int longestPath = 0;
-
-  protected BoundedSamplingBuilder(PrismComponent prism, Explorer<M> explorer, int stepBound,
-      double precision) {
+  protected CoreBoundedSamplingBuilder(PrismComponent prism, Explorer<M> explorer, int stepBound,
+      double precision, SuccessorHeuristic heuristic) {
     this.prism = prism;
     this.explorer = explorer;
     this.stepBound = stepBound;
     this.precision = precision;
-    stepBoundApproximation = new StepBoundApproximationSimple(10);
-    heuristic = SuccessorHeuristic.GUIDED;
+    this.heuristic = heuristic;
+    stateUpdateBounded = new StateUpdateBoundedCoreApproximationSimple(5);
   }
 
   public Explorer<M> getExplorer() {
@@ -64,7 +64,7 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
   }
 
   public AnnotatedModel<M> build() throws PrismException {
-    logger.log(Level.INFO, "Learning core for step bound {0} and precision {1} {2}",
+    logger.log(Level.INFO, "Learning core for step bound {0} and precision {1}",
         new Object[] {stepBound, precision});
 
     long timer = System.nanoTime();
@@ -79,8 +79,8 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
     int iterationsSinceCheck = 0;
     int statesInLastFullCheck = 0;
 
-    for (int initialState : explorer.getInitialStates()) {
-      while (stepBoundApproximation.getUpperBound(initialState, stepBound) > precision) {
+    for (int initialState : explorer.initialStates()) {
+      while (stateUpdateBounded.getUpperBound(initialState, stepBound) > precision) {
         iterations += 1;
         iterationsSinceCheck += 1;
 
@@ -88,7 +88,7 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
         sampleFrom(initialState);
         timeInSampling += (System.nanoTime() - sampleTime);
 
-        int currentStateCount = explorer.getModel().getNumStates();
+        int currentStateCount = explorer.model().getNumStates();
         int newStatesSinceFullCheck = currentStateCount - statesInLastFullCheck;
 
         boolean check = false;
@@ -127,9 +127,9 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
       double secondsToNanoseconds = (double) TimeUnit.SECONDS.toNanos(1L);
 
       Int2DoubleMap initialStateValues = new Int2DoubleAVLTreeMap();
-      explorer.getInitialStates().forEach((int initialState) ->
-          initialStateValues
-              .put(initialState, stepBoundApproximation.getUpperBound(initialState, stepBound)));
+      explorer.initialStates().forEach((int initialState) ->
+          initialStateValues.put(initialState,
+              stateUpdateBounded.getUpperBound(initialState, stepBound)));
 
       String progressString =
           String.format("%n== Finished finite core (precision %g, step bound %d) ==%n"
@@ -146,12 +146,12 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
       logger.log(Level.INFO, progressString);
     }
 
-    return new AnnotatedModel<M>(explorer.getModel(), explorer::getState, states);
+    return new AnnotatedModel<>(explorer.model(), explorer::getState, states);
   }
 
   private NatBitSet getActualReachableStates() {
     NatBitSet reachableStates = NatBitSets.set();
-    explorer.getInitialStates().forEach((IntConsumer) reachableStates::set);
+    explorer.initialStates().forEach((IntConsumer) reachableStates::set);
     NatBitSet newStates = NatBitSets.copyOf(reachableStates);
 
     int steps = 0;
@@ -160,7 +160,7 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
       NatBitSet currentStates = newStates;
       NatBitSet nextStepStates = NatBitSets.set();
 
-      currentStates.forEach((int state) -> getExplorer().getModel().getSuccessors(state)
+      currentStates.forEach((int state) -> getExplorer().model().getSuccessors(state)
           .forEachRemaining((int successor) -> {
             if (reachableStates.add(successor)) {
               nextStepStates.set(successor);
@@ -168,14 +168,14 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
           }));
       newStates = nextStepStates;
     }
-    reachableStates.and(explorer.getExploredStates());
+    reachableStates.and(explorer.exploredStates());
     return reachableStates;
   }
 
   protected double step(int state, IntToDoubleFunction values) {
     double maxSuccessorBounds = 0.0d;
     for (Distribution distribution : getDistributions(state)) {
-      double distributionBounds = Util.sumWeighted(distribution, values);
+      double distributionBounds = distribution.sumWeighted(values);
       if (distributionBounds > maxSuccessorBounds) {
         maxSuccessorBounds = distributionBounds;
       }
@@ -183,12 +183,12 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
     return maxSuccessorBounds;
   }
 
-  private boolean computeExactBounds(int s, int stepBound) {
+  private boolean computeExactBounds(int state, int stepBound) {
     if (stepBound == 0) {
-      return explorer.isStateExplored(s);
+      return explorer.isExploredState(state);
     }
 
-    M model = explorer.getModel();
+    M model = explorer.model();
     int numStates = model.getNumStates();
 
     PredecessorRelation predecessorRelation = model.getPredecessorRelation(prism, false);
@@ -198,11 +198,10 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
     BoundedNatBitSet exploredOneStates = NatBitSets.boundedSet(numStates, NatBitSets.UNKNOWN_SIZE);
 
     double[] init = new double[numStates];
-    NatBitSets.complementIterator(explorer.getExploredStates(), numStates)
-        .forEachRemaining((int state) -> {
-          init[state] = 1.0d;
-          predecessorRelation.getPredecessorsIterator(state)
-              .forEachRemaining(interestingStates::set);
+    NatBitSets.complementIterator(explorer.exploredStates(), numStates)
+        .forEachRemaining((int s) -> {
+          init[s] = 1.0d;
+          predecessorRelation.getPredecessorsIterator(s).forEachRemaining(interestingStates::set);
         });
 
     double[] vect = init;
@@ -217,58 +216,58 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
 
       IntIterator iterator = NatBitSets.copyOf(interestingStates).iterator();
       while (iterator.hasNext()) {
-        int state = iterator.nextInt();
-        assert explorer.isStateExplored(state);
+        int iterationState = iterator.nextInt();
+        assert explorer.isExploredState(iterationState);
 
         double[] currentValues = vect;
-        if (vect[state] == 1.0d) {
-          assert step(state, i -> currentValues[i]) == 1.0d;
-          result[state] = 1.0d;
-          exploredOneStates.set(state);
+        if (vect[iterationState] == 1.0d) {
+          assert step(iterationState, i -> currentValues[i]) == 1.0d;
+          result[iterationState] = 1.0d;
+          exploredOneStates.set(iterationState);
           continue;
         }
 
-        double reachability = step(state, i -> currentValues[i]);
+        double reachability = step(iterationState, i -> currentValues[i]);
 
         // State was rightfully marked as interesting
         assert 0 < reachability;
         // Reachability is monotone for more steps
-        assert Util.doublesAreLessOrEqual(result[state], reachability);
+        assert Util.doublesAreLessOrEqual(result[iterationState], reachability);
         // The upper bound approximation is indeed an upper bound
         assert Util.doublesAreLessOrEqual(reachability,
-            stepBoundApproximation.getUpperBound(state, steps));
+            stateUpdateBounded.getUpperBound(iterationState, steps));
 
-        result[state] = reachability;
+        result[iterationState] = reachability;
 
-        predecessorRelation.getPredecessorsIterator(state).forEachRemaining(interestingStates::set);
+        predecessorRelation.getPredecessorsIterator(iterationState)
+            .forEachRemaining(interestingStates::set);
       }
 
       double[] currentResult = result;
       int currentSteps = steps;
 
-      stepBoundApproximation
-          .setUpperBounds(explorer.getExploredStates(), state -> currentResult[state],
-              currentSteps);
+      explorer.exploredStates().forEach((int s) ->
+          stateUpdateBounded.setUpperBound(s, currentSteps, currentResult[s]));
 
       // Only explored states are interesting
-      assert explorer.getExploredStates().containsAll(interestingStates);
+      assert explorer.exploredStates().containsAll(interestingStates);
       // Consistency of one-states
-      assert exploredOneStates.intStream().allMatch((int state) -> currentResult[state] == 1.0d);
+      assert exploredOneStates.intStream().allMatch((int s) -> currentResult[s] == 1.0d);
       // All non-explored states have value 1.0
-      assert IntStream.range(0, numStates).filter(state -> !explorer.isStateExplored(state))
-          .allMatch(state -> currentResult[state] == 1.0d);
+      assert IntStream.range(0, numStates).filter(s -> !explorer.isExploredState(s))
+          .allMatch(s -> currentResult[s] == 1.0d);
       // All non-trivial states are interesting
       assert IntStream.range(0, numStates)
-          .filter(state -> 0.0d < currentResult[state] && currentResult[state] < 1.0d)
+          .filter(s -> 0.0d < currentResult[s] && currentResult[s] < 1.0d)
           .allMatch(interestingStates::contains);
       // Previous zero states remain zero states
       assert IntStream.range(0, numStates)
-          .filter(state -> stepBoundApproximation.isZero(state, currentSteps))
-          .allMatch(state -> currentResult[state] == 0.0d);
+          .filter(s -> stateUpdateBounded.isZeroUpperBound(s, currentSteps))
+          .allMatch(s -> currentResult[s] == 0.0d);
 
       interestingStates.andNot(exploredOneStates);
       if (interestingStates.isEmpty()) {
-        break;
+        return false;
       }
 
       /* if (currentResult[s] > precision) {
@@ -276,62 +275,24 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
       } */
     }
 
-    /*
-    setLog(new PrismDevNullLog());
-    try {
-    MDPModelChecker mc = new MDPModelChecker(this);
-    BoundedNatBitSet fringeStates = NatBitSets.boundedFilledSet(model.getNumStates());
-    fringeStates.andNot(explorer.getExploredStates());
-    BitSet bitSet = NatBitSets.toBitSet(fringeStates);
-    ModelCheckerResult mcResult = mc.computeBoundedReachProbs((explicit.MDP) model, bitSet,
-    stepBound, false);
-    double[] finalResult = result;
-    for (int state : explorer.getExploredStates()) {
-    assert mcResult.soln[state] == result[state] :
-    stepBound + " " + result[state] + " " + step(state, i -> finalResult[i]) + " " +
-    mcResult.soln[state];
-    }
-    } catch (PrismException e) {
-    }
-    setLog(log);
-    */
-
-    return result[s] <= precision;
+    return result[state] <= precision;
   }
 
-  private int sampleNextState(int state, int successorRemainingSteps,
-      IntPredicate prohibitedSuccessors) {
-    assert explorer.isStateExplored(state);
+  private int sampleNextState(int state, int successorRemainingSteps) {
+    assert explorer.isExploredState(state);
 
     List<Distribution> choices = getDistributions(state);
 
     // Deadlock state
     if (choices.isEmpty()) {
-      stepBoundApproximation.setZero(state);
+      stateUpdateBounded.setZero(state);
       return -1;
     }
 
-    Int2DoubleMap successorWeights = new Int2DoubleOpenHashMap();
-
-    choices.forEach(choice -> choice.forEach(entry -> {
-      int successor = entry.getKey();
-      double transitionProbability = entry.getValue();
-      if (stepBoundApproximation.isZero(successor, successorRemainingSteps) || prohibitedSuccessors
-          .test(successor)) {
-        return;
-      }
-      double sampleProbability = transitionProbability;
-      if (heuristic == SuccessorHeuristic.GUIDED) {
-        sampleProbability *= stepBoundApproximation
-            .getUpperBound(successor, successorRemainingSteps);
-      }
-      successorWeights.merge(successor, sampleProbability, Double::max);
-    }));
-    if (successorWeights.isEmpty()) {
-      return -1;
-    }
-
-    return Util.sample(successorWeights);
+    return Util.sampleNextState(choices, heuristic,
+        s -> stateUpdateBounded.getUpperBound(s, successorRemainingSteps),
+        d -> stateUpdateBounded.getUpperBound(state, successorRemainingSteps, d),
+        s -> stateUpdateBounded.isZeroUpperBound(s, successorRemainingSteps));
   }
 
   private int sampleFrom(int initialState) throws PrismException {
@@ -341,7 +302,6 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
     int remainingSteps = stepBound;
     int exploreCount = 0;
 
-    NatBitSet visitedStateSet = NatBitSets.set();
     IntList visitedStates = new IntArrayList();
     IntStack visitStack = (IntStack) visitedStates;
 
@@ -350,9 +310,7 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
       sampleSteps++;
 
       visitedStates.add(currentState);
-      visitedStateSet.set(currentState);
-      int nextState = sampleNextState(currentState, Math.max(remainingSteps - 1, 1),
-          visitedStateSet::contains);
+      int nextState = sampleNextState(currentState, Math.max(remainingSteps - 1, 1));
       if (nextState == -1) {
         // No successor available
         break;
@@ -360,7 +318,7 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
       remainingSteps -= 1;
       currentState = nextState;
 
-      if (!explorer.isStateExplored(currentState)) {
+      if (!explorer.isExploredState(currentState)) {
         // Explore the state and continue sampling from here
         exploreCount++;
         explorer.exploreState(currentState);
@@ -373,15 +331,14 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
 
     while (!visitStack.isEmpty()) {
       currentState = visitStack.popInt();
-      assert explorer.isStateExplored(currentState);
+      assert explorer.isExploredState(currentState);
 
       if (remainingSteps > 1) {
         int currentRemaining = remainingSteps;
-        IntToDoubleFunction
-            successorValues = successor -> stepBoundApproximation
-            .getUpperBound(successor, currentRemaining - 1);
+        IntToDoubleFunction successorValues = successor ->
+            stateUpdateBounded.getUpperBound(successor, currentRemaining - 1);
 
-        double upperBound = stepBoundApproximation.getUpperBound(currentState, currentRemaining);
+        double upperBound = stateUpdateBounded.getUpperBound(currentState, currentRemaining);
         if (upperBound == 0.0d) {
           assert step(currentState, successorValues) == 0.0d;
           continue;
@@ -391,7 +348,7 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
         if (upperBound <= maxSuccessorBounds) {
           break;
         }
-        stepBoundApproximation.setUpperBound(currentState, currentRemaining, maxSuccessorBounds);
+        stateUpdateBounded.setUpperBound(currentState, currentRemaining, maxSuccessorBounds);
       }
       remainingSteps += 1;
     }
@@ -405,9 +362,9 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
     }
 
     Int2DoubleMap initialStateValues = new Int2DoubleAVLTreeMap();
-    for (int initialState : getExplorer().getInitialStates()) {
-      initialStateValues
-          .put(initialState, stepBoundApproximation.getUpperBound(initialState, stepBound));
+    for (int initialState : getExplorer().initialStates()) {
+      initialStateValues.put(initialState,
+          stateUpdateBounded.getUpperBound(initialState, stepBound));
     }
 
     String progressString = String.format("%n== Progress Report ==%n"
@@ -415,45 +372,63 @@ public abstract class BoundedSamplingBuilder<M extends Model> {
             + "  States: %d in partial model%n"
             + "  Initial state bounds: %s", samples, sampleSteps,
         (double) sampleSteps / (double) samples, longestPath,
-        explorer.exploredStateCount(),
-        initialStateValues);
+        explorer.exploredStateCount(), initialStateValues);
     logger.log(Level.FINE, progressString);
   }
 
   protected abstract List<Distribution> getDistributions(int state);
 
-  public static class DTMC extends BoundedSamplingBuilder<explicit.DTMC> {
-    public DTMC(PrismComponent prism, ModelGenerator generator, int stepBound, double precision)
-        throws PrismException {
-      super(prism, new DefaultDTMCExplorer(generator), stepBound, precision);
+  public static class DTMCBuilder extends CoreBoundedSamplingBuilder<DTMC> {
+    public DTMCBuilder(PrismComponent prism, ModelGenerator generator, int stepBound,
+        double precision, SuccessorHeuristic heuristic) throws PrismException {
+      super(prism, new DefaultDTMCExplorer(generator), stepBound, precision, heuristic);
     }
 
     @Override
     protected List<Distribution> getDistributions(int state) {
-      Distribution distribution = getExplorer().getDistribution(state);
-      return distribution == null ? ImmutableList.of() : ImmutableList.of(distribution);
-    }
-
-    @Override
-    public Explorer.DTMCExplorer getExplorer() {
-      return (Explorer.DTMCExplorer) super.getExplorer();
+      List<Distribution> distributions = explorer.getChoices(state);
+      assert distributions.size() <= 1;
+      return distributions;
     }
   }
 
-  public static class MDP extends BoundedSamplingBuilder<explicit.MDP> {
-    public MDP(PrismComponent prism, ModelGenerator generator, int stepBound, double precision)
-        throws PrismException {
-      super(prism, new DefaultMDPExplorer(generator, s -> { }), stepBound, precision);
+  public static class CTMCUnfiformizingBuilder extends CoreBoundedSamplingBuilder<DTMC> {
+    public CTMCUnfiformizingBuilder(PrismComponent prism, ModelGenerator generator, int stepBound,
+        double precision, double rate, SuccessorHeuristic heuristic) throws PrismException {
+      super(prism, new UniformizingCTMCExplorer(generator, rate), stepBound, precision, heuristic);
     }
 
     @Override
     protected List<Distribution> getDistributions(int state) {
-      return getExplorer().getChoices(state);
+      List<Distribution> distributions = explorer.getChoices(state);
+      assert distributions.size() <= 1;
+      return distributions;
+    }
+  }
+
+  public static class CTMCEmbeddingBuilder extends CoreBoundedSamplingBuilder<DTMC> {
+    public CTMCEmbeddingBuilder(PrismComponent prism, ModelGenerator generator, int stepBound,
+        double precision, SuccessorHeuristic heuristic) throws PrismException {
+      super(prism, new EmbeddingCTMCExplorer(generator), stepBound, precision, heuristic);
     }
 
     @Override
-    public Explorer.MDPExplorer getExplorer() {
-      return (Explorer.MDPExplorer) super.getExplorer();
+    protected List<Distribution> getDistributions(int state) {
+      List<Distribution> distributions = explorer.getChoices(state);
+      assert distributions.size() <= 1;
+      return distributions;
+    }
+  }
+
+  public static class MDPBuilder extends CoreBoundedSamplingBuilder<MDP> {
+    public MDPBuilder(PrismComponent prism, ModelGenerator generator, int stepBound,
+        double precision, SuccessorHeuristic heuristic) throws PrismException {
+      super(prism, new DefaultMDPExplorer(generator), stepBound, precision, heuristic);
+    }
+
+    @Override
+    protected List<Distribution> getDistributions(int state) {
+      return explorer.getChoices(state);
     }
   }
 }
