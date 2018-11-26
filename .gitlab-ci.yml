@@ -1,0 +1,125 @@
+image: gitlab-runner/prism
+
+before_script:
+  - chmod +x gradlew
+
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  GRADLE: ./.gradle
+  GRADLE_HOME: $GRADLE
+  GRADLE_USER_HOME: $GRADLE
+
+Build:
+  stage: build
+  script:
+    - java -version
+    - git submodule sync -- lib/prism
+    - git submodule update --init -- lib/prism
+    - (cd lib/prism/prism && make)
+    - ./gradlew --no-daemon check distZip
+  artifacts:
+    paths:
+      - build/distributions/
+    when: on_success
+    expire_in: 1 week
+  cache:
+    key: "build"
+    untracked: true
+    paths:
+      - lib/prism
+      - $GRADLE
+
+
+.variables: &default_variables
+  tool: build/pet/bin/pet
+  args: ""
+  JAVA_OPTS: -ea -Djava.util.logging.config.file=config/logging-quiet.properties
+  const: ""
+
+.core_variables: &core_variables
+  <<: *default_variables
+  unbounded_args: ''
+  unbounded_heuristics: WEIGHTED PROB DIFFERENCE GRAPH_WEIGHTED GRAPH_DIFFERENCE
+  step_bound: 50
+  bounded_args: ''
+  bounded_heuristics: WEIGHTED PROB DIFFERENCE GRAPH_WEIGHTED GRAPH_DIFFERENCE
+
+.reachability_variables: &reach_variables
+  <<: *default_variables
+  heuristics: WEIGHTED PROB DIFFERENCE GRAPH_WEIGHTED GRAPH_DIFFERENCE
+
+.test: &test_template
+  stage: test
+  before_script:
+    - unzip -d build build/distributions/*.zip
+  dependencies:
+    - Build
+
+.core_test: &core_test_template
+  <<: *test_template
+  script:
+    - for heuristic in $unbounded_heuristics; do
+        $tool core -m "$model" --const "$const" $args $unbounded_args --unbounded --heuristic $heuristic --validate;
+      done
+    - for heuristic in $bounded_heuristics; do
+        $tool core -m "$model" --const "$const" $args $bounded_args --bounded "$step_bound" --heuristic $heuristic --validate;
+      done
+
+.reach_test: &reach_test_template
+  <<: *test_template
+  script:
+    - for heuristic in $heuristics; do
+        $tool reachability -m "$model" -p "$property_file" --property "$property" --const "$const" $args --heuristic $heuristic --expected "$expected";
+      done
+
+
+Core Zeroconf:
+  variables:
+    <<: *core_variables
+    model: "data/models/zeroconf.nm"
+    const: "N=20,K=2,reset=false,err=0.01"
+    step_bound: 25
+    bounded_heuristics: WEIGHTED GRAPH_WEIGHTED
+    bounded_args: --bounded-update dense
+  <<: *core_test_template
+
+Core BRP:
+  variables:
+    <<: *core_variables
+    model: "data/models/brp.pm"
+    const: "N=10,MAX=20"
+    unbounded_heuristics: WEIGHTED GRAPH_WEIGHTED
+    bounded_heuristics: ''
+  <<: *core_test_template
+
+Core Cyclin:
+  variables:
+    <<: *core_variables
+    model: "data/models/cyclin.sm"
+    const: "N=3"
+    args: --uniformization 30
+    unbounded_heuristics: ''
+    bounded_heuristics: WEIGHTED
+  <<: *core_test_template
+
+Core Philosophers:
+  variables:
+    <<: *core_variables
+    model: "data/models/phil-nofair3.nm"
+    step_bound: 10
+    bounded_args: --bounded-update dense
+  <<: *core_test_template
+
+
+Reach Rabin:
+  variables:
+    <<: *reach_variables
+    model: "data/models/rabin.10.prism"
+    property_file: "data/properties/rabin.10.props"
+    property: "live"
+    expected: "1.0"
+  <<: *reach_test_template

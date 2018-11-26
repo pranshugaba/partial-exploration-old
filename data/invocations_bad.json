@@ -1,0 +1,114 @@
+[
+  {
+    "benchmark-id": "haddad-monmege.100-0.7.target",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --relative-error --only-result -m haddad-monmege.pm -p haddad-monmege.prctl --property target --const N=100,p=0.7"
+    ]
+  },
+  {
+    "benchmark-id": "csma.3-4.some_before",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --relative-error --only-result -m csma.3-4.prism -p csma.props --property some_before "
+    ]
+  },
+  {
+    "benchmark-id": "pacman.60.crash",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --relative-error --only-result -m pacman.nm -p pacman.props --property crash --const MAXSTEPS=60"
+    ]
+  },
+  {
+    "benchmark-id": "pacman.100.crash",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --relative-error --only-result -m pacman.nm -p pacman.props --property crash --const MAXSTEPS=100"
+    ]
+  },
+  {
+    "benchmark-id": "crowds.5-20.positive",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --only-result -m crowds.prism -p crowds.props --property positive --const TotalRuns=5,CrowdSize=20"
+    ]
+  },
+  {
+    "benchmark-id": "crowds.6-20.positive",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --only-result -m crowds.prism -p crowds.props --property positive --const TotalRuns=6,CrowdSize=20"
+    ]
+  },
+  {
+    "benchmark-id": "egl.10-2.unfairA",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --only-result -m egl.prism -p egl.props --property unfairA --const N=10,L=2"
+    ]
+  },
+  {
+    "benchmark-id": "egl.10-8.unfairA",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --only-result -m egl.prism -p egl.props --property unfairA --const N=10,L=8"
+    ]
+  },
+  {
+    "benchmark-id": "nand.40-4.reliable",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --only-result -m nand.prism -p nand.props --property reliable --const N=40,K=4"
+    ]
+  },
+  {
+    "benchmark-id": "nand.60-4.reliable",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --only-result -m nand.prism -p nand.props --property reliable --const N=60,K=4"
+    ]
+  },
+  {
+    "benchmark-id": "consensus.4-4.disagree",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --only-result -m consensus.4.prism -p consensus.props --property disagree -const K=4"
+    ]
+  },
+  {
+    "benchmark-id": "consensus.4-4.steps_min",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --only-result -m consensus.4.prism -p consensus.props --property steps_min -const K=4"
+    ]
+  },
+  {
+    "benchmark-id": "consensus.6-2.disagree",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --only-result -m consensus.6.prism -p consensus.props --property disagree -const K=2"
+    ]
+  },
+  {
+    "benchmark-id": "consensus.6-2.steps_min",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --only-result -m consensus.6.prism -p consensus.props --property steps_min -const K=2"
+    ]
+  }
+]

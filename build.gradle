@@ -27,10 +27,10 @@ repositories {
     mavenCentral()
 }
 
-project.archivesBaseName = 'prism-heuristics'
-project.mainClassName = 'de.tum.in.prism.core.CoreChecker'
-project.sourceCompatibility = JavaVersion.VERSION_1_8
-project.targetCompatibility = JavaVersion.VERSION_1_8
+project.archivesBaseName = 'pet'
+project.mainClassName = 'de.tum.in.pet.PET'
+project.sourceCompatibility = JavaVersion.VERSION_11
+project.targetCompatibility = JavaVersion.VERSION_11
 
 def defaultEncoding = 'UTF-8'
 
@@ -44,11 +44,11 @@ tasks.withType(Javadoc) {
 }
 
 tasks.withType(JavaExec) {
-    environment "LD_LIBRARY_PATH", "prism/prism/lib"
+    environment "LD_LIBRARY_PATH", "$project.buildDir/lib"
 }
 
 dependencies {
-    implementation files("lib/prism/prism/classes")
+    implementation files("$project.buildDir/lib/prism.jar")
 
     // https://github.com/google/guava
     implementation 'com.google.guava:guava:27.0-jre'
@@ -72,8 +72,62 @@ dependencies {
 }
 
 test {
-    environment "LD_LIBRARY_PATH", "prism/prism/lib"
+    environment "LD_LIBRARY_PATH", "lib/prism/prism/lib"
     useJUnitPlatform()
+}
+
+//noinspection GroovyAssignabilityCheck
+task prismJar(type: Jar) {
+    baseName = 'prism'
+    destinationDir = file("$project.buildDir/lib")
+    from "$project.rootDir/lib/prism/prism/src"
+    from "$project.rootDir/lib/prism/prism/classes"
+    from {
+        file("$project.rootDir/lib/prism/prism/lib/")
+                .list { file, name -> name.endsWith(".jar") }
+                .collect { zipTree("$project.rootDir/lib/prism/prism/lib/" + it) }
+    }
+}
+
+task prismNatives(type: Copy) {
+    from "lib/prism/prism/lib"
+    include "*.so"
+    into "$project.buildDir/lib/"
+}
+
+task prism {
+    dependsOn prismJar, prismNatives
+}
+
+tasks.withType(JavaCompile) {
+    dependsOn prism
+}
+
+applicationDefaultJvmArgs = ["-Djava.util.logging.config.file=config/logging.properties"]
+
+task extractScriptTemplates {
+    doLast {
+        file("config/template-unix.default.txt").text =
+                startScripts.unixStartScriptGenerator.template.asString()
+        file("config/template-windows.default.txt").text =
+                startScripts.windowsStartScriptGenerator.template.asString()
+    }
+}
+
+startScripts {
+    unixStartScriptGenerator.template = resources.text.fromFile('config/template-unix.txt')
+    windowsStartScriptGenerator.template = resources.text.fromFile('config/template-windows.txt')
+}
+
+distributions {
+    main {
+        contents {
+            from("$project.buildDir/lib/") {
+                include "*.so"
+                into "lib"
+            }
+        }
+    }
 }
 
 // PMD
@@ -106,10 +160,10 @@ checkstyle {
     showViolations = false // Don't litter console
     checkstyleMain {
         configProperties = ['suppression-file':
-                                "$project.rootDir/config/checkstyle-main-suppression.xml"]
+                                    "$project.rootDir/config/checkstyle-main-suppression.xml"]
     }
     checkstyleTest {
         configProperties = ['suppression-file':
-                                "$project.rootDir/config/checkstyle-test-suppression.xml"]
+                                    "$project.rootDir/config/checkstyle-test-suppression.xml"]
     }
 }

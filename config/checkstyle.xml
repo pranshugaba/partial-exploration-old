@@ -180,10 +180,10 @@
             <property name="lineWrappingIndentation" value="0"/>
             <property name="forceStrictCondition" value="false"/>
         </module>
-        <module name="AbbreviationAsWordInName">
+        <!-- <module name="AbbreviationAsWordInName">
             <property name="ignoreFinal" value="false"/>
             <property name="allowedAbbreviationLength" value="1"/>
-        </module>
+        </module> -->
         <!-- <module name="OverloadMethodsDeclarationOrder"/> -->
         <module name="VariableDeclarationUsageDistance"/>
         <module name="CustomImportOrder">
@@ -257,11 +257,7 @@
 
     <!-- Custom modifications -->
 
-    <!-- Require package-info.java -->
-    <module name="JavadocPackage"/>
-
     <module name="SuppressWarningsFilter"/>
-
     <!-- Add suppression file support -->
     <module name="SuppressionFilter">
         <property name="file" value="${suppression-file}"/>

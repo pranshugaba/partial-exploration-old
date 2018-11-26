@@ -4,12 +4,10 @@ Set-up Instructions
 1. Clone the repository
 2. Run `git submodule update --init` to populate `lib/prism`
 3. Run `make` in `lib/prism/prism`
-4. Import project in IntelliJ, enable gradle auto-import
-5. Go to `Project structure` -> `Libraries` -> `+ New Project Library` and add `lib/prism/prism/classes` as a new library
-6. Optional: Add `lib/prism/prism/src` as sources
-7. Run `./gradlew compileJava` to process all annotations and generate the code
+4. Run `./gradlew compileJava` to create the prism.jar and run the annotation processor
+5. Import project in IntelliJ, enable gradle auto-import
 
-Note: Project Library has to be added whenever the project is synced with gradle!
+Note: `./gradlew compileJava` has to be run whenever some of the annotation processor classes is changed.
 
 Example Configurations
 ======================

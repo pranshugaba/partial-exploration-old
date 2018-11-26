@@ -5,10 +5,8 @@
     "http://www.puppycrawl.com/dtds/suppressions_1_0.dtd">
 
 <suppressions>
-    <!-- Suppress everything for generated files -->
-    <suppress files="owl[\\/]grammar[\\/]" checks=".*"/>
-
-    <suppress files="FG.*|.+2.+" checks="AbbreviationAsWordInName"/>
+    <!-- Suppress everything for generated files
+    <suppress files="owl[\\/]grammar[\\/]" checks=".*"/> -->
 
     <!-- Soon we will doc everything ... -->
     <suppress checks="JavadocMethod" files=".*"/>
