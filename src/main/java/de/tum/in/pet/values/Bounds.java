@@ -49,10 +49,10 @@ public abstract class Bounds {
       return "[?]";
     }
     if (lowerBound() == upperBound()) {
-      return String.format("=%.3g", lowerBound());
+      return String.format("=%.5g", lowerBound());
     }
 
-    return String.format("[%.3g,%.3g]", lowerBound(), upperBound());
+    return String.format("[%.5g,%.5g]", lowerBound(), upperBound());
   }
 
 

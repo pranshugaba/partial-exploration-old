@@ -77,17 +77,17 @@ Build:
       done
 
 
-Core Zeroconf:
+Core Zeroconf.20-2-0:
   variables:
     <<: *core_variables
-    model: "data/models/zeroconf.nm"
-    const: "N=20,K=2,reset=false,err=0.01"
+    model: "data/models/zeroconf.prism"
+    const: "N=20,K=2,reset=false"
     step_bound: 25
     bounded_heuristics: WEIGHTED GRAPH_WEIGHTED
     bounded_args: --bounded-update dense
   <<: *core_test_template
 
-Core BRP:
+Core BRP.10-20:
   variables:
     <<: *core_variables
     model: "data/models/brp.pm"
@@ -96,7 +96,7 @@ Core BRP:
     bounded_heuristics: ''
   <<: *core_test_template
 
-Core Cyclin:
+Core Cyclin.3:
   variables:
     <<: *core_variables
     model: "data/models/cyclin.sm"
@@ -106,7 +106,7 @@ Core Cyclin:
     bounded_heuristics: WEIGHTED
   <<: *core_test_template
 
-Core Philosophers:
+Core Philosophers-Nofair.3:
   variables:
     <<: *core_variables
     model: "data/models/phil-nofair3.nm"
@@ -115,11 +115,51 @@ Core Philosophers:
   <<: *core_test_template
 
 
-Reach Rabin:
+Rabin.10.live:
   variables:
     <<: *reach_variables
     model: "data/models/rabin.10.prism"
     property_file: "data/properties/rabin.10.props"
     property: "live"
     expected: "1.0"
+  <<: *reach_test_template
+
+Pnueli-Zuck.10.live:
+  variables:
+    <<: *reach_variables
+    model: "data/models/pnueli-zuck.10.prism"
+    property_file: "data/properties/pnueli-zuck.props"
+    property: "live"
+    expected: "1.0"
+  <<: *reach_test_template
+
+Wlan.3.sent:
+  variables:
+    <<: *reach_variables
+    model: "data/models/wlan.2.prism"
+    const: "COL=0"
+    property_file: "data/properties/wlan.props"
+    property: "sent"
+    expected: "true"
+    heuristics: WEIGHTED GRAPH_WEIGHTED
+  <<: *reach_test_template
+
+Zeroconf.1000-8-0.correct_max:
+  variables:
+    <<: *reach_variables
+    model: "data/models/zeroconf.prism"
+    const: "N=1000,K=8,reset=false"
+    property_file: "data/properties/zeroconf.props"
+    property: "correct_max"
+    expected: "4.80141363507243e-8"
+  <<: *reach_test_template
+
+Zeroconf.1000-8-0.correct_min:
+  variables:
+    <<: *reach_variables
+    model: "data/models/zeroconf.prism"
+    const: "N=1000,K=8,reset=false"
+    property_file: "data/properties/zeroconf.props"
+    property: "correct_min"
+    expected: "5.040105212929839e-9"
   <<: *reach_test_template

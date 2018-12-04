@@ -1,5 +1,7 @@
 package de.tum.in.pet.implementation.reachability;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.InitialValues;
@@ -25,19 +27,23 @@ public class StateUpdateReachability implements StateUpdate, InitialValues {
   }
 
   @Override
-  public Bounds update(int state, List<Distribution> choices, StateValueFunction values) {
+  public Bounds update(int state, List<Distribution> choices, StateValueFunction values)
+      throws PrismException {
     assert update != ValueUpdateType.UNIQUE_VALUE || choices.size() <= 1;
+
+    if (values.lowerBound(state) == 1.0d) {
+      assert values.upperBound(state) == 1.0d;
+      return Bounds.ONE_ONE;
+    }
+    if (values.upperBound(state) == 0.0d) {
+      assert values.lowerBound(state) == 0.0d;
+      return Bounds.ZERO_ZERO;
+    }
+    assert !target.isTargetState(numberToStateFunction.apply(state));
 
     if (choices.isEmpty()) {
       return Bounds.ZERO_ZERO;
     }
-    if (values.lowerBound(state) == 1.0d) {
-      return Bounds.ONE_ONE;
-    }
-    if (values.upperBound(state) == 0.0d) {
-      return Bounds.ZERO_ZERO;
-    }
-
     if (choices.size() == 1) {
       return values.bounds(state, choices.get(0));
     }
@@ -48,11 +54,12 @@ public class StateUpdateReachability implements StateUpdate, InitialValues {
       newLowerBound = 0.0d;
       newUpperBound = 0.0d;
       for (Distribution distribution : choices) {
-        double upperBound = values.upperBound(state, distribution);
+        Bounds bounds = values.bounds(state, distribution);
+        double upperBound = bounds.upperBound();
         if (upperBound > newUpperBound) {
           newUpperBound = upperBound;
         }
-        double lowerBound = values.lowerBound(state, distribution);
+        double lowerBound = bounds.lowerBound();
         if (lowerBound > newLowerBound) {
           newLowerBound = lowerBound;
         }
@@ -63,11 +70,12 @@ public class StateUpdateReachability implements StateUpdate, InitialValues {
       newUpperBound = 1.0d;
       newLowerBound = 1.0d;
       for (Distribution distribution : choices) {
-        double upperBound = values.upperBound(state, distribution);
+        Bounds bounds = values.bounds(state, distribution);
+        double upperBound = bounds.upperBound();
         if (upperBound < newUpperBound) {
           newUpperBound = upperBound;
         }
-        double lowerBound = values.lowerBound(state, distribution);
+        double lowerBound = bounds.lowerBound();
         if (lowerBound < newLowerBound) {
           newLowerBound = lowerBound;
         }
@@ -80,9 +88,10 @@ public class StateUpdateReachability implements StateUpdate, InitialValues {
   @Override
   public Bounds updateCollapsed(int state, List<Distribution> choices,
       IntCollection collapsedStates, StateValueFunction values) throws PrismException {
-    assert update != ValueUpdateType.MIN_VALUE || choices.isEmpty();
+    if (update == ValueUpdateType.MIN_VALUE) {
+      checkArgument(choices.isEmpty());
+    }
 
-    // TODO This is wrong in general for MIN.
     IntIterator iterator = collapsedStates.iterator();
     while (iterator.hasNext()) {
       int next = iterator.nextInt();

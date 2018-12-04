@@ -216,14 +216,30 @@ public final class ReachChecker {
         } else if (value instanceof Double) {
           double computed = (Double) value;
           double expected = Double.parseDouble(expressionExpected.get(index));
-          double difference = Math.abs(expected - computed);
-          if (difference >= precision) {
-            System.out.printf("Expected %.6g but got %.6g (difference %.6g > precision %.6g%n",
-                expected, computed, difference, precision);
-            System.exit(1);
+          if (relativeError) {
+            double expectedLower = (1 - precision) * expected;
+            double expectedUpper = (1 + precision) * expected;
+            if (computed < expectedLower || computed > expectedUpper) {
+              System.out.printf("Expected in range [%.6g, %.6g] but got %.6g, "
+                      + "actual precision %.6g > required precision %.6g%n",
+                  expectedLower, expectedUpper, computed,
+                  Math.abs(1 - computed / expected), precision);
+              System.exit(1);
+            } else {
+              System.out.printf("Expected in range [%.6g, %.6g], got %.6g, "
+                      + "actual precision: %.6g%n",
+                  computed, expectedLower, expectedUpper, Math.abs(1 - computed / expected));
+            }
           } else {
-            System.out.printf("Expected %.6g, got %.6g, actual precision: %.6g%n",
-                expected, computed, difference);
+            double difference = Math.abs(expected - computed);
+            if (difference >= precision) {
+              System.out.printf("Expected %.6g but got %.6g (difference %.6g > precision %.6g%n",
+                  expected, computed, difference, precision);
+              System.exit(1);
+            } else {
+              System.out.printf("Expected %.6g, got %.6g, actual precision: %.6g%n",
+                  expected, computed, difference);
+            }
           }
         }
       }
