@@ -17,13 +17,11 @@ public class QualitativeVerdict implements StateVerdict, StateInterpretation {
   public boolean isSolved(int state, Bounds bounds) {
     switch (type) {
       case GREATER_OR_EQUAL:
-        return bounds.lowerBound() >= threshold || bounds.upperBound() < threshold;
-      case GREATER_THAN:
-        return bounds.lowerBound() > threshold || bounds.upperBound() <= threshold;
-      case LESS_OR_EQUAL:
-        return bounds.upperBound() <= threshold || bounds.lowerBound() > threshold;
       case LESS_THAN:
-        return bounds.upperBound() < threshold || bounds.lowerBound() >= threshold;
+        return threshold <= bounds.lowerBound() || bounds.upperBound() < threshold;
+      case GREATER_THAN:
+      case LESS_OR_EQUAL:
+        return threshold < bounds.lowerBound() || bounds.upperBound() <= threshold;
       default:
         throw new AssertionError();
     }
@@ -35,9 +33,9 @@ public class QualitativeVerdict implements StateVerdict, StateInterpretation {
 
     switch (type) {
       case GREATER_OR_EQUAL:
-        return bounds.lowerBound() >= threshold;
+        return threshold <= bounds.lowerBound();
       case GREATER_THAN:
-        return bounds.lowerBound() > threshold;
+        return threshold < bounds.lowerBound();
       case LESS_OR_EQUAL:
         return bounds.upperBound() <= threshold;
       case LESS_THAN:

@@ -3,10 +3,14 @@ package de.tum.in.pet;
 import de.tum.in.pet.implementation.core.CoreChecker;
 import de.tum.in.pet.implementation.reachability.ReachChecker;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import prism.PrismException;
 
 @SuppressWarnings("PMD")
 public final class PET {
+  private static final Logger logger = Logger.getLogger(PET.class.getName());
+
   private PET() {}
 
   public static void main(String... args) throws IOException, PrismException {
@@ -14,6 +18,8 @@ public final class PET {
       System.out.println("I need a sub-tool (reachability, core)");
       System.exit(1);
     }
+
+    logger.log(Level.FINE, "Invocation:\n{0}", String.join(" ", args));
 
     // TODO Ugly :-)
     String[] subArgs = new String[args.length - 1];

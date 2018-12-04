@@ -109,6 +109,8 @@ public class UnboundedSampler<M extends Model> {
       }
     }
 
+    writeDotModel("test.dot", null);
+
     long elapsedTime = System.nanoTime() - timer;
 
     logger.log(Level.INFO, () ->
@@ -315,7 +317,11 @@ public class UnboundedSampler<M extends Model> {
 
       assert explorer.isExploredState(representative);
       // Delete information of all collapsed states
-      collapseStates.forEach((IntConsumer) stateValues::clear);
+      collapseStates.forEach((int s) -> {
+        if (s != representative) {
+          stateValues.clear(s);
+        }
+      });
       // Update
       stateUpdate.updateCollapsed(representative, collapseModel.getChoices(representative),
           collapseStates, stateValues);
