@@ -1,5 +1,29 @@
 [
   {
+    "benchmark-id": "wlan.4-0.sent",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --relative-error --only-result -m wlan.4.prism -p wlan.props --property sent --const COL=0"
+    ]
+  },
+  {
+    "benchmark-id": "wlan.5-0.sent",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --relative-error --only-result -m wlan.5.prism -p wlan.props --property sent --const COL=0"
+    ]
+  },
+  {
+    "benchmark-id": "wlan.6-0.sent",
+    "invocation-id": "default",
+    "invocation-note": "Default settings.",
+    "commands": [
+      "./pet/bin/pet reachability --precision 0.001 --relative-error --only-result -m wlan.6.prism -p wlan.props --property sent --const COL=0"
+    ]
+  },
+  {
     "benchmark-id": "haddad-monmege.100-0.7.target",
     "invocation-id": "default",
     "invocation-note": "Default settings.",
