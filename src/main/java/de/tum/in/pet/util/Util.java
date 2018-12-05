@@ -15,8 +15,6 @@ import de.tum.in.pet.sampler.AnnotatedModel;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.values.StateValueFunction;
 import explicit.MDPSimple;
-import explicit.rewards.MDPRewards;
-import explicit.rewards.MDPRewardsSimple;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
@@ -36,9 +34,6 @@ import java.util.Map;
 import java.util.function.IntPredicate;
 import java.util.function.IntToDoubleFunction;
 import java.util.function.ToDoubleFunction;
-import parser.State;
-import prism.ModelGenerator;
-import prism.PrismException;
 
 public final class Util {
   public static final double DEFAULT_PRECISION = 1e-6;
@@ -192,7 +187,7 @@ public final class Util {
   }
 
   public static void modelWithBoundsToDotFile(String filename,
-      Model model, Explorer<?> explorer, StateValueFunction values, IntPredicate stateFilter,
+      Model model, Explorer<?, ?> explorer, StateValueFunction values, IntPredicate stateFilter,
       IntPredicate highlight) {
     modelWithBoundsToDotFile(filename, new AnnotatedModel<>(model, explorer::getState,
         explorer.exploredStates()), values, stateFilter, highlight);
@@ -282,29 +277,6 @@ public final class Util {
     } catch (IOException e) {
       throw new AssertionError(e);
     }
-  }
-
-  public static MDPRewards buildRewards(Explorer<MDP> explorer, int rewardIndex)
-      throws PrismException {
-    MDP partialModel = explorer.model();
-    ModelGenerator generator = explorer.generator();
-
-    int states = partialModel.getNumStates();
-    MDPRewardsSimple rewards = new MDPRewardsSimple(states);
-
-    for (int stateNumber = 0; stateNumber < states; stateNumber++) {
-      State state = explorer.getState(stateNumber);
-      double stateReward = generator.getStateReward(rewardIndex, state);
-      rewards.setStateReward(stateNumber, stateReward);
-
-      int choices = partialModel.getNumChoices(stateNumber);
-      for (int action = 0; action < choices; action++) {
-        Object actionLabel = partialModel.getAction(stateNumber, action);
-        rewards.setTransitionReward(stateNumber, action,
-            generator.getStateActionReward(rewardIndex, state, actionLabel));
-      }
-    }
-    return rewards;
   }
 
   public static RestrictedMdp buildRestrictedModel(MDP mdp, IntSet states) {

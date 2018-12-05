@@ -4,37 +4,36 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import parser.State;
 
-public class StateToIndex {
-  private final Object2IntMap<State> stateMap = new Object2IntOpenHashMap<>();
-  private final Int2ObjectMap<State> indexMap = new Int2ObjectOpenHashMap<>();
+public class StateToIndex<S> {
+  private final Object2IntMap<S> stateMap = new Object2IntOpenHashMap<>();
+  private final Int2ObjectMap<S> indexMap = new Int2ObjectOpenHashMap<>();
 
   public StateToIndex() {
     stateMap.defaultReturnValue(-1);
   }
 
-  public void addState(State state, int number) {
-    assert !indexMap.containsKey(number);
-    stateMap.put(state, number);
-    indexMap.put(number, state);
+  public void addState(S state, int stateId) {
+    assert !indexMap.containsKey(stateId);
+    stateMap.put(state, stateId);
+    indexMap.put(stateId, state);
   }
 
-  public int getStateNumber(State state) {
+  public int getStateId(S state) {
     return stateMap.getInt(state);
   }
 
-  public boolean check(int stateNumber) {
-    return indexMap.containsKey(stateNumber)
-        && stateMap.getInt(indexMap.get(stateNumber)) == stateNumber;
+  public boolean check(int stateId) {
+    return indexMap.containsKey(stateId)
+        && stateMap.getInt(indexMap.get(stateId)) == stateId;
   }
 
-  public boolean contains(State state) {
+  public boolean contains(S state) {
     return stateMap.containsKey(state);
   }
 
-  public State getState(int stateNumber) {
-    return indexMap.get(stateNumber);
+  public S getState(int stateId) {
+    return indexMap.get(stateId);
   }
 
   public int size() {

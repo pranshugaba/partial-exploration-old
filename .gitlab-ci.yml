@@ -163,3 +163,52 @@ Zeroconf.1000-8-0.correct_min:
     property: "correct_min"
     expected: "5.040105212929839e-9"
   <<: *reach_test_template
+
+Csma.3-2.some_before:
+  variables:
+    <<: *reach_variables
+    model: "data/models/csma.3-2.prism"
+    property_file: "data/properties/csma.props"
+    property: "some_before"
+    expected: "0.5859375"
+  <<: *reach_test_template
+
+Csma.3-2.all_before_min:
+  variables:
+    <<: *reach_variables
+    model: "data/models/csma.3-2.prism"
+    property_file: "data/properties/csma.props"
+    property: "all_before_min"
+    expected: "0.43496662487687193"
+  <<: *reach_test_template
+
+Csma.3-2.all_before_max:
+  variables:
+    <<: *reach_variables
+    model: "data/models/csma.3-2.prism"
+    property_file: "data/properties/csma.props"
+    property: "all_before_max"
+    expected: "0.8596150364756961"
+  <<: *reach_test_template
+
+Embedded.8-12.actuators:
+  variables:
+    <<: *reach_variables
+    model: "data/models/embedded.prism"
+    const: "MAX_COUNT=8,T=12"
+    property_file: "data/properties/embedded.props"
+    property: "actuators"
+    expected: "0.1053036557931282"
+    heuristics: DIFFERENCE
+  <<: *reach_test_template
+
+Polling.8-16.actuators:
+  variables:
+    <<: *reach_variables
+    model: "data/models/polling.8.prism"
+    const: "T=16"
+    property_file: "data/properties/polling.props"
+    property: "s1_before_s2"
+    expected: "0.5405549556"
+    heuristics: WEIGHTED
+  <<: *reach_test_template

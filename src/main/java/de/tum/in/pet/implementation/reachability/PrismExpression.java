@@ -2,8 +2,10 @@ package de.tum.in.pet.implementation.reachability;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import de.tum.in.pet.util.annotation.Tuple;
 import de.tum.in.pet.values.StateInterpretation;
 import de.tum.in.pet.values.StateVerdict;
+import org.immutables.value.Value;
 import parser.Values;
 import parser.ast.Expression;
 import parser.ast.ExpressionProb;
@@ -14,12 +16,22 @@ import prism.OpRelOpBound;
 import prism.PrismException;
 import prism.PrismLangException;
 
-public final class ReachabilityQueryUtil {
-  private ReachabilityQueryUtil() {}
+// TODO Connection with target predicate?
 
-  public static ReachabilityQuery create(Expression expression, Values values, double precision,
-      boolean relativeError)
-      throws PrismException {
+@Value.Immutable
+@Tuple
+public abstract class PrismExpression<R> {
+  public abstract ExpressionTemporal expression();
+
+  public abstract StateVerdict verdict();
+
+  public abstract ValueUpdateType updateType();
+
+  public abstract StateInterpretation<R> interpretation();
+
+
+  public static PrismExpression parse(Expression expression, Values values,
+      double precision, boolean relativeError) throws PrismException {
     checkArgument(expression instanceof ExpressionProb,
         "Could not construct a predicate from %s.", expression);
     ExpressionQuant expressionQuant = (ExpressionQuant) expression;
@@ -27,19 +39,16 @@ public final class ReachabilityQueryUtil {
       checkArgument(expressionQuant.getExpression().isSimplePathFormula(),
           "Property %s is not a simple path formula", expression);
     } catch (PrismLangException e) {
-      throw new IllegalArgumentException(e);
+      throw new IllegalArgumentException("Internal PRISM error", e);
     }
     checkArgument(expressionQuant.getExpression() instanceof ExpressionTemporal,
         "Property %s is not a temporal formula", expression);
 
     ExpressionTemporal expressionTemporal =
         (ExpressionTemporal) expressionQuant.getExpression();
-
-    checkArgument(expressionTemporal.getOperator() == ExpressionTemporal.P_F,
-        "Property %s is not an F formula", expression);
     OpRelOpBound boundInfo = expressionQuant.getRelopBoundInfo(values);
-
     RelOp relOp = expressionQuant.getRelOp();
+
     StateVerdict verdict;
     ValueUpdateType updateType;
     switch (relOp) {
@@ -74,9 +83,14 @@ public final class ReachabilityQueryUtil {
       default:
         throw new AssertionError();
     }
+    // TODO
+    StateInterpretation<?> interpretation = (StateInterpretation<?>) verdict;
+    return PrismExpressionTuple.create(expressionTemporal, verdict, updateType, interpretation);
+  }
 
-    PrismTargetPredicate predicate = new PrismTargetPredicate(expressionTemporal);
-    return ReachabilityQueryTuple.create(predicate, updateType, verdict,
-        (StateInterpretation) verdict);
+
+  @Override
+  public String toString() {
+    return "[" + updateType() + "/" + verdict() + "]";
   }
 }

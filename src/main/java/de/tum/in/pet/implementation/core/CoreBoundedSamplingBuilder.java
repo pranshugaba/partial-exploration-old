@@ -30,13 +30,13 @@ import java.util.stream.IntStream;
 import prism.PrismComponent;
 import prism.PrismException;
 
-public class CoreBoundedSamplingBuilder<M extends Model> {
+public class CoreBoundedSamplingBuilder<S, M extends Model> {
   private static final Logger logger = Logger.getLogger(CoreBoundedSamplingBuilder.class.getName());
 
   private static final long REPORT_PROGRESS_EVERY_STEPS = 10000000;
 
   protected final PrismComponent prism;
-  protected final Explorer<M> explorer;
+  protected final Explorer<S, M> explorer;
 
   private final SuccessorHeuristic heuristic;
   private final int stepBound;
@@ -47,7 +47,7 @@ public class CoreBoundedSamplingBuilder<M extends Model> {
   private long samples = 0;
   private long longestPath = 0;
 
-  public CoreBoundedSamplingBuilder(PrismComponent prism, Explorer<M> explorer, int stepBound,
+  public CoreBoundedSamplingBuilder(PrismComponent prism, Explorer<S, M> explorer, int stepBound,
       double precision, SuccessorHeuristic heuristic, StateValuesBounded stateValuesBounded) {
     this.prism = prism;
     this.explorer = explorer;
@@ -57,7 +57,7 @@ public class CoreBoundedSamplingBuilder<M extends Model> {
     this.stateValuesBounded = stateValuesBounded;
   }
 
-  public Explorer<M> getExplorer() {
+  public Explorer<S, M> getExplorer() {
     return explorer;
   }
 
@@ -87,7 +87,7 @@ public class CoreBoundedSamplingBuilder<M extends Model> {
         sampleFrom(initialState);
         timeInSampling += (System.nanoTime() - sampleTime);
 
-        int currentStateCount = explorer.model().getNumStates();
+        int currentStateCount = explorer.exploredStateCount();
         int newStatesSinceFullCheck = currentStateCount - statesInLastFullCheck;
 
         if (stateValuesBounded instanceof StateValuesBoundedCoreDense) {
@@ -190,7 +190,6 @@ public class CoreBoundedSamplingBuilder<M extends Model> {
 
     M model = explorer.model();
     int numStates = model.getNumStates();
-
     PredecessorRelation predecessorRelation = model.getPredecessorRelation(prism, false);
 
     // Initialize

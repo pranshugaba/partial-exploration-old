@@ -1,0 +1,8 @@
+// Expected P = 0.5
+"true_until": P=? [ s<8 U s=8 ];
+
+// Expected P = 0
+"false_until": P=? [ s=3 U s=8 ];
+
+// Expected P = 0.5
+"nonzero_reach": P=? [ F s=8 ];

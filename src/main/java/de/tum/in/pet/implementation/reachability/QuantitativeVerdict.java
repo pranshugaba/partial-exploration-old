@@ -4,7 +4,7 @@ import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.StateInterpretation;
 import de.tum.in.pet.values.StateVerdict;
 
-public class QuantitativeVerdict implements StateVerdict, StateInterpretation {
+public class QuantitativeVerdict implements StateVerdict, StateInterpretation<Double> {
   private final double precision;
   private final boolean relativeError;
 
@@ -14,7 +14,7 @@ public class QuantitativeVerdict implements StateVerdict, StateInterpretation {
   }
 
   @Override
-  public boolean isSolved(int state, Bounds bounds) {
+  public boolean isSolved(Bounds bounds) {
     if (relativeError) {
       return bounds.upperBound() <= bounds.lowerBound() * (1 + precision)
           && bounds.lowerBound() >= bounds.upperBound() * (1 - precision);
@@ -23,8 +23,8 @@ public class QuantitativeVerdict implements StateVerdict, StateInterpretation {
   }
 
   @Override
-  public Object interpret(int state, Bounds bounds) {
-    assert isSolved(state, bounds);
+  public Double interpret(Bounds bounds) {
+    assert isSolved(bounds);
 
     return bounds.average();
   }
