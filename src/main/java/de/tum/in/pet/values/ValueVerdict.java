@@ -1,6 +1,6 @@
 package de.tum.in.pet.values;
 
 @FunctionalInterface
-public interface StateVerdict {
+public interface ValueVerdict {
   boolean isSolved(Bounds bounds);
 }

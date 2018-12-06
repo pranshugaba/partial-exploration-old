@@ -11,14 +11,12 @@ import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.model.Model;
 import de.tum.in.pet.util.Util;
 import de.tum.in.pet.values.Bounds;
-import de.tum.in.pet.values.InitialValues;
-import de.tum.in.pet.values.StateUpdate;
-import de.tum.in.pet.values.StateValues;
-import de.tum.in.pet.values.StateVerdict;
+import de.tum.in.pet.values.ValueVerdict;
+import de.tum.in.pet.values.unbounded.StateUpdate;
+import de.tum.in.pet.values.unbounded.StateValues;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntCollection;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -28,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
 import java.util.function.ToDoubleFunction;
 import java.util.logging.Level;
@@ -37,11 +34,10 @@ import javax.annotation.Nullable;
 import prism.PrismException;
 
 @SuppressWarnings("PMD.TooManyFields")
-public class UnboundedSampler<S, M extends Model> {
+public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
   // TODO: Currently getDifference(unexplored state) always returns [0, 1] - intended?
 
-  private static final Logger logger =
-      Logger.getLogger(UnboundedSampler.class.getName());
+  private static final Logger logger = Logger.getLogger(UnboundedSampler.class.getName());
 
   private static final long MAX_EXPLORES_PER_SAMPLE = 10;
   private static final long MAX_BACK_TRACE_PER_SAMPLE = 5;
@@ -49,9 +45,9 @@ public class UnboundedSampler<S, M extends Model> {
 
   private final Explorer<S, M> explorer;
   private final CollapseModel<M> collapseModel;
-  private final InitialValues<S> initialValues;
   private final StateUpdate stateUpdate;
-  private final StateVerdict verdict;
+  private final ValueVerdict verdict;
+
   private final ComponentAnalyser analyser;
   private final NatBitSet statesInComponents = NatBitSets.set();
 
@@ -68,37 +64,38 @@ public class UnboundedSampler<S, M extends Model> {
   private long backtraceSteps = 0;
 
   public UnboundedSampler(Explorer<S, M> explorer, StateValues stateValues,
-      SuccessorHeuristic heuristic, InitialValues<S> initialValues, StateUpdate stateUpdate,
-      StateVerdict verdict, ComponentAnalyser analyser) {
+      SuccessorHeuristic heuristic, StateUpdate stateUpdate,
+      ValueVerdict verdict, ComponentAnalyser analyser) {
     this.explorer = explorer;
     this.stateValues = stateValues;
     this.heuristic = heuristic;
     this.collapseModel = new CollapseView<>(explorer.model());
-    this.initialValues = initialValues;
     this.stateUpdate = stateUpdate;
     this.verdict = verdict;
     this.analyser = analyser;
   }
 
+  @Override
   public Explorer<S, M> explorer() {
     return explorer;
   }
 
-  public AnnotatedModel<M> getModel() {
+  @Override
+  public AnnotatedModel<M> model() {
     return new AnnotatedModel<>(explorer.model(),
         explorer::getState, explorer.exploredStates().clone());
   }
 
+  @Override
   public Bounds bounds(int state) {
     return stateValues.bounds(state);
   }
 
+  @Override
   public void build() throws PrismException {
     long timer = System.nanoTime();
 
-    IntCollection initialStates = new IntArrayList();
-    explorer.initialStates().forEach((IntConsumer) initialStates::add);
-    for (int initialState : initialStates) {
+    for (int initialState : explorer.initialStates()) {
       // The representative of the initial states might be a different state
       int representative = collapseModel.representative(initialState);
       while (!isSolved(representative)) {
@@ -132,6 +129,7 @@ public class UnboundedSampler<S, M extends Model> {
     IntList visitedStates = new IntArrayList();
     IntStack visitStack = (IntStack) visitedStates;
     IntSet visitedStateSet = new IntOpenHashSet();
+
     int currentState = initialState;
     int exploreCount = 0;
     int sampleBacktraceCount = 0;
@@ -177,12 +175,12 @@ public class UnboundedSampler<S, M extends Model> {
       } else {
         if (!explorer.isExploredState(nextState)) {
           if (exploreCount == MAX_EXPLORES_PER_SAMPLE) {
-            // Explored along this path long enough
             break;
           }
           exploreCount += 1;
           explore(nextState);
         }
+
         currentState = nextState;
       }
     }
@@ -244,8 +242,7 @@ public class UnboundedSampler<S, M extends Model> {
   private void explore(int state) throws PrismException {
     assert !explorer.isExploredState(state);
     newStatesSinceCollapse = true;
-    S object = explorer.exploreState(state);
-    stateValues.setBounds(state, initialValues.initialValues(object));
+    explorer.exploreState(state);
   }
 
 

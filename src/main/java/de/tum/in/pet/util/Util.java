@@ -13,7 +13,7 @@ import de.tum.in.pet.model.MDP;
 import de.tum.in.pet.model.Model;
 import de.tum.in.pet.sampler.AnnotatedModel;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
-import de.tum.in.pet.values.StateValueFunction;
+import de.tum.in.pet.values.unbounded.StateValueFunction;
 import explicit.MDPSimple;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
@@ -56,8 +56,8 @@ public final class Util {
   }
 
   public static int sampleNextState(List<Distribution> choices, SuccessorHeuristic heuristic,
-      ToDoubleFunction<Distribution> selectionScore, IntToDoubleFunction differences,
-      IntPredicate ignoreStates) {
+      ToDoubleFunction<Distribution> selectionScore, IntToDoubleFunction successorDifferences,
+      IntPredicate ignoreSuccessors) {
     if (choices.isEmpty()) {
       return -1;
     }
@@ -68,10 +68,10 @@ public final class Util {
 
       for (Distribution choice : choices) {
         choice.forEach(entry -> {
-          if (ignoreStates.test(entry.getIntKey())) {
+          if (ignoreSuccessors.test(entry.getIntKey())) {
             return;
           }
-          double value = differences.applyAsDouble(entry.getIntKey());
+          double value = successorDifferences.applyAsDouble(entry.getIntKey());
           if (heuristic == SuccessorHeuristic.GRAPH_WEIGHTED) {
             value *= entry.getDoubleValue();
           }
@@ -132,7 +132,7 @@ public final class Util {
     }
     if (distribution.size() == 1) {
       int successor = distribution.support().firstInt();
-      return ignoreStates.test(successor) ? -1 : successor;
+      return ignoreSuccessors.test(successor) ? -1 : successor;
     }
 
     // Selected the action, now sample the successor
@@ -145,18 +145,18 @@ public final class Util {
     IntIterator iterator = support.iterator();
     while (iterator.hasNext()) {
       int successor = iterator.nextInt();
-      if (ignoreStates.test(successor)) {
+      if (ignoreSuccessors.test(successor)) {
         continue;
       }
 
       successors[index] = successor;
       switch (heuristic) {
         case DIFFERENCE:
-          successorValues[index] = differences.applyAsDouble(successor);
+          successorValues[index] = successorDifferences.applyAsDouble(successor);
           break;
         case WEIGHTED:
           successorValues[index] = distribution.get(successor)
-              * differences.applyAsDouble(successor);
+              * successorDifferences.applyAsDouble(successor);
           break;
         case PROB:
           successorValues[index] = distribution.get(successor);
@@ -168,7 +168,7 @@ public final class Util {
     }
 
     int sample = Sample.sample(successorValues, index);
-    assert sample == -1 || !ignoreStates.test(successors[sample]);
+    assert sample == -1 || !ignoreSuccessors.test(successors[sample]);
     return sample == -1 ? -1 : successors[sample];
   }
 

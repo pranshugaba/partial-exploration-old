@@ -5,7 +5,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.util.Util;
 import de.tum.in.pet.values.Bounds;
-import de.tum.in.pet.values.StateValues;
+import de.tum.in.pet.values.unbounded.StateValues;
 import it.unimi.dsi.fastutil.ints.Int2DoubleLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -86,16 +86,10 @@ public class StateValuesUnboundedCore implements StateValues {
   }
 
 
-  @Override
   public void setZero(int state) {
     bounds.remove(state);
     zeroStates.add(state);
     assert upperBound(state) == 0.0d;
-  }
-
-  @Override
-  public void setOne(int state) {
-    checkArgument(upperBound(state) == 1.0d);
   }
 
 

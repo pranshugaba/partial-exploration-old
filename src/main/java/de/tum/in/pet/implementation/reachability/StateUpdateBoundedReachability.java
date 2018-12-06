@@ -1,35 +1,32 @@
 package de.tum.in.pet.implementation.reachability;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
-import de.tum.in.pet.values.unbounded.StateUpdate;
-import de.tum.in.pet.values.unbounded.StateValueFunction;
-import it.unimi.dsi.fastutil.ints.IntCollection;
-import it.unimi.dsi.fastutil.ints.IntIterator;
+import de.tum.in.pet.values.bounded.StateUpdateBounded;
+import de.tum.in.pet.values.bounded.StateValuesBoundedFunction;
 import java.util.List;
 import java.util.function.IntPredicate;
 
-public class StateUpdateReachability implements StateUpdate {
+public class StateUpdateBoundedReachability implements StateUpdateBounded  {
   private final IntPredicate target;
   private final ValueUpdate update;
 
-  public StateUpdateReachability(IntPredicate target, ValueUpdate update) {
+  public StateUpdateBoundedReachability(IntPredicate target, ValueUpdate update) {
     this.target = target;
     this.update = update;
   }
 
   @Override
-  public Bounds update(int state, List<Distribution> choices, StateValueFunction values) {
+  public Bounds update(int state, int remainingSteps, List<Distribution> choices,
+      StateValuesBoundedFunction values) {
     assert update != ValueUpdate.UNIQUE_VALUE || choices.size() <= 1;
 
-    if (values.lowerBound(state) == 1.0d) {
-      assert values.upperBound(state) == 1.0d;
+    if (values.lowerBound(state, remainingSteps) == 1.0d) {
+      assert values.upperBound(state, remainingSteps) == 1.0d;
       return Bounds.ONE_ONE;
     }
-    if (values.upperBound(state) == 0.0d) {
-      assert values.lowerBound(state) == 0.0d;
+    if (values.upperBound(state, remainingSteps) == 0.0d) {
+      assert values.lowerBound(state, remainingSteps) == 0.0d;
       return Bounds.ZERO_ZERO;
     }
     assert !target.test(state);
@@ -37,8 +34,9 @@ public class StateUpdateReachability implements StateUpdate {
     if (choices.isEmpty()) {
       return Bounds.ZERO_ZERO;
     }
+
     if (choices.size() == 1) {
-      return values.bounds(state, choices.get(0));
+      return values.bounds(state, remainingSteps, choices.get(0));
     }
 
     double newLowerBound;
@@ -47,7 +45,7 @@ public class StateUpdateReachability implements StateUpdate {
       newLowerBound = 0.0d;
       newUpperBound = 0.0d;
       for (Distribution distribution : choices) {
-        Bounds bounds = values.bounds(state, distribution);
+        Bounds bounds = values.bounds(state, remainingSteps, distribution);
         double upperBound = bounds.upperBound();
         if (upperBound > newUpperBound) {
           newUpperBound = upperBound;
@@ -63,7 +61,7 @@ public class StateUpdateReachability implements StateUpdate {
       newUpperBound = 1.0d;
       newLowerBound = 1.0d;
       for (Distribution distribution : choices) {
-        Bounds bounds = values.bounds(state, distribution);
+        Bounds bounds = values.bounds(state, remainingSteps, distribution);
         double upperBound = bounds.upperBound();
         if (upperBound < newUpperBound) {
           newUpperBound = upperBound;
@@ -76,27 +74,5 @@ public class StateUpdateReachability implements StateUpdate {
     }
     assert newLowerBound <= newUpperBound;
     return Bounds.of(newLowerBound, newUpperBound);
-  }
-
-  @Override
-  public Bounds updateCollapsed(int state, List<Distribution> choices,
-      IntCollection collapsedStates, StateValueFunction values) {
-    if (update == ValueUpdate.MIN_VALUE) {
-      checkArgument(choices.isEmpty());
-    }
-
-    IntIterator iterator = collapsedStates.iterator();
-    while (iterator.hasNext()) {
-      int next = iterator.nextInt();
-      if (target.test(next)) {
-        return Bounds.ONE_ONE;
-      }
-    }
-    return update(state, choices, values);
-  }
-
-  @Override
-  public boolean isSmallestFixPoint() {
-    return update == ValueUpdate.MIN_VALUE;
   }
 }

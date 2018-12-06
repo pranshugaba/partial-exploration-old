@@ -1,6 +1,7 @@
-package de.tum.in.pet.values;
+package de.tum.in.pet.values.unbounded;
 
 import de.tum.in.pet.model.Distribution;
+import de.tum.in.pet.values.Bounds;
 
 @FunctionalInterface
 public interface StateValueFunction extends DifferenceFunction, LowerBoundsFunction,

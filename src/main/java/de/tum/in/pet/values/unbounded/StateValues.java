@@ -1,4 +1,8 @@
-package de.tum.in.pet.values;
+package de.tum.in.pet.values.unbounded;
+
+import de.tum.in.pet.values.Bounds;
+import it.unimi.dsi.fastutil.ints.IntCollection;
+import java.util.function.IntConsumer;
 
 public interface StateValues extends StateValueFunction {
   default void setUpperBound(int state, double value) {
@@ -15,15 +19,9 @@ public interface StateValues extends StateValueFunction {
 
   void setBounds(int state, double lowerBound, double upperBound);
 
-
-  default void setZero(int state) {
-    setBounds(state, 0.0d, 0.0d);
-  }
-
-  default void setOne(int state) {
-    setBounds(state, 1.0d, 1.0d);
-  }
-
-
   void clear(int state);
+
+  default void clear(IntCollection states) {
+    states.forEach((IntConsumer) this::clear);
+  }
 }
