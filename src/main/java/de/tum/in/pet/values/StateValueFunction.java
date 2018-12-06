@@ -3,8 +3,8 @@ package de.tum.in.pet.values;
 import de.tum.in.pet.model.Distribution;
 
 @FunctionalInterface
-public interface StateValueFunction extends DifferenceFunction,
-    LowerBoundsFunction, UpperBoundsFunction {
+public interface StateValueFunction extends DifferenceFunction, LowerBoundsFunction,
+    UpperBoundsFunction {
   Bounds bounds(int state);
 
   default Bounds bounds(int state, Distribution distribution) {

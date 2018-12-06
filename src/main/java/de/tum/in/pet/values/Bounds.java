@@ -51,6 +51,12 @@ public abstract class Bounds {
     if (lowerBound() == upperBound()) {
       return String.format("=%.5g", lowerBound());
     }
+    if (lowerBound() == 0.0d) {
+      return String.format("<%.5g", upperBound());
+    }
+    if (upperBound() == 1.0d) {
+      return String.format(">%.5g", lowerBound());
+    }
 
     return String.format("[%.5g,%.5g]", lowerBound(), upperBound());
   }

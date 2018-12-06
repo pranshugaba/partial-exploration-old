@@ -34,11 +34,10 @@ import java.util.function.ToDoubleFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
-import parser.State;
 import prism.PrismException;
 
 @SuppressWarnings("PMD.TooManyFields")
-public class UnboundedSampler<M extends Model> {
+public class UnboundedSampler<S, M extends Model> {
   // TODO: Currently getDifference(unexplored state) always returns [0, 1] - intended?
 
   private static final Logger logger =
@@ -48,9 +47,9 @@ public class UnboundedSampler<M extends Model> {
   private static final long MAX_BACK_TRACE_PER_SAMPLE = 5;
   private static final long REPORT_PROGRESS_EVERY_STEPS = 500000;
 
-  private final Explorer<M> explorer;
+  private final Explorer<S, M> explorer;
   private final CollapseModel<M> collapseModel;
-  private final InitialValues initialValues;
+  private final InitialValues<S> initialValues;
   private final StateUpdate stateUpdate;
   private final StateVerdict verdict;
   private final ComponentAnalyser analyser;
@@ -68,8 +67,8 @@ public class UnboundedSampler<M extends Model> {
   private long backtraceCount = 0;
   private long backtraceSteps = 0;
 
-  public UnboundedSampler(Explorer<M> explorer, StateValues stateValues,
-      SuccessorHeuristic heuristic, InitialValues initialValues, StateUpdate stateUpdate,
+  public UnboundedSampler(Explorer<S, M> explorer, StateValues stateValues,
+      SuccessorHeuristic heuristic, InitialValues<S> initialValues, StateUpdate stateUpdate,
       StateVerdict verdict, ComponentAnalyser analyser) {
     this.explorer = explorer;
     this.stateValues = stateValues;
@@ -81,13 +80,17 @@ public class UnboundedSampler<M extends Model> {
     this.analyser = analyser;
   }
 
-  public Explorer<M> explorer() {
+  public Explorer<S, M> explorer() {
     return explorer;
   }
 
   public AnnotatedModel<M> getModel() {
     return new AnnotatedModel<>(explorer.model(),
         explorer::getState, explorer.exploredStates().clone());
+  }
+
+  public Bounds bounds(int state) {
+    return stateValues.bounds(state);
   }
 
   public void build() throws PrismException {
@@ -109,7 +112,7 @@ public class UnboundedSampler<M extends Model> {
       }
     }
 
-    writeDotModel("test.dot", null);
+    // writeDotModel("test.dot", null);
 
     long elapsedTime = System.nanoTime() - timer;
 
@@ -119,7 +122,7 @@ public class UnboundedSampler<M extends Model> {
   }
 
   private boolean isSolved(int state) {
-    return verdict.isSolved(state, stateValues.bounds(state));
+    return verdict.isSolved(stateValues.bounds(state));
   }
 
 
@@ -183,9 +186,10 @@ public class UnboundedSampler<M extends Model> {
         currentState = nextState;
       }
     }
+    assert visitedStateSet.equals(new IntOpenHashSet(visitedStates));
 
     // Handle end components
-    if (visitedStates.contains(currentState)) {
+    if (visitedStateSet.contains(currentState)) {
       // Sampled the same state twice
       assert explorer.isExploredState(currentState);
       loopCount += 1;
@@ -197,7 +201,7 @@ public class UnboundedSampler<M extends Model> {
 
         loopCount = 0;
         // Some arbitrary increasing number - collapsing is expensive
-        collapseThreshold = explorer.exploredStates().size();
+        collapseThreshold += explorer.exploredStates().size();
 
         if (anythingChanged) {
           // The path could now contain invalid states (i.e. some which have been merged), we have
@@ -233,14 +237,14 @@ public class UnboundedSampler<M extends Model> {
     return Util.sampleNextState(choices, heuristic,
         selectionScore,
         stateValues::difference,
-        s -> s == state || verdict.isSolved(s, stateValues.bounds(s)));
+        s -> s == state || verdict.isSolved(stateValues.bounds(s)));
     // CSON: Indentation
   }
 
   private void explore(int state) throws PrismException {
     assert !explorer.isExploredState(state);
     newStatesSinceCollapse = true;
-    State object = explorer.exploreState(state);
+    S object = explorer.exploreState(state);
     stateValues.setBounds(state, initialValues.initialValues(object));
   }
 
@@ -332,10 +336,11 @@ public class UnboundedSampler<M extends Model> {
 
   private String getProgressString() {
     Int2ObjectMap<Bounds> initialStateValues = new Int2ObjectAVLTreeMap<>();
-    explorer.model().getInitialStates().forEach((int initialState) -> {
+    explorer.initialStates().forEach((int initialState) -> {
       int collapsedRepresentative = collapseModel.representative(initialState);
       initialStateValues.put(initialState, stateValues.bounds(collapsedRepresentative));
     });
+    // writeDotModel("test.dot", null);
 
     return String.format("  Trials: %d, steps: %d, avg len: %f, backtrace count: %d, steps: %d%n"
             + "  States: %d/%d in partial/collapsed model (%d fringe states)%n"
@@ -348,6 +353,7 @@ public class UnboundedSampler<M extends Model> {
 
   @SuppressWarnings("PMD.UnusedPrivateMethod")
   private void writeDotModel(String filename, @Nullable IntPredicate highlight) {
+    logger.log(Level.WARNING, "Writing model as dot file!");
     IntPredicate nonRemovedStates = s -> !collapseModel.isRemoved(s);
     Util.modelWithBoundsToDotFile(filename, collapseModel, explorer, stateValues,
         nonRemovedStates, highlight);

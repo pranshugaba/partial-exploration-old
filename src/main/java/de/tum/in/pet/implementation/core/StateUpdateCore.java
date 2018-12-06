@@ -8,9 +8,8 @@ import de.tum.in.pet.values.StateValueFunction;
 import de.tum.in.pet.values.StateVerdict;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import java.util.List;
-import parser.State;
 
-public class StateUpdateCore implements StateUpdate, InitialValues, StateVerdict {
+public class StateUpdateCore<S> implements StateUpdate, InitialValues<S>, StateVerdict {
   private final double precision;
 
   public StateUpdateCore(double precision) {
@@ -46,12 +45,12 @@ public class StateUpdateCore implements StateUpdate, InitialValues, StateVerdict
   }
 
   @Override
-  public boolean isSolved(int state, Bounds bounds) {
+  public boolean isSolved(Bounds bounds) {
     return bounds.upperBound() < precision;
   }
 
   @Override
-  public Bounds initialValues(State state) {
+  public Bounds initialValues(S state) {
     return Bounds.ZERO_ONE;
   }
 }

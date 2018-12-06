@@ -7,11 +7,13 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import de.tum.in.naturals.set.DefaultNatBitSetFactory;
 import de.tum.in.naturals.set.NatBitSets;
-import de.tum.in.pet.explorer.DefaultDTMCExplorer;
-import de.tum.in.pet.explorer.DefaultMDPExplorer;
-import de.tum.in.pet.explorer.EmbeddingCTMCExplorer;
+import de.tum.in.pet.explorer.DefaultExplorer;
 import de.tum.in.pet.explorer.Explorer;
-import de.tum.in.pet.explorer.UniformizingCTMCExplorer;
+import de.tum.in.pet.generator.CtmcEmbeddingGenerator;
+import de.tum.in.pet.generator.CtmcUniformizingGenerator;
+import de.tum.in.pet.generator.DtmcGenerator;
+import de.tum.in.pet.generator.Generator;
+import de.tum.in.pet.generator.MdpGenerator;
 import de.tum.in.pet.graph.MecComponentAnalyser;
 import de.tum.in.pet.graph.SccComponentAnalyser;
 import de.tum.in.pet.model.DTMC;
@@ -53,6 +55,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import parser.State;
 import parser.ast.Expression;
 import parser.ast.ModulesFile;
 import prism.ModelGenerator;
@@ -70,8 +73,6 @@ public final class CoreChecker {
   private CoreChecker() {}
 
   public static void main(String... args) throws IOException, PrismException {
-    logger.log(Level.INFO, "Args: {0}", String.join(" ", args));
-
     Option precisionOption = new Option(null, "precision", true, "Precision");
     Option completeOption = new Option(null, "complete", false, "Build complete model");
     Option completeAnalysisOption = new Option(null, "complete-analysis", false,
@@ -273,10 +274,12 @@ public final class CoreChecker {
         logger.log(Level.INFO, "Building unbounded MDP core");
 
         Timer timer = new Timer("unbounded");
-        Explorer<MDP> explorer = new DefaultMDPExplorer(generator);
+        Explorer<State, MDP> explorer =
+            new DefaultExplorer<>(new MDP(), new MdpGenerator(generator));
         StateValuesUnboundedCore stateValues = new StateValuesUnboundedCore();
-        StateUpdateCore stateUpdate = new StateUpdateCore(precision);
-        UnboundedSampler<MDP> unboundedBuilder = new UnboundedSampler<>(explorer, stateValues,
+        StateUpdateCore<State> stateUpdate = new StateUpdateCore<>(precision);
+        UnboundedSampler<State, MDP> unboundedBuilder = new UnboundedSampler<>(explorer,
+            stateValues,
             heuristic, stateUpdate, stateUpdate, stateUpdate, new MecComponentAnalyser());
         unboundedBuilder.build();
         AnnotatedModel<? extends MDP> unboundedPartial = unboundedBuilder.getModel();
@@ -293,8 +296,9 @@ public final class CoreChecker {
         logger.log(Level.INFO, "Building {0}-bounded sampling MDP core", stepBound);
 
         Timer timer = new Timer("bounded");
-        Explorer<MDP> mdpExplorer = new DefaultMDPExplorer(generator);
-        CoreBoundedSamplingBuilder<MDP> boundedBuilder =
+        Explorer<State, MDP> mdpExplorer =
+            new DefaultExplorer<>(new MDP(), new MdpGenerator(generator));
+        CoreBoundedSamplingBuilder<State, MDP> boundedBuilder =
             new CoreBoundedSamplingBuilder<>(prism, mdpExplorer, stepBound, precision, heuristic,
                 boundedUpdateSupplier.get());
         AnnotatedModel<? extends MDP> boundedPartial = boundedBuilder.build();
@@ -335,10 +339,11 @@ public final class CoreChecker {
         logger.log(Level.INFO, "Building unbounded DTMC core");
 
         Timer timer = new Timer("unbounded");
-        Explorer<DTMC> explorer = new DefaultDTMCExplorer(generator);
+        Explorer<State, DTMC> explorer =
+            new DefaultExplorer<>(new DTMC(), new DtmcGenerator(generator));
         StateValuesUnboundedCore stateValues = new StateValuesUnboundedCore();
-        StateUpdateCore stateUpdate = new StateUpdateCore(precision);
-        UnboundedSampler<DTMC> unboundedSamplingBuilder = new UnboundedSampler<>(explorer,
+        StateUpdateCore<State> stateUpdate = new StateUpdateCore<>(precision);
+        UnboundedSampler<State, DTMC> unboundedSamplingBuilder = new UnboundedSampler<>(explorer,
             stateValues, heuristic, stateUpdate, stateUpdate, stateUpdate,
             new SccComponentAnalyser());
         unboundedSamplingBuilder.build();
@@ -375,8 +380,9 @@ public final class CoreChecker {
         logger.log(Level.INFO, "Building {0}-bounded sampling DTMC core", stepBound);
 
         Timer samplingTimer = new Timer("bounded sampling");
-        DefaultDTMCExplorer explorer = new DefaultDTMCExplorer(generator);
-        CoreBoundedSamplingBuilder<DTMC> boundedSamplingBuilder =
+        Explorer<State, DTMC> explorer =
+            new DefaultExplorer<>(new DTMC(), new DtmcGenerator(generator));
+        CoreBoundedSamplingBuilder<State, DTMC> boundedSamplingBuilder =
             new CoreBoundedSamplingBuilder<>(prism, explorer, stepBound, precision, heuristic,
                 boundedUpdateSupplier.get());
         AnnotatedModel<? extends DTMC> boundedSamplingPartial = boundedSamplingBuilder.build();
@@ -420,13 +426,14 @@ public final class CoreChecker {
 
         Timer timer = new Timer("unbounded");
 
-        Explorer<DTMC> explorer = ctmcUniformRate == null
-            ? new EmbeddingCTMCExplorer(generator)
-            : new UniformizingCTMCExplorer(generator, ctmcUniformRate);
+        Generator<State> stateGenerator = ctmcUniformRate == null
+            ? new CtmcEmbeddingGenerator(generator)
+            : new CtmcUniformizingGenerator(generator, ctmcUniformRate);
+        Explorer<State, DTMC> explorer = new DefaultExplorer<>(new DTMC(), stateGenerator);
         StateValuesUnboundedCore stateValues = new StateValuesUnboundedCore();
-        StateUpdateCore stateUpdate = new StateUpdateCore(precision);
-        UnboundedSampler<DTMC> sampler = new UnboundedSampler<>(explorer, stateValues, heuristic,
-            stateUpdate, stateUpdate, stateUpdate, new SccComponentAnalyser());
+        StateUpdateCore<State> stateUpdate = new StateUpdateCore<>(precision);
+        UnboundedSampler<State, DTMC> sampler = new UnboundedSampler<>(explorer, stateValues,
+            heuristic, stateUpdate, stateUpdate, stateUpdate, new SccComponentAnalyser());
         sampler.build();
         AnnotatedModel<? extends DTMC> unboundedPartial = sampler.getModel();
         construction.add(timer.finish(unboundedPartial.exploredStates.size()));
@@ -443,10 +450,12 @@ public final class CoreChecker {
 
         Timer samplingTimer = new Timer("bounded sampling");
 
-        Explorer<DTMC> explorer = ctmcUniformRate == null
-            ? new EmbeddingCTMCExplorer(generator)
-            : new UniformizingCTMCExplorer(generator, ctmcUniformRate);
-        CoreBoundedSamplingBuilder<? extends DTMC> boundedSamplingBuilder =
+        Generator<State> stateGenerator = ctmcUniformRate == null
+            ? new CtmcEmbeddingGenerator(generator)
+            : new CtmcUniformizingGenerator(generator, ctmcUniformRate);
+        Explorer<State, DTMC> explorer = new DefaultExplorer<>(new DTMC(), stateGenerator);
+
+        CoreBoundedSamplingBuilder<State, ? extends DTMC> boundedSamplingBuilder =
             new CoreBoundedSamplingBuilder<>(prism, explorer, stepBound, precision, heuristic,
                 boundedUpdateSupplier.get());
 

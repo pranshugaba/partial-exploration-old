@@ -3,6 +3,7 @@ package de.tum.in.pet.implementation.reachability;
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.pet.model.Distribution;
+import de.tum.in.pet.util.Util;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.StateValues;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -21,9 +22,9 @@ public class StateValuesUnboundedReachability implements StateValues {
     if (oneStates.contains(state)) {
       return Bounds.ONE_ONE;
     }
-    return bounds.getOrDefault(state, Bounds.ZERO_ONE);
+    Bounds bounds = this.bounds.get(state);
+    return bounds == null ? Bounds.ZERO_ONE : bounds;
   }
-
 
   @Override
   public double upperBound(int state, Distribution distribution) {
@@ -51,8 +52,9 @@ public class StateValuesUnboundedReachability implements StateValues {
 
     Bounds newBounds = Bounds.of(lowerBound, upperBound);
     Bounds oldBounds = bounds.put(state, newBounds);
-    assert oldBounds == null || (oldBounds.lowerBound() <= newBounds.lowerBound()
-        && newBounds.upperBound() <= oldBounds.upperBound()) :
+    assert oldBounds == null
+        || (Util.doublesAreLessOrEqual(oldBounds.lowerBound(), newBounds.lowerBound())
+        && Util.doublesAreLessOrEqual(newBounds.upperBound(), oldBounds.upperBound())) :
         "Updating from " + oldBounds + " to " + newBounds;
   }
 

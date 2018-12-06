@@ -19,7 +19,7 @@ public final class PET {
       System.exit(1);
     }
 
-    logger.log(Level.FINE, "Invocation:\n{0}", String.join(" ", args));
+    logger.log(Level.INFO, "Invocation:\n{0}", String.join(" ", args));
 
     // TODO Ugly :-)
     String[] subArgs = new String[args.length - 1];

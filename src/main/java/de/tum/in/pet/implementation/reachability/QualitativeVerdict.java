@@ -4,7 +4,7 @@ import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.StateInterpretation;
 import de.tum.in.pet.values.StateVerdict;
 
-public class QualitativeVerdict implements StateVerdict, StateInterpretation {
+public class QualitativeVerdict implements StateVerdict, StateInterpretation<Boolean> {
   private final QualitativeQuery type;
   private final double threshold;
 
@@ -14,7 +14,7 @@ public class QualitativeVerdict implements StateVerdict, StateInterpretation {
   }
 
   @Override
-  public boolean isSolved(int state, Bounds bounds) {
+  public boolean isSolved(Bounds bounds) {
     switch (type) {
       case GREATER_OR_EQUAL:
       case LESS_THAN:
@@ -28,8 +28,8 @@ public class QualitativeVerdict implements StateVerdict, StateInterpretation {
   }
 
   @Override
-  public Object interpret(int state, Bounds bounds) {
-    assert isSolved(state, bounds);
+  public Boolean interpret(Bounds bounds) {
+    assert isSolved(bounds);
 
     switch (type) {
       case GREATER_OR_EQUAL:

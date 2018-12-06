@@ -2,8 +2,9 @@ package de.tum.in.pet.implementation.core;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
-import de.tum.in.pet.explorer.DefaultDTMCExplorer;
+import de.tum.in.pet.explorer.DefaultExplorer;
 import de.tum.in.pet.explorer.Explorer;
+import de.tum.in.pet.generator.DtmcGenerator;
 import de.tum.in.pet.model.DTMC;
 import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.sampler.AnnotatedModel;
@@ -17,6 +18,7 @@ import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import parser.State;
 import prism.ModelGenerator;
 import prism.PrismException;
 
@@ -24,20 +26,20 @@ public class BoundedDTMCCoreIterativeBuilder {
   private static final Logger logger =
       Logger.getLogger(BoundedDTMCCoreIterativeBuilder.class.getName());
 
-  private final Explorer<DTMC> explorer;
+  private final Explorer<State, DTMC> explorer;
   private final int stepBound;
   private final double precision;
 
   public BoundedDTMCCoreIterativeBuilder(ModelGenerator generator, int stepBound, double precision)
       throws PrismException {
-    this.explorer = new DefaultDTMCExplorer(generator);
+    this.explorer = new DefaultExplorer<>(new DTMC(), new DtmcGenerator(generator));
     this.stepBound = stepBound;
     this.precision = precision;
   }
 
   public AnnotatedModel<DTMC> build() throws PrismException {
     logger.log(Level.INFO, () -> String.format("Building iterative core for step bound %d and "
-            + "precision %g", stepBound, precision));
+        + "precision %g", stepBound, precision));
 
     long timer = System.nanoTime();
 

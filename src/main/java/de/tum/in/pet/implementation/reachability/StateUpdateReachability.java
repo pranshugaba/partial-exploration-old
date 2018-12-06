@@ -11,15 +11,14 @@ import it.unimi.dsi.fastutil.ints.IntCollection;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import java.util.List;
 import java.util.function.IntFunction;
-import parser.State;
-import prism.PrismException;
+import java.util.function.Predicate;
 
-public class StateUpdateReachability implements StateUpdate, InitialValues {
-  private final IntFunction<State> numberToStateFunction;
-  private final TargetPredicate target;
+public class StateUpdateReachability<S> implements StateUpdate, InitialValues<S> {
+  private final IntFunction<S> numberToStateFunction;
+  private final Predicate<S> target;
   private final ValueUpdateType update;
 
-  public StateUpdateReachability(IntFunction<State> numberToStateFunction, TargetPredicate target,
+  public StateUpdateReachability(IntFunction<S> numberToStateFunction, Predicate<S> target,
       ValueUpdateType update) {
     this.numberToStateFunction = numberToStateFunction;
     this.target = target;
@@ -27,8 +26,7 @@ public class StateUpdateReachability implements StateUpdate, InitialValues {
   }
 
   @Override
-  public Bounds update(int state, List<Distribution> choices, StateValueFunction values)
-      throws PrismException {
+  public Bounds update(int state, List<Distribution> choices, StateValueFunction values) {
     assert update != ValueUpdateType.UNIQUE_VALUE || choices.size() <= 1;
 
     if (values.lowerBound(state) == 1.0d) {
@@ -39,7 +37,7 @@ public class StateUpdateReachability implements StateUpdate, InitialValues {
       assert values.lowerBound(state) == 0.0d;
       return Bounds.ZERO_ZERO;
     }
-    assert !target.isTargetState(numberToStateFunction.apply(state));
+    assert !target.test(numberToStateFunction.apply(state)) : values.bounds(state);
 
     if (choices.isEmpty()) {
       return Bounds.ZERO_ZERO;
@@ -87,7 +85,7 @@ public class StateUpdateReachability implements StateUpdate, InitialValues {
 
   @Override
   public Bounds updateCollapsed(int state, List<Distribution> choices,
-      IntCollection collapsedStates, StateValueFunction values) throws PrismException {
+      IntCollection collapsedStates, StateValueFunction values) {
     if (update == ValueUpdateType.MIN_VALUE) {
       checkArgument(choices.isEmpty());
     }
@@ -95,7 +93,7 @@ public class StateUpdateReachability implements StateUpdate, InitialValues {
     IntIterator iterator = collapsedStates.iterator();
     while (iterator.hasNext()) {
       int next = iterator.nextInt();
-      if (target.isTargetState(numberToStateFunction.apply(next))) {
+      if (target.test(numberToStateFunction.apply(next))) {
         return Bounds.ONE_ONE;
       }
     }
@@ -108,7 +106,7 @@ public class StateUpdateReachability implements StateUpdate, InitialValues {
   }
 
   @Override
-  public Bounds initialValues(State state) throws PrismException {
-    return target.isTargetState(state) ? Bounds.ONE_ONE : Bounds.ZERO_ONE;
+  public Bounds initialValues(S state) {
+    return target.test(state) ? Bounds.ONE_ONE : Bounds.ZERO_ONE;
   }
 }

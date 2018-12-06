@@ -1,22 +1,23 @@
 package de.tum.in.pet.explorer;
 
 import de.tum.in.naturals.set.NatBitSet;
+import de.tum.in.pet.model.Action;
 import de.tum.in.pet.model.Distribution;
 import explicit.Model;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import java.util.List;
-import parser.State;
-import prism.ModelGenerator;
 import prism.PrismException;
 
-public interface Explorer<M extends Model> {
+public interface Explorer<S, M extends Model> {
   IntCollection initialStates();
 
-  State exploreState(int state) throws PrismException;
+  S exploreState(int stateId) throws PrismException;
 
-  boolean isExploredState(int state);
+  boolean isExploredState(int stateId);
 
-  List<Distribution> getChoices(int state);
+  List<Action> getActions(int stateId);
+
+  List<Distribution> getChoices(int stateId);
 
 
   int exploredStateCount();
@@ -25,9 +26,9 @@ public interface Explorer<M extends Model> {
 
   M model();
 
-  ModelGenerator generator();
+  S getState(int stateId);
 
-  State getState(int state);
+  int getStateId(S state);
 
   default int fringeStateCount() {
     return model().getNumStates() - exploredStateCount();

@@ -2,7 +2,7 @@ package de.tum.in.pet.sampler;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
-import explicit.Model;
+import de.tum.in.pet.model.Model;
 import explicit.ModelExplicit;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,15 +14,21 @@ public class AnnotatedModel<M extends Model> {
   public final NatBitSet exploredStates;
   private NatBitSet fringeStates;
 
-  public AnnotatedModel(M model, IntFunction<State> stateToIndex, NatBitSet exploredStates) {
+  public AnnotatedModel(M model, IntFunction<?> stateToIndex, NatBitSet exploredStates) {
     this.model = model;
     this.exploredStates = NatBitSets.compact(exploredStates);
 
     if (model instanceof ModelExplicit) {
+      // TODO HACK
       int numStates = model.getNumStates();
       List<State> stateList = new ArrayList<>(numStates);
       for (int i = 0; i < numStates; i++) {
-        stateList.add(stateToIndex.apply(i));
+        Object state = stateToIndex.apply(i);
+        if (state instanceof State) {
+          stateList.add((State) state);
+        } else {
+          break;
+        }
       }
       ((ModelExplicit) model).setStatesList(stateList);
     }
