@@ -1,43 +1,31 @@
 package de.tum.in.pet.implementation.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import de.tum.in.pet.values.Bounds;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.Arrays;
+import java.util.function.IntPredicate;
 import prism.PrismUtils;
 
-public class StateValuesBoundedCoreApproximationSimple extends StateValuesBoundedCoreAbstract {
+public class StateValuesBoundedCoreApproximationSimple extends StateValuesBoundedCoreAbstract
+    implements ApproximationMarker {
   private static final int ONE_STEP_THRESHOLD = 4;
 
   private final Int2ObjectMap<double[]> stateBounds;
   private final int approximationWidth;
 
-  public StateValuesBoundedCoreApproximationSimple(int approximationWidth) {
+  public StateValuesBoundedCoreApproximationSimple(IntPredicate exploredState,
+      int approximationWidth) {
+    super(exploredState);
     assert ONE_STEP_THRESHOLD < approximationWidth;
     this.stateBounds = new Int2ObjectOpenHashMap<>();
     this.approximationWidth = approximationWidth;
   }
 
   @Override
-  public StepValuesAbstract<?> stepValues(int remainingSteps) {
-    return new StepValues(this, remainingSteps);
-  }
-
-  @Override
-  public void setZero(int state) {
-    super.setZero(state);
-    stateBounds.remove(state);
-  }
-
-  @Override
-  public void setOne(int state) {
-    checkArgument(!isZeroState(state) && !stateBounds.containsKey(state));
-  }
-
-
-  double getUpperBound(int state, int remainingSteps) {
+  public double upperBound(int state, int remainingSteps) {
+    if (!isExploredState(state)) {
+      return 1.0d;
+    }
     if (isZeroState(state) || remainingSteps <= 0) {
       return 0.0d;
     }
@@ -52,12 +40,15 @@ public class StateValuesBoundedCoreApproximationSimple extends StateValuesBounde
     return offset < values.length ? values[offset] : 1.0d;
   }
 
-  void setUpperBound(int state, int remainingSteps, double value) {
+  @Override
+  public void setUpperBound(int state, int remainingSteps, double value) {
+    assert isExploredState(state);
+
     if (remainingSteps <= 0) {
       return;
     }
     if (PrismUtils.doublesAreEqual(value, 1.0d)) {
-      assert PrismUtils.doublesAreEqual(getUpperBound(state, remainingSteps), 1.0d);
+      assert PrismUtils.doublesAreEqual(upperBound(state, remainingSteps), 1.0d);
       return;
     }
     if (value == 0.0d) {
@@ -91,17 +82,16 @@ public class StateValuesBoundedCoreApproximationSimple extends StateValuesBounde
       return;
     }
     // Check monotonicity of added value
-    assert value <= oldValue;
-    values[offset] = value;
+    //assert value <= oldValue : "Updating from " + oldValue + " to " + value;
+    //values[offset] = value;
 
     // Maintain monotonicity
-    for (int i = 0; i < offset; i++) {
-      if (values[offset] > value) {
-        values[offset] = value;
+    for (int i = 0; i <= offset; i++) {
+      if (values[i] > value) {
+        values[i] = value;
       }
     }
   }
-
 
   private int getOffset(int remainingSteps) {
     return remainingSteps < ONE_STEP_THRESHOLD
@@ -114,30 +104,5 @@ public class StateValuesBoundedCoreApproximationSimple extends StateValuesBounde
         || (remainingSteps % approximationWidth == 0);
     assert value == (getOffset(remainingSteps) < getOffset(remainingSteps + 1));
     return value;
-  }
-
-
-  private static class StepValues
-      extends StepValuesAbstract<StateValuesBoundedCoreApproximationSimple> {
-
-    StepValues(StateValuesBoundedCoreApproximationSimple values, int remainingSteps) {
-      super(values, remainingSteps);
-    }
-
-    @Override
-    public void setBounds(int state, double lowerBound, double upperBound) {
-      checkArgument(lowerBound == 0.0d);
-      values.setUpperBound(state, remainingSteps, upperBound);
-    }
-
-    @Override
-    public void clear(int state) {
-      values.clear(state);
-    }
-
-    @Override
-    public Bounds bounds(int state) {
-      return Bounds.of(0.0d, values.getUpperBound(state, remainingSteps));
-    }
   }
 }

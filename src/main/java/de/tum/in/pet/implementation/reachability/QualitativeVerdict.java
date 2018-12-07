@@ -1,10 +1,10 @@
 package de.tum.in.pet.implementation.reachability;
 
 import de.tum.in.pet.values.Bounds;
-import de.tum.in.pet.values.StateInterpretation;
-import de.tum.in.pet.values.StateVerdict;
+import de.tum.in.pet.values.ValueInterpretation;
+import de.tum.in.pet.values.ValueVerdict;
 
-public class QualitativeVerdict implements StateVerdict, StateInterpretation<Boolean> {
+public class QualitativeVerdict implements ValueVerdict, ValueInterpretation<Boolean> {
   private final QualitativeQuery type;
   private final double threshold;
 

@@ -3,8 +3,8 @@ package de.tum.in.pet.implementation.reachability;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import de.tum.in.pet.util.annotation.Tuple;
-import de.tum.in.pet.values.StateInterpretation;
-import de.tum.in.pet.values.StateVerdict;
+import de.tum.in.pet.values.ValueInterpretation;
+import de.tum.in.pet.values.ValueVerdict;
 import org.immutables.value.Value;
 import parser.Values;
 import parser.ast.Expression;
@@ -16,21 +16,32 @@ import prism.OpRelOpBound;
 import prism.PrismException;
 import prism.PrismLangException;
 
-// TODO Connection with target predicate?
-
 @Value.Immutable
 @Tuple
-public abstract class PrismExpression<R> {
+public abstract class PrismQuery<R> {
   public abstract ExpressionTemporal expression();
 
-  public abstract StateVerdict verdict();
+  public abstract int lowerBound();
 
-  public abstract ValueUpdateType updateType();
+  public abstract int upperBound();
 
-  public abstract StateInterpretation<R> interpretation();
+  public abstract QueryType<R> type();
 
 
-  public static PrismExpression parse(Expression expression, Values values,
+  private static int parseBound(Expression expression) throws PrismLangException {
+    try {
+      return expression.evaluateInt();
+    } catch (PrismLangException e) {
+      double doubleBound = expression.evaluateDouble();
+      int bound = (int) doubleBound;
+      if (doubleBound != (double) bound) {
+        throw e;
+      }
+      return bound;
+    }
+  }
+
+  public static PrismQuery parse(Expression expression, Values values,
       double precision, boolean relativeError) throws PrismException {
     checkArgument(expression instanceof ExpressionProb,
         "Could not construct a predicate from %s.", expression);
@@ -46,51 +57,82 @@ public abstract class PrismExpression<R> {
 
     ExpressionTemporal expressionTemporal =
         (ExpressionTemporal) expressionQuant.getExpression();
+
+    int lowerBound = 0;
+    int upperBound = Integer.MAX_VALUE;
+
+    if (expressionTemporal.getLowerBound() != null) {
+      lowerBound = parseBound(expressionTemporal.getLowerBound());
+      if (expressionTemporal.lowerBoundIsStrict()) {
+        lowerBound = lowerBound + 1;
+      }
+    }
+    if (expressionTemporal.getUpperBound() != null) {
+      upperBound = parseBound(expressionTemporal.getUpperBound());
+      if (expressionTemporal.upperBoundIsStrict()) {
+        upperBound = upperBound - 1;
+      }
+    }
+
     OpRelOpBound boundInfo = expressionQuant.getRelopBoundInfo(values);
     RelOp relOp = expressionQuant.getRelOp();
 
-    StateVerdict verdict;
-    ValueUpdateType updateType;
+    ValueVerdict verdict;
+    ValueUpdate updateType;
     switch (relOp) {
       case GT:
         verdict = new QualitativeVerdict(QualitativeQuery.GREATER_THAN, boundInfo.getBound());
-        updateType = ValueUpdateType.MIN_VALUE;
+        updateType = ValueUpdate.MIN_VALUE;
         break;
       case GEQ:
         verdict = new QualitativeVerdict(QualitativeQuery.GREATER_OR_EQUAL, boundInfo.getBound());
-        updateType = ValueUpdateType.MIN_VALUE;
+        updateType = ValueUpdate.MIN_VALUE;
         break;
       case MIN:
         verdict = new QuantitativeVerdict(precision, relativeError);
-        updateType = ValueUpdateType.MIN_VALUE;
+        updateType = ValueUpdate.MIN_VALUE;
         break;
       case LT:
         verdict = new QualitativeVerdict(QualitativeQuery.LESS_THAN, boundInfo.getBound());
-        updateType = ValueUpdateType.MAX_VALUE;
+        updateType = ValueUpdate.MAX_VALUE;
         break;
       case LEQ:
         verdict = new QualitativeVerdict(QualitativeQuery.LESS_OR_EQUAL, boundInfo.getBound());
-        updateType = ValueUpdateType.MAX_VALUE;
+        updateType = ValueUpdate.MAX_VALUE;
         break;
       case MAX:
         verdict = new QuantitativeVerdict(precision, relativeError);
-        updateType = ValueUpdateType.MAX_VALUE;
+        updateType = ValueUpdate.MAX_VALUE;
         break;
       case EQ:
         verdict = new QuantitativeVerdict(precision, relativeError);
-        updateType = ValueUpdateType.UNIQUE_VALUE;
+        updateType = ValueUpdate.UNIQUE_VALUE;
         break;
       default:
         throw new AssertionError();
     }
     // TODO
-    StateInterpretation<?> interpretation = (StateInterpretation<?>) verdict;
-    return PrismExpressionTuple.create(expressionTemporal, verdict, updateType, interpretation);
+    ValueInterpretation<?> interpretation = (ValueInterpretation<?>) verdict;
+
+    QueryType<?> type = QueryType.of(verdict, updateType, interpretation);
+    return PrismQueryTuple.create(expressionTemporal, lowerBound, upperBound, type);
   }
 
 
+  public boolean isBounded() {
+    return 0 < lowerBound() || upperBound() < Integer.MAX_VALUE;
+  }
+
   @Override
   public String toString() {
-    return "[" + updateType() + "/" + verdict() + "]";
+    return expression() + "[" + type() + "]"
+        + (isBounded() ? "[" + lowerBound() + ";" + upperBound() + "]" : "");
+  }
+
+
+  @Value.Check
+  protected void check() {
+    checkArgument(0 <= lowerBound());
+    checkArgument(lowerBound() <= upperBound());
   }
 }

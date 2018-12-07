@@ -2,14 +2,13 @@ package de.tum.in.pet.implementation.core;
 
 import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
-import de.tum.in.pet.values.InitialValues;
-import de.tum.in.pet.values.StateUpdate;
-import de.tum.in.pet.values.StateValueFunction;
-import de.tum.in.pet.values.StateVerdict;
+import de.tum.in.pet.values.ValueVerdict;
+import de.tum.in.pet.values.unbounded.StateUpdate;
+import de.tum.in.pet.values.unbounded.StateValueFunction;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import java.util.List;
 
-public class StateUpdateCore<S> implements StateUpdate, InitialValues<S>, StateVerdict {
+public class StateUpdateCore implements StateUpdate, ValueVerdict {
   private final double precision;
 
   public StateUpdateCore(double precision) {
@@ -47,10 +46,5 @@ public class StateUpdateCore<S> implements StateUpdate, InitialValues<S>, StateV
   @Override
   public boolean isSolved(Bounds bounds) {
     return bounds.upperBound() < precision;
-  }
-
-  @Override
-  public Bounds initialValues(S state) {
-    return Bounds.ZERO_ONE;
   }
 }

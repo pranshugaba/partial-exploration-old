@@ -2,6 +2,7 @@ package de.tum.in.pet.values;
 
 import de.tum.in.pet.util.annotation.Tuple;
 import org.immutables.value.Value;
+import prism.PrismUtils;
 
 @Value.Immutable
 @Tuple
@@ -69,6 +70,15 @@ public abstract class Bounds {
 
   public double average() {
     return (lowerBound() + upperBound()) / 2;
+  }
+
+  public boolean contains(Bounds other) {
+    return lowerBound() <= other.lowerBound() && other.upperBound() <= upperBound();
+  }
+
+  public boolean equalsUpTo(Bounds other) {
+    return PrismUtils.doublesAreEqual(lowerBound(), other.lowerBound())
+        && PrismUtils.doublesAreEqual(upperBound(), other.upperBound());
   }
 
 

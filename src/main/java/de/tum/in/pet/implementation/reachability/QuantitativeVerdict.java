@@ -1,10 +1,10 @@
 package de.tum.in.pet.implementation.reachability;
 
 import de.tum.in.pet.values.Bounds;
-import de.tum.in.pet.values.StateInterpretation;
-import de.tum.in.pet.values.StateVerdict;
+import de.tum.in.pet.values.ValueInterpretation;
+import de.tum.in.pet.values.ValueVerdict;
 
-public class QuantitativeVerdict implements StateVerdict, StateInterpretation<Double> {
+public class QuantitativeVerdict implements ValueVerdict, ValueInterpretation<Double> {
   private final double precision;
   private final boolean relativeError;
 

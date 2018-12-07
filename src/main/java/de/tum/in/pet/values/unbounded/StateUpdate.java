@@ -1,6 +1,7 @@
-package de.tum.in.pet.values;
+package de.tum.in.pet.values.unbounded;
 
 import de.tum.in.pet.model.Distribution;
+import de.tum.in.pet.values.Bounds;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import java.util.List;
 import prism.PrismException;

@@ -66,7 +66,7 @@ Build:
         $tool core -m "$model" --const "$const" $args $unbounded_args --unbounded --heuristic $heuristic --validate;
       done
     - for heuristic in $bounded_heuristics; do
-        $tool core -m "$model" --const "$const" $args $bounded_args --bounded "$step_bound" --heuristic $heuristic --validate;
+        $tool core -m "$model" --const "$const" $args $bounded_args --bounded "$step_bound" --bounded-update dense --heuristic $heuristic --validate;
       done
 
 .reach_test: &reach_test_template
@@ -82,9 +82,9 @@ Core Zeroconf.20-2-0:
     <<: *core_variables
     model: "data/models/zeroconf.prism"
     const: "N=20,K=2,reset=false"
-    step_bound: 25
     bounded_heuristics: WEIGHTED GRAPH_WEIGHTED
     bounded_args: --bounded-update dense
+    step_bound: 25
   <<: *core_test_template
 
 Core BRP.10-20:
@@ -101,9 +101,10 @@ Core Cyclin.3:
     <<: *core_variables
     model: "data/models/cyclin.sm"
     const: "N=3"
-    args: --uniformization 30
     unbounded_heuristics: ''
     bounded_heuristics: WEIGHTED
+    bounded_args: --uniformization 30 --precision 1e-5
+    step_bound: 100
   <<: *core_test_template
 
 Core Philosophers-Nofair.3:
