@@ -144,6 +144,8 @@ public final class Util {
     int index = 0;
     IntIterator iterator = support.iterator();
     while (iterator.hasNext()) {
+      assert index < size;
+
       int successor = iterator.nextInt();
       if (ignoreSuccessors.test(successor)) {
         continue;

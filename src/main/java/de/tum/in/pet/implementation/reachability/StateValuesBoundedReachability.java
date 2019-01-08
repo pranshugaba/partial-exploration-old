@@ -19,7 +19,7 @@ public class StateValuesBoundedReachability implements StateValuesBounded {
 
   @Override
   public Bounds bounds(int state, int remainingSteps) {
-    checkArgument(0 <= remainingSteps, "Negative remaining steps %s", remainingSteps);
+    assert 0 <= remainingSteps;
 
     Bounds reachabilityBounds = reachability.get(state);
     if (reachabilityBounds != null) {
