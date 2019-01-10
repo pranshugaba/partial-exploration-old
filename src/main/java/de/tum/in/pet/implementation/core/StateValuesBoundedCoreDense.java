@@ -72,7 +72,7 @@ public class StateValuesBoundedCoreDense extends StateValuesBoundedCoreAbstract 
     } else {
       double oldValue = values[remainingSteps];
       // Check monotonicity of added value
-      assert Util.doublesAreLessOrEqual(value, oldValue) : "Updating " + oldValue + " to " + value;
+      assert Util.lessOrEqual(value, oldValue) : "Updating " + oldValue + " to " + value;
       if (PrismUtils.doublesAreEqual(value, oldValue)) {
         return;
       }

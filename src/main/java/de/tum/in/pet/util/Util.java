@@ -31,12 +31,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
 import java.util.function.IntToDoubleFunction;
 import java.util.function.ToDoubleFunction;
 
 public final class Util {
   public static final double DEFAULT_PRECISION = 1e-6;
+  private static final double MACHINE_EPS = 1e-12;
 
   private Util() {}
 
@@ -186,6 +188,76 @@ public final class Util {
       }).set(state);
     }
     return foundBitSets;
+  }
+
+  public static void modelToDotFile(String filename, Model model, IntFunction<Object> label,
+      IntPredicate stateFilter, IntPredicate highlight) {
+    StringBuilder dotString = new StringBuilder("digraph Model {\n\tnode [shape=box];\n");
+
+    for (int state = 0; state < model.getNumStates(); state++) {
+      if (!stateFilter.test(state)) {
+        continue;
+      }
+
+      dotString.append(state).append(" [style=filled fillcolor=\"");
+      if (highlight != null && highlight.test(state)) {
+        dotString.append("#22CC22");
+      } else if (model.isInitialState(state)) {
+        dotString.append("#9999CC");
+      } else {
+        dotString.append("#DDDDDD");
+      }
+      dotString.append("\",label=\"").append(state);
+      Object stateLabel = label.apply(state);
+      if (stateLabel != null) {
+        dotString.append(' ').append(stateLabel);
+      }
+      dotString.append("\"];\n");
+
+      int actionIndex = 0;
+      for (Action action : model.getActions(state)) {
+        Object actionLabel = action.label();
+        if (action.distribution().size() == 1) {
+          IntIterator iterator = action.distribution().support().iterator();
+          int successor = iterator.nextInt();
+          assert !iterator.hasNext();
+
+          dotString.append(state).append(" -> ").append(successor);
+          if (actionLabel != null) {
+            dotString.append("[label=\"").append(actionLabel).append("\"]");
+          }
+          dotString.append(";\n");
+        } else {
+          String actionNode = "a" + state + '_' + actionIndex;
+
+          dotString.append(state).append(" -> ").append(actionNode)
+              .append(" [arrowhead=none,label=\"").append(actionIndex);
+          if (actionLabel != null) {
+            dotString.append(':').append(actionLabel);
+          }
+
+          dotString.append("\" ];\n");
+          dotString.append(actionNode).append(" [shape=point,height=0.1];\n");
+
+          action.distribution().forEach((target, probability) -> {
+            dotString.append(actionNode).append(" -> ").append(target);
+            if (!doublesAreEqual(probability, 1.0d)) {
+              dotString.append(" [label=\"").append(String.format("%.3f", probability))
+                  .append("\"]");
+            }
+            dotString.append(";\n");
+          });
+        }
+        actionIndex += 1;
+      }
+    }
+    dotString.append("}\n");
+    try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(filename),
+        StandardCharsets.UTF_8)) {
+      writer.append(dotString.toString());
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
   }
 
   public static void modelWithBoundsToDotFile(String filename,
@@ -338,7 +410,11 @@ public final class Util {
     // CSON: Indentation
   }
 
-  public static boolean doublesAreLessOrEqual(double d1, double d2) {
-    return d1 <= d2 || doublesAreEqual(d1, d2);
+  public static boolean equal(double d1, double d2) {
+    return Math.abs(d1 - d2) < MACHINE_EPS;
+  }
+
+  public static boolean lessOrEqual(double d1, double d2) {
+    return d1 <= d2 || equal(d1, d2);
   }
 }

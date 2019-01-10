@@ -555,7 +555,7 @@ public final class CoreChecker {
     ModelCheckerResult result = computeFringeReachability(mc, partialModel, stepBound);
     double reachability = result.soln[initialState];
     logger.log(Level.INFO, () -> String.format("Reachability: %f", reachability));
-    if (!Util.doublesAreLessOrEqual(reachability, precision)) {
+    if (!Util.lessOrEqual(reachability, precision)) {
       throw new PrismException("Core property violated!");
     }
   }

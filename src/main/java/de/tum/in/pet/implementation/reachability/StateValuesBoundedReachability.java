@@ -27,21 +27,21 @@ public class StateValuesBoundedReachability implements StateValuesBounded {
     }
     if (remainingSteps == 0) {
       // State is not a special reachability state
-      return Bounds.ZERO_ZERO;
+      return Bounds.reachZero();
     }
 
     Bounds[] values = bounds.get(state);
     if (values == null) {
-      return Bounds.ZERO_ONE;
+      return Bounds.reachUnknown();
     }
-    return remainingSteps < values.length ? values[remainingSteps] : Bounds.ZERO_ONE;
+    return remainingSteps < values.length ? values[remainingSteps] : Bounds.reachUnknown();
   }
 
   @Override
   public void setBounds(int state, int remainingSteps, double lowerBound, double upperBound) {
     checkArgument(0 <= remainingSteps);
 
-    Bounds bounds = Bounds.of(lowerBound, upperBound);
+    Bounds bounds = Bounds.reach(lowerBound, upperBound);
     Bounds[] values = this.bounds.get(state);
 
     if (values == null) {
@@ -55,7 +55,7 @@ public class StateValuesBoundedReachability implements StateValuesBounded {
       int newLength = Math.max(oldLength * 2, remainingSteps + 1);
       values = Arrays.copyOf(values, newLength);
       Arrays.fill(values, oldLength, remainingSteps + 1, bounds);
-      Arrays.fill(values, remainingSteps + 1, newLength, Bounds.ZERO_ONE);
+      Arrays.fill(values, remainingSteps + 1, newLength, Bounds.reachUnknown());
       this.bounds.put(state, values);
       return;
     }
