@@ -69,7 +69,7 @@ endrewards
 module goldcounter
 
 	required_gold : [0..GOLD_TO_COLLECT] init GOLD_TO_COLLECT;
-	
+
 	[right] true -> (required_gold'=max(0, required_gold - (left_of_home & gold  ? 1: 0)));
 	[left] true -> (required_gold'=max(0, required_gold - (right_of_home & gold ? 1 : 0)));
 	[top] true -> (required_gold'=max(0, required_gold - (below_of_home & gold ? 1 : 0)));

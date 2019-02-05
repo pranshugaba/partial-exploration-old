@@ -26,16 +26,16 @@ public class StateUpdateReachability implements StateUpdate {
 
     if (values.lowerBound(state) == 1.0d) {
       assert values.upperBound(state) == 1.0d;
-      return Bounds.ONE_ONE;
+      return Bounds.reachOne();
     }
     if (values.upperBound(state) == 0.0d) {
       assert values.lowerBound(state) == 0.0d;
-      return Bounds.ZERO_ZERO;
+      return Bounds.reachZero();
     }
     assert !target.test(state);
 
     if (choices.isEmpty()) {
-      return Bounds.ZERO_ZERO;
+      return Bounds.reachZero();
     }
     if (choices.size() == 1) {
       return values.bounds(state, choices.get(0));
@@ -89,7 +89,7 @@ public class StateUpdateReachability implements StateUpdate {
     while (iterator.hasNext()) {
       int next = iterator.nextInt();
       if (target.test(next)) {
-        return Bounds.ONE_ONE;
+        return Bounds.reachOne();
       }
     }
     return update(state, choices, values);

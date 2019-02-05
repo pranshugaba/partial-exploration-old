@@ -23,15 +23,20 @@ public class StateValuesReachability implements StateValues {
       return reachabilityBounds;
     }
     Bounds storedBounds = this.bounds.get(state);
-    return storedBounds == null ? Bounds.ZERO_ONE : storedBounds;
+    return storedBounds == null ? Bounds.reachUnknown() : storedBounds;
+  }
+
+  @Override
+  public Bounds bounds(int state, Distribution distribution) {
+    return Bounds.reach(lowerBound(state, distribution), upperBound(state, distribution));
   }
 
   @Override
   public void setBounds(int state, double lowerBound, double upperBound) {
     assert 0 <= lowerBound && lowerBound <= upperBound && upperBound <= 1.0d;
     assert reachability.isKnown(state);
-    assert Util.doublesAreLessOrEqual(lowerBound(state), lowerBound)
-        && Util.doublesAreLessOrEqual(upperBound, upperBound(state));
+    assert Util.lessOrEqual(lowerBound(state), lowerBound)
+        && Util.lessOrEqual(upperBound, upperBound(state));
 
     if (reachability.set(state, lowerBound, upperBound)) {
       bounds.remove(state);

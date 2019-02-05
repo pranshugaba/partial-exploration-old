@@ -90,7 +90,7 @@ Core Zeroconf.20-2-0:
 Core BRP.10-20:
   variables:
     <<: *core_variables
-    model: "data/models/brp.pm"
+    model: "data/models/brp.prism"
     const: "N=10,MAX=20"
     unbounded_heuristics: WEIGHTED GRAPH_WEIGHTED
     bounded_heuristics: ''
@@ -99,7 +99,7 @@ Core BRP.10-20:
 Core Cyclin.3:
   variables:
     <<: *core_variables
-    model: "data/models/cyclin.sm"
+    model: "data/models/cyclin.prism"
     const: "N=3"
     unbounded_heuristics: ''
     bounded_heuristics: WEIGHTED
@@ -110,7 +110,7 @@ Core Cyclin.3:
 Core Philosophers-Nofair.3:
   variables:
     <<: *core_variables
-    model: "data/models/phil-nofair3.nm"
+    model: "data/models/phil-nofair3.prism"
     step_bound: 10
     bounded_args: --bounded-update dense
   <<: *core_test_template
@@ -120,7 +120,7 @@ Rabin.10.live:
   variables:
     <<: *reach_variables
     model: "data/models/rabin.10.prism"
-    property_file: "data/properties/rabin.10.props"
+    property_file: "data/models/rabin.10.props"
     property: "live"
     expected: "1.0"
   <<: *reach_test_template
@@ -129,7 +129,7 @@ Pnueli-Zuck.10.live:
   variables:
     <<: *reach_variables
     model: "data/models/pnueli-zuck.10.prism"
-    property_file: "data/properties/pnueli-zuck.props"
+    property_file: "data/models/pnueli-zuck.props"
     property: "live"
     expected: "1.0"
   <<: *reach_test_template
@@ -139,7 +139,7 @@ Wlan.3.sent:
     <<: *reach_variables
     model: "data/models/wlan.2.prism"
     const: "COL=0"
-    property_file: "data/properties/wlan.props"
+    property_file: "data/models/wlan.props"
     property: "sent"
     expected: "true"
     heuristics: WEIGHTED GRAPH_WEIGHTED
@@ -150,7 +150,7 @@ Zeroconf.1000-8-0.correct_max:
     <<: *reach_variables
     model: "data/models/zeroconf.prism"
     const: "N=1000,K=8,reset=false"
-    property_file: "data/properties/zeroconf.props"
+    property_file: "data/models/zeroconf.props"
     property: "correct_max"
     expected: "4.80141363507243e-8"
   <<: *reach_test_template
@@ -160,7 +160,7 @@ Zeroconf.1000-8-0.correct_min:
     <<: *reach_variables
     model: "data/models/zeroconf.prism"
     const: "N=1000,K=8,reset=false"
-    property_file: "data/properties/zeroconf.props"
+    property_file: "data/models/zeroconf.props"
     property: "correct_min"
     expected: "5.040105212929839e-9"
   <<: *reach_test_template
@@ -169,7 +169,7 @@ Csma.3-2.some_before:
   variables:
     <<: *reach_variables
     model: "data/models/csma.3-2.prism"
-    property_file: "data/properties/csma.props"
+    property_file: "data/models/csma.props"
     property: "some_before"
     expected: "0.5859375"
   <<: *reach_test_template
@@ -178,7 +178,7 @@ Csma.3-2.all_before_min:
   variables:
     <<: *reach_variables
     model: "data/models/csma.3-2.prism"
-    property_file: "data/properties/csma.props"
+    property_file: "data/models/csma.props"
     property: "all_before_min"
     expected: "0.43496662487687193"
   <<: *reach_test_template
@@ -187,7 +187,7 @@ Csma.3-2.all_before_max:
   variables:
     <<: *reach_variables
     model: "data/models/csma.3-2.prism"
-    property_file: "data/properties/csma.props"
+    property_file: "data/models/csma.props"
     property: "all_before_max"
     expected: "0.8596150364756961"
   <<: *reach_test_template
@@ -197,7 +197,7 @@ Embedded.8-12.actuators:
     <<: *reach_variables
     model: "data/models/embedded.prism"
     const: "MAX_COUNT=8,T=12"
-    property_file: "data/properties/embedded.props"
+    property_file: "data/models/embedded.props"
     property: "actuators"
     expected: "0.1053036557931282"
     heuristics: DIFFERENCE
@@ -208,7 +208,7 @@ Polling.8-16.actuators:
     <<: *reach_variables
     model: "data/models/polling.8.prism"
     const: "T=16"
-    property_file: "data/properties/polling.props"
+    property_file: "data/models/polling.props"
     property: "s1_before_s2"
     expected: "0.5405549556"
     heuristics: WEIGHTED

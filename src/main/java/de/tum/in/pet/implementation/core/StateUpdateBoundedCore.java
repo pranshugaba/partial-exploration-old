@@ -23,7 +23,7 @@ public class StateUpdateBoundedCore implements StateUpdateBounded, ValueVerdict 
   public Bounds update(int state, int remainingSteps, List<Distribution> choices,
       StateValuesBoundedFunction values) {
     if (choices.isEmpty()) {
-      return Bounds.ZERO_ZERO;
+      return Bounds.reachZero();
     }
 
     double maximalValue = 0.0d;
@@ -34,6 +34,6 @@ public class StateUpdateBoundedCore implements StateUpdateBounded, ValueVerdict 
       }
     }
 
-    return Bounds.of(0.0d, maximalValue);
+    return Bounds.reach(0.0d, maximalValue);
   }
 }

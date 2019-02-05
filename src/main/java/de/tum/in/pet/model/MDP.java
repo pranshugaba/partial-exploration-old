@@ -11,7 +11,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import javax.annotation.Nullable;
 import prism.ModelType;
 import prism.PrismLog;
 import strat.MDStrategy;
@@ -133,7 +132,7 @@ public class MDP extends DefaultModel implements explicit.MDP, NondetModelSimple
 
   @Override
   public List<Action> getActions(int state) {
-    return transitions.get(state);
+    return transitions.getOrDefault(state, Collections.emptyList());
   }
 
   @Override
@@ -142,7 +141,6 @@ public class MDP extends DefaultModel implements explicit.MDP, NondetModelSimple
   }
 
   @Override
-  @Nullable
   public List<Distribution> getChoices(int state) {
     List<Action> actions = transitions.get(state);
     if (actions == null) {

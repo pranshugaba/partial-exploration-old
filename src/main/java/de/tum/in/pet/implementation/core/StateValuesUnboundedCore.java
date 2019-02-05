@@ -22,7 +22,7 @@ public class StateValuesUnboundedCore implements StateValues {
   @Override
   public Bounds bounds(int state) {
     double upperBound = upperBound(state);
-    return upperBound == 0.0d ? Bounds.ZERO_ZERO : Bounds.of(0.0d, upperBound);
+    return upperBound == 0.0d ? Bounds.reachZero() : Bounds.reach(0.0d, upperBound);
   }
 
 
@@ -70,7 +70,7 @@ public class StateValuesUnboundedCore implements StateValues {
     }
 
     double oldValue = bounds.put(state, value);
-    assert Util.doublesAreLessOrEqual(value, oldValue) : "Value " + String.format("%.6g", value)
+    assert Util.lessOrEqual(value, oldValue) : "Value " + String.format("%.6g", value)
         + " larger than old value " + String.format("%.6g", oldValue);
   }
 

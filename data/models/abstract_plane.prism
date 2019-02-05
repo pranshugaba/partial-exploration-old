@@ -38,7 +38,7 @@ module plane
 
   [] place=5 -> (1-crash) : (place'=6) + crash : (place'=8);
   [] place=5 -> (place'=8);
-
+t
   [] place=6 & state=0 -> (1-flip) : (place'=7) + flip : (state'=1);
 
   [] place=7 -> (1-crash) : (place'=0) + crash : (place'=8);
@@ -53,3 +53,7 @@ module plane
   [] state=1 -> 0.5 : (internal_2'=max(0, internal_2-1)) + 0.5 : (internal_2'=min(recovery_size, internal_2 + 1));
 endmodule
 
+rewards "default"
+  place=4 : 5;
+  place=8 : -10;
+endrewards

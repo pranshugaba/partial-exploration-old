@@ -22,15 +22,15 @@ public class ReachabilityBounds {
       // State was not known before
       if (target.test(state)) {
         oneStates.set(state);
-        return Bounds.ONE_ONE;
+        return Bounds.reachOne();
       }
       return null;
     }
     if (oneStates.contains(state)) {
-      return Bounds.ONE_ONE;
+      return Bounds.reachOne();
     }
     if (zeroStates.contains(state)) {
-      return Bounds.ZERO_ZERO;
+      return Bounds.reachZero();
     }
     return null;
   }

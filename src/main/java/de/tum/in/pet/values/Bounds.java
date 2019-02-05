@@ -1,20 +1,55 @@
 package de.tum.in.pet.values;
 
-import de.tum.in.pet.util.annotation.Tuple;
 import org.immutables.value.Value;
 import prism.PrismUtils;
 
-@Value.Immutable
-@Tuple
 public abstract class Bounds {
-  public static final Bounds ZERO_ZERO;
-  public static final Bounds ZERO_ONE;
-  public static final Bounds ONE_ONE;
+  public static Bounds of(double lower, double upper) {
+    if (lower == upper) {
+      return of(lower);
+    }
+    return ValueBoundsTuple.create(lower, upper);
+  }
 
-  static {
-    ZERO_ZERO = BoundsTuple.create(0.0d, 0.0d);
-    ZERO_ONE = BoundsTuple.create(0.0d, 1.0d);
-    ONE_ONE = BoundsTuple.create(1.0d, 1.0d);
+  public static Bounds of(double value) {
+    return ValueBoundsTuple.create(value, value);
+  }
+
+  public static Bounds unknown() {
+    return ValueBounds.UNKNOWN;
+  }
+
+
+  public static Bounds reach(double lower, double upper) {
+    if (lower == upper) {
+      return of(lower);
+    }
+    if (lower == 0.0d && upper == 1.0d) {
+      return reachUnknown();
+    }
+    return ReachabilityBoundsTuple.create(lower, upper);
+  }
+
+  public static Bounds reach(double value) {
+    if (value == 0.0d) {
+      return reachZero();
+    }
+    if (value == 1.0d) {
+      return reachOne();
+    }
+    return ReachabilityBoundsTuple.create(value, value);
+  }
+
+  public static Bounds reachZero() {
+    return ReachabilityBounds.ZERO;
+  }
+
+  public static Bounds reachOne() {
+    return ReachabilityBounds.ONE;
+  }
+
+  public static Bounds reachUnknown() {
+    return ReachabilityBounds.UNKNOWN;
   }
 
 
@@ -23,48 +58,7 @@ public abstract class Bounds {
   public abstract double upperBound();
 
 
-  public static Bounds of(double lower, double upper) {
-    if (lower == upper) {
-      return of(lower);
-    }
-    if (lower == 0.0d && upper == 1.0d) {
-      return ZERO_ONE;
-    }
-    return BoundsTuple.create(lower, upper);
-  }
-
-  public static Bounds of(double value) {
-    if (value == 0.0d) {
-      return ZERO_ZERO;
-    }
-    if (value == 1.0d) {
-      return ONE_ONE;
-    }
-    return BoundsTuple.create(value, value);
-  }
-
-
-  @Override
-  public String toString() {
-    if (lowerBound() == 0.0d && upperBound() == 1.0d) {
-      return "[?]";
-    }
-    if (lowerBound() == upperBound()) {
-      return String.format("=%.5g", lowerBound());
-    }
-    if (lowerBound() == 0.0d) {
-      return String.format("<%.5g", upperBound());
-    }
-    if (upperBound() == 1.0d) {
-      return String.format(">%.5g", lowerBound());
-    }
-
-    return String.format("[%.5g,%.5g]", lowerBound(), upperBound());
-  }
-
-
   public double difference() {
-    assert upperBound() >= lowerBound();
     return upperBound() - lowerBound();
   }
 
@@ -82,13 +76,9 @@ public abstract class Bounds {
   }
 
 
-  public Bounds withUpper(double upperBound) {
-    return of(lowerBound(), upperBound);
-  }
+  public abstract Bounds withUpper(double upperBound);
 
-  public Bounds withLower(double lowerBound) {
-    return of(lowerBound, upperBound());
-  }
+  public abstract Bounds withLower(double lowerBound);
 
 
   @Value.Check

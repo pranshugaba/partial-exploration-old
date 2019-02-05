@@ -36,27 +36,27 @@ formula busy = c1>0 | c2>0;
 formula free = c1=0 & c2=0;
 
 module medium
-	
+
 	// number of collisions
 	col : [0..COL+1];
-	
-	// medium status 
+
+	// medium status
 	c1 : [0..2];
 	c2 : [0..2];
 	// ci corresponds to messages associated with station i
 	// 0 nothing being sent
 	// 1 being sent correctly
-	// 2 being sent garbled	  
-	
+	// 2 being sent garbled
+
 	// begin sending message and nothing else currently being sent
 	[send1] c1=0 & c2=0 -> (c1'=1);
 	[send2] c2=0 & c1=0 -> (c2'=1);
-	
+
 	// begin sending message and  something is already being sent
 	// in this case both messages become garbled
 	[send1] c1=0 & c2>0 -> (c1'=2) & (c2'=2) & (col'=min(col+1,COL));
 	[send2] c2=0 & c1>0 -> (c1'=2) & (c2'=2) & (col'=min(col+1,COL));
-	
+
 	// finish sending message
 	[finish1] c1>0 -> (c1'=0);
 	[finish2] c2>0 -> (c2'=0);
@@ -68,26 +68,26 @@ endmodule
 module station1
 	// clock for station 1
 	x1 : [0..TIME_MAX];
-	
+
 	// local state
 	s1 : [1..12];
 	// 1 sense
 	// 2 wait until free before setting backoff
 	// 3 wait for DIFS then set slot
-	// 4 set backoff 
+	// 4 set backoff
 	// 5 backoff
 	// 6 wait until free in backoff
 	// 7 wait for DIFS then resume backoff
-	// 8 vulnerable 
+	// 8 vulnerable
 	// 9 transmit
 	// 11 wait for SIFS and then ACK
-	// 10 wait for ACT_TO 
+	// 10 wait for ACT_TO
 	// 12 done
 	// BACKOFF
 	// separate into slots
-	slot1 : [0..63]; 
+	slot1 : [0..63];
 	backoff1 : [0..15];
-	
+
 	// BACKOFF COUNTER
 	bc1 : [0..MAX_BACKOFF];
 	// SENSE
@@ -177,7 +177,7 @@ module station1
 	                                         + 1/32 : (s1'=4) & (x1'=0) & (slot1'=29) & (bc1'=min(bc1+1,MAX_BACKOFF))
 	                                         + 1/32 : (s1'=4) & (x1'=0) & (slot1'=30) & (bc1'=min(bc1+1,MAX_BACKOFF))
 	                                         + 1/32 : (s1'=4) & (x1'=0) & (slot1'=31) & (bc1'=min(bc1+1,MAX_BACKOFF));
-																					 
+
 	// backoff counter 6
 	[] s1=3 & (x1=DIFS | x1=DIFS-1) & bc1=6 -> 1/64 : (s1'=4) & (x1'=0) & (slot1'=0 ) & (bc1'=min(bc1+1,MAX_BACKOFF))
 	                                         + 1/64 : (s1'=4) & (x1'=0) & (slot1'=1 ) & (bc1'=min(bc1+1,MAX_BACKOFF))
@@ -265,9 +265,9 @@ module station1
 	// let time pass
 	[time] s1=5 & x1<ASLOTTIME & free -> (x1'=min(x1+1,TIME_MAX));
 	// decrement backoff
-	[] s1=5 & x1=ASLOTTIME & backoff1>0 -> (s1'=5) & (x1'=0) & (backoff1'=backoff1-1);	
-	[] s1=5 & x1=ASLOTTIME & backoff1=0 & slot1>0 -> (s1'=5) & (x1'=0) & (backoff1'=15) & (slot1'=slot1-1);	
-	// finish backoff 
+	[] s1=5 & x1=ASLOTTIME & backoff1>0 -> (s1'=5) & (x1'=0) & (backoff1'=backoff1-1);
+	[] s1=5 & x1=ASLOTTIME & backoff1=0 & slot1>0 -> (s1'=5) & (x1'=0) & (backoff1'=15) & (slot1'=slot1-1);
+	// finish backoff
 	[] s1=5 & x1=ASLOTTIME & backoff1=0 & slot1=0 -> (s1'=8) & (x1'=0);
 	// found channel busy
 	[] s1=5 & busy -> (s1'=6) & (x1'=0);
@@ -276,7 +276,7 @@ module station1
 	[time] s1=6 & busy -> (s1'=6);
 	// find that channel is free
 	[] s1=6 & free -> (s1'=7);
-	
+
 	// WAIT FOR DIFS THEN RESUME BACKOFF
 	// let time pass
 	[time] s1=7 & x1<DIFS & free -> (x1'=min(x1+1,TIME_MAX));
@@ -284,7 +284,7 @@ module station1
 	[] s1=7 & (x1=DIFS | x1=DIFS-1) -> (s1'=5) & (x1'=0);
 	// found channel busy
 	[] s1=7 & busy -> (s1'=6) & (x1'=0);
-	
+
 	// VULNERABLE
 	// let time pass
 	[time] s1=8 & x1<VULN -> (x1'=min(x1+1,TIME_MAX));
@@ -293,12 +293,12 @@ module station1
 	// TRANSMIT
 	// let time pass
 	[time] s1=9 & x1<TRANS_TIME_MAX -> (x1'=min(x1+1,TIME_MAX));
-	// finish transmission successful	
+	// finish transmission successful
 	[finish1] s1=9 & x1>=TRANS_TIME_MIN & c1=1 -> (s1'=10) & (x1'=0);
 	// finish transmission garbled
 	[finish1] s1=9 & x1>=TRANS_TIME_MIN & c1=2 -> (s1'=11) & (x1'=0);
 	// WAIT FOR SIFS THEN WAIT FOR ACK
-	
+
 	// WAIT FOR SIFS i.e. c1=0
 	// check channel and busy: go into backoff
 	[] s1=10 & c1=0 & x1=0 & busy -> (s1'=2);
@@ -309,13 +309,13 @@ module station1
 	// [time] s1=10 & c1=0 & x1>0 & x1<SIFS -> (x1'=min(x1+1,TIME_MAX));
 	// ack is sent after SIFS (since SIFS-1=0 add condition that channel is free)
 	[send1] s1=10 & c1=0 & (x1=SIFS | (x1=SIFS-1 & free)) -> (s1'=10) & (x1'=0);
-	
+
 	// WAIT FOR ACK i.e. c1=1
 	// let time pass
 	[time] s1=10 & c1=1 & x1<ACK -> (x1'=min(x1+1,TIME_MAX));
 	// get acknowledgement so packet sent correctly and move to done
 	[finish1] s1=10 & c1=1 & (x1=ACK | x1=ACK-1) -> (s1'=12) & (x1'=0) & (bc1'=0);
-	
+
 	// WAIT FOR ACK_TO
 	// check channel and busy: go into backoff
 	[] s1=11 & x1=0 & busy -> (s1'=2);
@@ -325,24 +325,24 @@ module station1
 	[time] s1=11 & x1>0 & x1<ACK_TO -> (x1'=min(x1+1,TIME_MAX));
 	// no acknowledgement (go to backoff waiting DIFS first)
 	[] s1=11 & x1=ACK_TO -> (s1'=3) & (x1'=0);
-		
+
 	// DONE
 	[time] s1=12 -> (s1'=12);
-endmodule	
+endmodule
 
 // ---------------------------------------------------------------------------- //
 // STATION 2 (rename STATION 1)
-module 
-station2=station1[x1=x2, 
+module
+station2=station1[x1=x2,
                   s1=s2,
 				  s2=s1,
 				  c1=c2,
-				  c2=c1, 
-				  slot1=slot2, 
-				  backoff1=backoff2, 
-				  bc1=bc2, 
-				  send1=send2, 
-				  finish1=finish2] 
+				  c2=c1,
+				  slot1=slot2,
+				  backoff1=backoff2,
+				  bc1=bc2,
+				  send1=send2,
+				  finish1=finish2]
 endmodule
 // ---------------------------------------------------------------------------- //
 

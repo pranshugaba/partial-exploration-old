@@ -18,7 +18,7 @@ public class StateUpdateCore implements StateUpdate, ValueVerdict {
   @Override
   public Bounds update(int state, List<Distribution> choices, StateValueFunction values) {
     if (choices.isEmpty()) {
-      return Bounds.ZERO_ZERO;
+      return Bounds.reachZero();
     }
 
     double maximalValue = 0d;
@@ -29,7 +29,7 @@ public class StateUpdateCore implements StateUpdate, ValueVerdict {
       }
     }
 
-    return Bounds.of(0.0d, maximalValue);
+    return Bounds.reach(0.0d, maximalValue);
   }
 
   @Override

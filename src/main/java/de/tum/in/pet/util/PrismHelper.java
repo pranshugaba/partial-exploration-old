@@ -28,9 +28,12 @@ public final class PrismHelper {
   private PrismHelper() {}
 
   public static PrismParseResult parse(CommandLine commandLine, Option modelOption,
-      Option propertiesOption, Option constantsOption) throws IOException, PrismException {
+      @Nullable Option propertiesOption, Option constantsOption)
+      throws IOException, PrismException {
     String modelPath = commandLine.getOptionValue(modelOption.getLongOpt());
-    String propertiesPath = commandLine.getOptionValue(propertiesOption.getLongOpt());
+    @Nullable
+    String propertiesPath = propertiesOption == null
+        ? null : commandLine.getOptionValue(propertiesOption.getLongOpt());
     @Nullable
     String constantsString = commandLine.hasOption(constantsOption.getLongOpt())
         ? commandLine.getOptionValue(constantsOption.getLongOpt())

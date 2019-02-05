@@ -23,16 +23,16 @@ public class StateUpdateBoundedReachability implements StateUpdateBounded  {
 
     if (values.lowerBound(state, remainingSteps) == 1.0d) {
       assert values.upperBound(state, remainingSteps) == 1.0d;
-      return Bounds.ONE_ONE;
+      return Bounds.reachOne();
     }
     if (values.upperBound(state, remainingSteps) == 0.0d) {
       assert values.lowerBound(state, remainingSteps) == 0.0d;
-      return Bounds.ZERO_ZERO;
+      return Bounds.reachZero();
     }
     assert !target.test(state);
 
     if (choices.isEmpty()) {
-      return Bounds.ZERO_ZERO;
+      return Bounds.reachZero();
     }
 
     if (choices.size() == 1) {
