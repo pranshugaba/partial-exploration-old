@@ -5,8 +5,8 @@ import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.pet.explorer.DefaultExplorer;
 import de.tum.in.pet.explorer.Explorer;
 import de.tum.in.pet.generator.DtmcGenerator;
-import de.tum.in.pet.model.DTMC;
 import de.tum.in.pet.model.Distribution;
+import de.tum.in.pet.model.MarkovChain;
 import de.tum.in.pet.sampler.AnnotatedModel;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
@@ -22,22 +22,22 @@ import parser.State;
 import prism.ModelGenerator;
 import prism.PrismException;
 
-public class BoundedDTMCCoreIterativeBuilder {
+public class BoundedChainCoreIterativeBuilder {
   private static final Logger logger =
-      Logger.getLogger(BoundedDTMCCoreIterativeBuilder.class.getName());
+      Logger.getLogger(BoundedChainCoreIterativeBuilder.class.getName());
 
-  private final Explorer<State, DTMC> explorer;
+  private final Explorer<State, MarkovChain> explorer;
   private final int stepBound;
   private final double precision;
 
-  public BoundedDTMCCoreIterativeBuilder(ModelGenerator generator, int stepBound, double precision)
+  public BoundedChainCoreIterativeBuilder(ModelGenerator generator, int stepBound, double precision)
       throws PrismException {
-    this.explorer = new DefaultExplorer<>(new DTMC(), new DtmcGenerator(generator));
+    this.explorer = new DefaultExplorer<>(new MarkovChain(), new DtmcGenerator(generator));
     this.stepBound = stepBound;
     this.precision = precision;
   }
 
-  public AnnotatedModel<DTMC> build() throws PrismException {
+  public AnnotatedModel<MarkovChain> build() throws PrismException {
     logger.log(Level.INFO, () -> String.format("Building iterative core for step bound %d and "
         + "precision %g", stepBound, precision));
 

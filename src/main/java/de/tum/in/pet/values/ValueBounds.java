@@ -6,12 +6,6 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Tuple
 abstract class ValueBounds extends Bounds {
-  static final Bounds UNKNOWN;
-
-  static {
-    UNKNOWN = ValueBoundsTuple.of(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
-  }
-
   @Override
   public Bounds withUpper(double upperBound) {
     return of(lowerBound(), upperBound);

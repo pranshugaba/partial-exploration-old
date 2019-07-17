@@ -9,7 +9,7 @@ import de.tum.in.naturals.unionfind.IntUnionFind;
 import de.tum.in.pet.explorer.Explorer;
 import de.tum.in.pet.model.Action;
 import de.tum.in.pet.model.Distribution;
-import de.tum.in.pet.model.MDP;
+import de.tum.in.pet.model.MarkovDecisionProcess;
 import de.tum.in.pet.model.Model;
 import de.tum.in.pet.sampler.AnnotatedModel;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
@@ -40,14 +40,16 @@ public final class Util {
   public static final double DEFAULT_PRECISION = 1e-6;
   private static final double MACHINE_EPS = 1e-12;
 
-  private Util() {}
+  private Util() {
+    // Empty
+  }
 
   public static explicit.Distribution scale(Distribution distribution) {
     double total = distribution.sum();
-    if (total == 0.0d) {
+    if (equal(total, 0.0d)) {
       return null;
     }
-    if (total == 1.0d) {
+    if (equal(total, 1.0d)) {
       return new explicit.Distribution(distribution.objectIterator());
     }
     Map<Integer, Double> map = new HashMap<>(distribution.size());
@@ -353,7 +355,7 @@ public final class Util {
     }
   }
 
-  public static RestrictedMdp buildRestrictedModel(MDP mdp, IntSet states) {
+  public static RestrictedMdp buildRestrictedModel(MarkovDecisionProcess mdp, IntSet states) {
     MDPSimple restrictedModel = new MDPSimple();
     int[] originalToRestrictedStates = new int[mdp.getNumStates()];
     Arrays.fill(originalToRestrictedStates, -1);

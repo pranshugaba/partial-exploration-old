@@ -7,11 +7,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import prism.PrismException;
 
-@SuppressWarnings("PMD")
-public final class PET {
-  private static final Logger logger = Logger.getLogger(PET.class.getName());
+@SuppressWarnings("PMD.SystemPrintln")
+public final class Main {
+  private static final Logger logger = Logger.getLogger(Main.class.getName());
 
-  private PET() {}
+  private Main() {
+    // Empty
+  }
 
   public static void main(String... args) throws IOException, PrismException {
     if (args.length < 1) {

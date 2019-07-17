@@ -1,18 +1,7 @@
-// These need to be loaded and verified in plugins.gradle.
 plugins {
-    // https://github.com/tbroyer/gradle-apt-plugin
-    // https://plugins.gradle.org/plugin/net.ltgt.apt
-    // TODO: to be removed since gradle now natively supports these features
-    id 'net.ltgt.apt' version '0.18'
-    id 'net.ltgt.apt-idea' version '0.18'
-
     // https://github.com/tbroyer/gradle-errorprone-plugin
     // https://plugins.gradle.org/plugin/net.ltgt.errorprone
-    // id 'net.ltgt.errorprone' version '0.6'
-
-    // https://github.com/johnrengelman/shadow
-    // https://plugins.gradle.org/plugin/com.github.johnrengelman.shadow
-    // id 'com.github.johnrengelman.shadow' version '4.0.1'
+    id 'net.ltgt.errorprone' version '0.8.1'
 }
 
 // Base Plugins
@@ -23,12 +12,14 @@ apply plugin: 'application'
 apply plugin: 'pmd'
 apply plugin: 'checkstyle'
 
-repositories {
-    mavenCentral()
-}
+// IDE Support
+apply plugin: 'idea'
+
+group 'de.tum.in'
+version '0.1.0'
 
 project.archivesBaseName = 'pet'
-project.mainClassName = 'de.tum.in.pet.PET'
+project.mainClassName = 'de.tum.in.pet.Main'
 project.sourceCompatibility = JavaVersion.VERSION_11
 project.targetCompatibility = JavaVersion.VERSION_11
 
@@ -36,26 +27,74 @@ def defaultEncoding = 'UTF-8'
 
 tasks.withType(JavaCompile) {
     options.encoding = defaultEncoding
-    // options.errorprone.disableWarningsInGeneratedCode = true
+    options.errorprone.disableWarningsInGeneratedCode = true
 }
 
-tasks.withType(Javadoc) {
-    options.encoding = defaultEncoding
-}
+tasks.withType(Javadoc) { options.encoding = defaultEncoding }
 
 tasks.withType(JavaExec) {
     environment "LD_LIBRARY_PATH", "$project.buildDir/lib"
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+// PMD
+// https://docs.gradle.org/current/dsl/org.gradle.api.plugins.quality.Pmd.html
+
+pmd {
+    toolVersion = "6.15.0" // https://pmd.github.io/
+    reportsDir = file("$project.buildDir/reports/pmd")
+    ruleSetFiles = files("$project.rootDir/config/pmd-rules.xml")
+    ruleSets = [] // We specify all rules in rules.xml
+    consoleOutput = false
+    ignoreFailures = false
+}
+tasks.withType(Pmd) {
+    reports {
+        xml.enabled = false
+        html.enabled = true
+    }
+}
+
+// Checkstyle
+// https://docs.gradle.org/current/dsl/org.gradle.api.plugins.quality.Checkstyle.html
+
+checkstyle {
+    toolVersion = "8.21" // http://checkstyle.sourceforge.net/releasenotes.html
+    configFile = file("$project.rootDir/config/checkstyle.xml")
+    ignoreFailures = false
+    maxWarnings = 0
+    showViolations = false // Don't litter console
+    checkstyleMain {
+        configProperties = ['suppression-file':
+                                    "$project.rootDir/config/checkstyle-main-suppression.xml"]
+    }
+    checkstyleTest {
+        configProperties = ['suppression-file':
+                                    "$project.rootDir/config/checkstyle-test-suppression.xml"]
+    }
+}
+
+repositories {
+    mavenCentral()
 }
 
 dependencies {
     implementation files("$project.buildDir/lib/prism.jar")
 
     // https://github.com/google/guava
-    implementation 'com.google.guava:guava:27.0-jre'
+    implementation 'com.google.guava:guava:28.0-jre'
     // https://github.com/incaseoftrouble/naturals-util
-    implementation 'de.tum.in:naturals-util:0.12.0'
+    implementation 'de.tum.in:naturals-util:0.13.0'
+    compile 'com.zaxxer:SparseBitSet:1.2' // broken dependency in naturals util
+
     // https://github.com/vigna/fastutil
-    // implementation 'it.unimi.dsi:fastutil:8.2.1'
+    implementation 'it.unimi.dsi:fastutil:8.2.3'
     // https://immutables.github.io/
     implementation 'org.immutables:value:2.7.1:annotations'
     implementation 'commons-cli:commons-cli:1.4'
@@ -63,12 +102,12 @@ dependencies {
     // https://github.com/google/gson
     testImplementation 'com.google.code.gson:gson:2.8.5'
     // https://github.com/junit-team/junit5/
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.3.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.3.0")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.3.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.4.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.4.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.4.2")
 
-    // errorprone 'com.google.errorprone:error_prone_core:2.3.2'
-    annotationProcessor 'org.immutables:value:2.7.1'
+    errorprone group: 'com.google.errorprone', name: 'error_prone_core', version: '2.3.3'
+    annotationProcessor group: 'org.immutables', name: 'value', version: '2.7.5'
 }
 
 test {
@@ -78,8 +117,8 @@ test {
 
 //noinspection GroovyAssignabilityCheck
 task prismJar(type: Jar) {
-    baseName = 'prism'
-    destinationDir = file("$project.buildDir/lib")
+    archiveFileName = 'prism.jar'
+    destinationDirectory = file("$project.buildDir/lib")
     from "$project.rootDir/lib/prism/prism/src"
     from "$project.rootDir/lib/prism/prism/classes"
     from {
@@ -127,43 +166,5 @@ distributions {
                 into "lib"
             }
         }
-    }
-}
-
-// PMD
-// https://docs.gradle.org/current/dsl/org.gradle.api.plugins.quality.Pmd.html
-
-pmd {
-    toolVersion = "6.9.0" // https://pmd.github.io/
-    reportsDir = file("$project.buildDir/reports/pmd")
-    ruleSetFiles = files("$project.rootDir/config/pmd-rules.xml")
-    ruleSets = [] // We specify all rules in rules.xml
-    consoleOutput = false
-    ignoreFailures = false
-}
-//noinspection GroovyAssignabilityCheck
-tasks.withType(Pmd) {
-    reports {
-        xml.enabled = false
-        html.enabled = true
-    }
-}
-
-// Checkstyle
-// https://docs.gradle.org/current/dsl/org.gradle.api.plugins.quality.Checkstyle.html
-
-checkstyle {
-    toolVersion = "8.14" // http://checkstyle.sourceforge.net/releasenotes.html
-    configFile = file("$project.rootDir/config/checkstyle.xml")
-    ignoreFailures = false
-    maxWarnings = 0
-    showViolations = false // Don't litter console
-    checkstyleMain {
-        configProperties = ['suppression-file':
-                                    "$project.rootDir/config/checkstyle-main-suppression.xml"]
-    }
-    checkstyleTest {
-        configProperties = ['suppression-file':
-                                    "$project.rootDir/config/checkstyle-test-suppression.xml"]
     }
 }

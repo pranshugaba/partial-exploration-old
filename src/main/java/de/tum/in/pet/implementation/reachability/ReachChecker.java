@@ -16,8 +16,8 @@ import de.tum.in.pet.generator.SafetyGenerator;
 import de.tum.in.pet.graph.ComponentAnalyser;
 import de.tum.in.pet.graph.MecComponentAnalyser;
 import de.tum.in.pet.graph.SccComponentAnalyser;
-import de.tum.in.pet.model.DTMC;
-import de.tum.in.pet.model.MDP;
+import de.tum.in.pet.model.MarkovChain;
+import de.tum.in.pet.model.MarkovDecisionProcess;
 import de.tum.in.pet.model.Model;
 import de.tum.in.pet.sampler.BoundedSampler;
 import de.tum.in.pet.sampler.Sampler;
@@ -65,7 +65,9 @@ import simulator.ModulesFileModelGenerator;
 public final class ReachChecker {
   private static final Logger logger = Logger.getLogger(ReachChecker.class.getName());
 
-  private ReachChecker() {}
+  private ReachChecker() {
+    // Empty
+  }
 
   private static <S, R> void printResult(Result<S, R> result) {
     Collection<S> states = result.states();
@@ -242,7 +244,7 @@ public final class ReachChecker {
 
   private static <R> Result<?, R> solveMdp(ModelGenerator prismGenerator,
       PrismQuery<R> expression, SuccessorHeuristic heuristic) throws PrismException {
-    MDP partialModel = new MDP();
+    MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
     ComponentAnalyser componentAnalyser = new MecComponentAnalyser();
     Generator<State> generator = new MdpGenerator(prismGenerator);
     return solve(expression, componentAnalyser, partialModel, generator, heuristic);
@@ -250,7 +252,7 @@ public final class ReachChecker {
 
   private static <R> Result<?, R> solveCtmc(ModelGenerator prismGenerator,
       PrismQuery<R> expression, SuccessorHeuristic heuristic) throws PrismException {
-    DTMC partialModel = new DTMC();
+    MarkovChain partialModel = new MarkovChain();
     ComponentAnalyser componentAnalyser = new SccComponentAnalyser();
     Generator<State> generator = new CtmcEmbeddingGenerator(prismGenerator);
     return solve(expression, componentAnalyser, partialModel, generator, heuristic);
@@ -258,7 +260,7 @@ public final class ReachChecker {
 
   private static <R> Result<?, R> solveDtmc(ModelGenerator prismGenerator,
       PrismQuery<R> expression, SuccessorHeuristic heuristic) throws PrismException {
-    DTMC partialModel = new DTMC();
+    MarkovChain partialModel = new MarkovChain();
     ComponentAnalyser componentAnalyser = new SccComponentAnalyser();
     Generator<State> generator = new DtmcGenerator(prismGenerator);
     return solve(expression, componentAnalyser, partialModel, generator, heuristic);

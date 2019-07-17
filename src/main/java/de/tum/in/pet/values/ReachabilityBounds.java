@@ -6,17 +6,6 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Tuple
 abstract class ReachabilityBounds extends Bounds {
-  static final ReachabilityBounds ZERO;
-  static final ReachabilityBounds UNKNOWN;
-  static final ReachabilityBounds ONE;
-
-  static {
-    ZERO = ReachabilityBoundsTuple.create(0.0d, 0.0d);
-    UNKNOWN = ReachabilityBoundsTuple.create(0.0d, 1.0d);
-    ONE = ReachabilityBoundsTuple.create(1.0d, 1.0d);
-  }
-
-
   @Override
   public Bounds withUpper(double upperBound) {
     return of(lowerBound(), upperBound);

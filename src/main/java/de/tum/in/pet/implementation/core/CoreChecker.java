@@ -16,8 +16,8 @@ import de.tum.in.pet.generator.Generator;
 import de.tum.in.pet.generator.MdpGenerator;
 import de.tum.in.pet.graph.MecComponentAnalyser;
 import de.tum.in.pet.graph.SccComponentAnalyser;
-import de.tum.in.pet.model.DTMC;
-import de.tum.in.pet.model.MDP;
+import de.tum.in.pet.model.MarkovChain;
+import de.tum.in.pet.model.MarkovDecisionProcess;
 import de.tum.in.pet.sampler.AnnotatedModel;
 import de.tum.in.pet.sampler.BoundedSampler;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
@@ -71,7 +71,9 @@ import simulator.ModulesFileModelGenerator;
 public final class CoreChecker {
   private static final Logger logger = Logger.getLogger(CoreChecker.class.getName());
 
-  private CoreChecker() {}
+  private CoreChecker() {
+    // Empty
+  }
 
   public static void main(String... args) throws IOException, PrismException {
     Option precisionOption = new Option(null, "precision", true, "Precision");
@@ -275,17 +277,19 @@ public final class CoreChecker {
       mc.setModulesFileAndPropertiesFile(modulesFile, null, generator);
 
       if (unbounded) {
-        logger.log(Level.INFO, "Building unbounded MDP core");
+        logger.log(Level.INFO, "Building unbounded MarkovDecisionProcess core");
 
         Timer timer = new Timer("unbounded");
         MdpGenerator mdpGenerator = new MdpGenerator(generator);
-        Explorer<State, MDP> explorer = new DefaultExplorer<>(new MDP(), mdpGenerator);
+        Explorer<State, MarkovDecisionProcess> explorer = new DefaultExplorer<>(
+            new MarkovDecisionProcess(), mdpGenerator);
         StateValuesUnboundedCore stateValues = new StateValuesUnboundedCore();
         StateUpdateCore stateUpdate = new StateUpdateCore(precision);
-        UnboundedSampler<State, MDP> unboundedBuilder = new UnboundedSampler<>(explorer,
+        UnboundedSampler<State, MarkovDecisionProcess> unboundedBuilder = new UnboundedSampler<>(
+            explorer,
             stateValues, heuristic, stateUpdate, stateUpdate, new MecComponentAnalyser());
         unboundedBuilder.build();
-        AnnotatedModel<? extends MDP> unboundedPartial = unboundedBuilder.model();
+        AnnotatedModel<? extends MarkovDecisionProcess> unboundedPartial = unboundedBuilder.model();
         construction.add(timer.finish(unboundedPartial.exploredStates.size()));
 
         // unboundedPartial.model.findDeadlocks(true);
@@ -296,17 +300,20 @@ public final class CoreChecker {
       }
 
       if (bounded) {
-        logger.log(Level.INFO, "Building {0}-bounded sampling MDP core", stepBound);
+        logger
+            .log(Level.INFO, "Building {0}-bounded sampling MarkovDecisionProcess core", stepBound);
 
         Timer timer = new Timer("bounded");
         MdpGenerator mdpGenerator = new MdpGenerator(generator);
-        Explorer<State, MDP> explorer = new DefaultExplorer<>(new MDP(), mdpGenerator);
+        Explorer<State, MarkovDecisionProcess> explorer = new DefaultExplorer<>(
+            new MarkovDecisionProcess(), mdpGenerator);
         StateUpdateBoundedCore stateUpdate = new StateUpdateBoundedCore(precision);
         StateValuesBounded stateValues = boundedUpdateSupplier.apply(explorer);
-        BoundedSampler<State, MDP> boundedBuilder = new BoundedSampler<>(prism, explorer, stepBound,
+        BoundedSampler<State, MarkovDecisionProcess> boundedBuilder = new BoundedSampler<>(prism,
+            explorer, stepBound,
             stateUpdate, stateUpdate, heuristic, stateValues);
         boundedBuilder.build();
-        AnnotatedModel<? extends MDP> boundedPartial = boundedBuilder.model();
+        AnnotatedModel<? extends MarkovDecisionProcess> boundedPartial = boundedBuilder.model();
         construction.add(timer.finish(boundedPartial.model.getNumStates()));
 
         // boundedPartial.model.findDeadlocks(true);
@@ -341,17 +348,18 @@ public final class CoreChecker {
       DTMCModelChecker mc = new DTMCModelChecker(mcPrism);
 
       if (unbounded) {
-        logger.log(Level.INFO, "Building unbounded DTMC core");
+        logger.log(Level.INFO, "Building unbounded MarkovChain core");
 
         Timer timer = new Timer("unbounded");
-        Explorer<State, DTMC> explorer =
-            new DefaultExplorer<>(new DTMC(), new DtmcGenerator(generator));
+        Explorer<State, MarkovChain> explorer =
+            new DefaultExplorer<>(new MarkovChain(), new DtmcGenerator(generator));
         StateValuesUnboundedCore stateValues = new StateValuesUnboundedCore();
         StateUpdateCore stateUpdate = new StateUpdateCore(precision);
-        UnboundedSampler<State, DTMC> unboundedSamplingBuilder = new UnboundedSampler<>(explorer,
+        UnboundedSampler<State, MarkovChain> unboundedSamplingBuilder = new UnboundedSampler<>(
+            explorer,
             stateValues, heuristic, stateUpdate, stateUpdate, new SccComponentAnalyser());
         unboundedSamplingBuilder.build();
-        AnnotatedModel<? extends DTMC> unboundedPartial = unboundedSamplingBuilder.model();
+        AnnotatedModel<? extends MarkovChain> unboundedPartial = unboundedSamplingBuilder.model();
         construction.add(timer.finish(unboundedPartial.exploredStates.size()));
 
         // unboundedPartial.model.findDeadlocks(true);
@@ -363,12 +371,12 @@ public final class CoreChecker {
 
       if (bounded) {
         /*
-        logger.log(Level.INFO, "Building bounded iterative DTMC core");
+        logger.log(Level.INFO, "Building bounded iterative MarkovChain core");
 
         Timer iterativeTimer = new Timer("bounded iterative");
-        BoundedDTMCCoreIterativeBuilder boundedIterativeBuilder =
-            new BoundedDTMCCoreIterativeBuilder(generator, remainingSteps, precision);
-        AnnotatedModel<DTMC> boundedIterativePartial = boundedIterativeBuilder.build();
+        BoundedChainCoreIterativeBuilder boundedIterativeBuilder =
+            new BoundedChainCoreIterativeBuilder(generator, remainingSteps, precision);
+        AnnotatedModel<MarkovChain> boundedIterativePartial = boundedIterativeBuilder.build();
         construction.add(iterativeTimer.finish(boundedIterativePartial.exploredStates.size()));
 
         boundedIterativePartial.model.findDeadlocks(true);
@@ -381,17 +389,19 @@ public final class CoreChecker {
             boundedIterativePartial.model));
         */
 
-        logger.log(Level.INFO, "Building {0}-bounded sampling DTMC core", stepBound);
+        logger.log(Level.INFO, "Building {0}-bounded sampling MarkovChain core", stepBound);
 
         Timer samplingTimer = new Timer("bounded sampling");
-        Explorer<State, DTMC> explorer =
-            new DefaultExplorer<>(new DTMC(), new DtmcGenerator(generator));
+        Explorer<State, MarkovChain> explorer =
+            new DefaultExplorer<>(new MarkovChain(), new DtmcGenerator(generator));
         StateUpdateBoundedCore stateUpdate = new StateUpdateBoundedCore(precision);
         StateValuesBounded stateValues = boundedUpdateSupplier.apply(explorer);
-        BoundedSampler<State, DTMC> boundedSamplingBuilder = new BoundedSampler<>(prism, explorer,
+        BoundedSampler<State, MarkovChain> boundedSamplingBuilder = new BoundedSampler<>(prism,
+            explorer,
             stepBound, stateUpdate, stateUpdate, heuristic, stateValues);
         boundedSamplingBuilder.build();
-        AnnotatedModel<? extends DTMC> boundedSamplingPartial = boundedSamplingBuilder.model();
+        AnnotatedModel<? extends MarkovChain> boundedSamplingPartial = boundedSamplingBuilder
+            .model();
         construction.add(samplingTimer.finish(boundedSamplingPartial.exploredStates.size()));
 
         // boundedSamplingPartial.model.findDeadlocks(true);
@@ -435,13 +445,14 @@ public final class CoreChecker {
         Generator<State> stateGenerator = ctmcUniformRate == null
             ? new CtmcEmbeddingGenerator(generator)
             : new CtmcUniformizingGenerator(generator, ctmcUniformRate);
-        Explorer<State, DTMC> explorer = new DefaultExplorer<>(new DTMC(), stateGenerator);
+        Explorer<State, MarkovChain> explorer = new DefaultExplorer<>(new MarkovChain(),
+            stateGenerator);
         StateValuesUnboundedCore stateValues = new StateValuesUnboundedCore();
         StateUpdateCore stateUpdate = new StateUpdateCore(precision);
-        UnboundedSampler<State, DTMC> sampler = new UnboundedSampler<>(explorer, stateValues,
+        UnboundedSampler<State, MarkovChain> sampler = new UnboundedSampler<>(explorer, stateValues,
             heuristic, stateUpdate, stateUpdate, new SccComponentAnalyser());
         sampler.build();
-        AnnotatedModel<? extends DTMC> unboundedPartial = sampler.model();
+        AnnotatedModel<? extends MarkovChain> unboundedPartial = sampler.model();
         construction.add(timer.finish(unboundedPartial.exploredStates.size()));
 
         // unboundedPartial.model.findDeadlocks(true);
@@ -459,15 +470,17 @@ public final class CoreChecker {
         Generator<State> stateGenerator = ctmcUniformRate == null
             ? new CtmcEmbeddingGenerator(generator)
             : new CtmcUniformizingGenerator(generator, ctmcUniformRate);
-        Explorer<State, DTMC> explorer = new DefaultExplorer<>(new DTMC(), stateGenerator);
+        Explorer<State, MarkovChain> explorer = new DefaultExplorer<>(new MarkovChain(),
+            stateGenerator);
         StateUpdateBoundedCore stateUpdate = new StateUpdateBoundedCore(precision);
         StateValuesBounded stateValues = boundedUpdateSupplier.apply(explorer);
-        BoundedSampler<State, DTMC> boundedSamplingBuilder =
+        BoundedSampler<State, MarkovChain> boundedSamplingBuilder =
             new BoundedSampler<>(prism, explorer, stepBound, stateUpdate,
                 stateUpdate, heuristic, stateValues);
 
         boundedSamplingBuilder.build();
-        AnnotatedModel<? extends DTMC> boundedSamplingPartial = boundedSamplingBuilder.model();
+        AnnotatedModel<? extends MarkovChain> boundedSamplingPartial = boundedSamplingBuilder
+            .model();
         construction.add(samplingTimer.finish(boundedSamplingPartial.exploredStates.size()));
 
         // boundedSamplingPartial.model.findDeadlocks(true);
@@ -531,19 +544,20 @@ public final class CoreChecker {
     BitSet target = NatBitSets.toBitSet(partialModel.getFringeStates());
     Model model = partialModel.model;
 
-    if (model instanceof DTMC) {
+    if (model instanceof MarkovChain) {
       DTMCModelChecker dtmcChecker = (DTMCModelChecker) mc;
 
       return stepBound < 0
-          ? dtmcChecker.computeReachProbs((DTMC) model, target)
-          : dtmcChecker.computeBoundedReachProbs((DTMC) model, target, stepBound);
+          ? dtmcChecker.computeReachProbs((MarkovChain) model, target)
+          : dtmcChecker.computeBoundedReachProbs((MarkovChain) model, target, stepBound);
     }
-    if (model instanceof MDP) {
+    if (model instanceof MarkovDecisionProcess) {
       MDPModelChecker mdpChecker = (MDPModelChecker) mc;
 
       return stepBound < 0
-          ? mdpChecker.computeReachProbs((MDP) model, target, false)
-          : mdpChecker.computeBoundedReachProbs((MDP) model, target, stepBound, false);
+          ? mdpChecker.computeReachProbs((MarkovDecisionProcess) model, target, false)
+          : mdpChecker
+              .computeBoundedReachProbs((MarkovDecisionProcess) model, target, stepBound, false);
     }
     throw new IllegalArgumentException();
   }
@@ -593,7 +607,7 @@ public final class CoreChecker {
 
   /*
   public void pruneStates(StateUpdate bounds) throws PrismException {
-    MDP model = partialExplorer.getModel();
+    MarkovDecisionProcess model = partialExplorer.getModel();
     MDPModelChecker mc = new MDPModelChecker(new Prism(new PrismDevNullLog()));
     BoundedNatBitSet fringe =
         NatBitSets.asBounded(stateCollapse.getExploredStates(), model.getNumStates()).complement();

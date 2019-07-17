@@ -61,7 +61,7 @@ public class DefaultExplorer<S, M extends Model> implements Explorer<S, M> {
         distribution.add(target, probability);
       }
       assert distribution.isEmpty() || PrismUtils.doublesAreEqual(distribution.sum(), 1.0d) :
-      distribution;
+          distribution;
 
       model.addChoice(stateId, Action.of(distribution, choice.label()));
     }

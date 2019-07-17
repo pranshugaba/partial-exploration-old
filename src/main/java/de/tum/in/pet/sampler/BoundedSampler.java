@@ -29,7 +29,7 @@ import prism.PrismException;
 public class BoundedSampler<S, M extends Model> implements Sampler<S, M> {
   private static final Logger logger = Logger.getLogger(BoundedSampler.class.getName());
 
-  private static final long REPORT_PROGRESS_EVERY_STEPS = 10000000;
+  private static final long REPORT_PROGRESS_EVERY_STEPS = 10_000_000;
 
   protected final PrismComponent prism;
   protected final Explorer<S, M> explorer;
