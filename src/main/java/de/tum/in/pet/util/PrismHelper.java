@@ -25,7 +25,9 @@ import prism.UndefinedConstants;
 public final class PrismHelper {
   private static final Logger logger = Logger.getLogger(PrismHelper.class.getName());
 
-  private PrismHelper() {}
+  private PrismHelper() {
+    // Empty
+  }
 
   public static PrismParseResult parse(CommandLine commandLine, Option modelOption,
       @Nullable Option propertiesOption, Option constantsOption)

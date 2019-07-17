@@ -2,6 +2,7 @@ package de.tum.in.pet.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import explicit.DTMC;
 import explicit.ModelSimple;
 import explicit.SuccessorsIterator;
 import it.unimi.dsi.fastutil.ints.IntIterator;
@@ -16,7 +17,7 @@ import java.util.function.Consumer;
 import prism.ModelType;
 import prism.Pair;
 
-public class DTMC extends DefaultModel implements explicit.DTMC, ModelSimple, Model {
+public class MarkovChain extends DefaultModel implements DTMC, ModelSimple, Model {
   private final Map<Integer, Distribution> transitions = new HashMap<>();
   private int numTransitions = 0;
 
@@ -139,7 +140,7 @@ public class DTMC extends DefaultModel implements explicit.DTMC, ModelSimple, Mo
   @Override
   public void addChoice(int state, Distribution distribution) {
     Distribution oldValue = transitions.put(state, distribution);
-    checkArgument(oldValue == null, "DTMC can only have one distribution");
+    checkArgument(oldValue == null, "MarkovChain can only have one distribution");
   }
 
   @Override

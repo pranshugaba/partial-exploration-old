@@ -15,7 +15,7 @@ public class MecComponentAnalyser implements ComponentAnalyser {
   public List<NatBitSet> findComponents(CollapseModel<?> model, NatBitSet states) {
     logger.log(Level.FINE, "\nStarting MECs search");
 
-    List<Mec> mecs = EndComponentDecomposition.computeMECs(model, states);
+    List<Mec> mecs = EndComponentDecomposition.computeComponents(model, states);
     if (mecs.isEmpty()) {
       logger.log(Level.FINE, "Found no MECs");
       return Collections.emptyList();

@@ -7,7 +7,7 @@ import de.tum.in.pet.values.bounded.StateValuesBoundedFunction;
 import java.util.List;
 import java.util.function.IntPredicate;
 
-public class StateUpdateBoundedReachability implements StateUpdateBounded  {
+public class StateUpdateBoundedReachability implements StateUpdateBounded {
   private final IntPredicate target;
   private final ValueUpdate update;
 

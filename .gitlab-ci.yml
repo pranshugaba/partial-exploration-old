@@ -35,7 +35,8 @@ Build:
 
 
 .variables: &default_variables
-  tool: build/pet/bin/pet
+  version: 0.1.0
+  tool: build/pet-$version/bin/pet
   args: ""
   JAVA_OPTS: -ea -Djava.util.logging.config.file=config/logging-quiet.properties
   const: ""

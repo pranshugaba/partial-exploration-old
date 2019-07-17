@@ -15,12 +15,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public final class EndComponentDecomposition {
-  private EndComponentDecomposition() {}
+  private EndComponentDecomposition() {
+    // Empty
+  }
 
-  public static List<Mec> computeMECs(Model model, NatBitSet restriction) {
+  public static List<Mec> computeComponents(Model model, NatBitSet restriction) {
     List<Mec> mecs = new ArrayList<>();
     Deque<Mec> workList = new ArrayDeque<>();
-    workList.add(Mec.createMEC(model, restriction));
+    workList.add(Mec.create(model, restriction));
 
     while (!workList.isEmpty()) {
       Mec mec = workList.remove();
@@ -48,7 +50,7 @@ public final class EndComponentDecomposition {
 
       List<Mec> preMecs = SccDecomposition.computeSccs(successorFunction, mec.states, true)
           .stream()
-          .map(scc -> Mec.createMEC(model, scc))
+          .map(scc -> Mec.create(model, scc))
           .filter(m -> !m.states.isEmpty())
           .collect(Collectors.toList());
 

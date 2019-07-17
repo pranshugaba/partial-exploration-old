@@ -13,11 +13,13 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-@SuppressWarnings("PMD")
+@SuppressWarnings("PMD.SystemPrintln")
 public final class CliHelper {
   private static final Logger logger = Logger.getLogger(CliHelper.class.getName());
 
-  private CliHelper() {}
+  private CliHelper() {
+    // Empty
+  }
 
   public static Option getDefaultHeuristicOption() {
     return new Option(null, "heuristic", true, "Heuristic to use");

@@ -15,7 +15,8 @@ import prism.ModelType;
 import prism.PrismLog;
 import strat.MDStrategy;
 
-public class MDP extends DefaultModel implements explicit.MDP, NondetModelSimple, Model {
+public class MarkovDecisionProcess extends DefaultModel
+    implements explicit.MDP, NondetModelSimple, Model {
   private final Map<Integer, List<Action>> transitions = new HashMap<>();
   private int numTransitions = 0;
 

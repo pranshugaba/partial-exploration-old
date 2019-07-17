@@ -16,7 +16,7 @@ public abstract class Bounds {
   }
 
   public static Bounds unknown() {
-    return ValueBounds.UNKNOWN;
+    return BoundsSingletons.UNKNOWN_VALUES;
   }
 
 
@@ -41,15 +41,15 @@ public abstract class Bounds {
   }
 
   public static Bounds reachZero() {
-    return ReachabilityBounds.ZERO;
+    return BoundsSingletons.ZERO;
   }
 
   public static Bounds reachOne() {
-    return ReachabilityBounds.ONE;
+    return BoundsSingletons.ONE;
   }
 
   public static Bounds reachUnknown() {
-    return ReachabilityBounds.UNKNOWN;
+    return BoundsSingletons.UNKNOWN;
   }
 
 

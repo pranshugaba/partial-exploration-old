@@ -38,7 +38,7 @@ public final class Mec {
     actions = a;
   }
 
-  public static Mec createMEC(Model model, NatBitSet states) {
+  public static Mec create(Model model, NatBitSet states) {
     Int2ObjectMap<IntSet> actions = new Int2ObjectOpenHashMap<>(states.size());
     boolean changed = true;
 

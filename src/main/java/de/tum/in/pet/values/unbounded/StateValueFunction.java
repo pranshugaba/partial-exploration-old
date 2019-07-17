@@ -3,7 +3,7 @@ package de.tum.in.pet.values.unbounded;
 import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
 
-@FunctionalInterface
+@SuppressWarnings("InterfaceMayBeAnnotatedFunctional")
 public interface StateValueFunction extends DifferenceFunction, LowerBoundsFunction,
     UpperBoundsFunction {
   Bounds bounds(int state);

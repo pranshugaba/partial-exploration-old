@@ -9,7 +9,9 @@ import java.util.Random;
 public final class Sample {
   private static final Random random = new Random();
 
-  private Sample() {}
+  private Sample() {
+    // Empty
+  }
 
   public static int sample(Distribution distribution) {
     if (distribution.isEmpty()) {

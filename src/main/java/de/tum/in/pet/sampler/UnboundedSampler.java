@@ -41,7 +41,7 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
 
   private static final long MAX_EXPLORES_PER_SAMPLE = 10;
   private static final long MAX_BACK_TRACE_PER_SAMPLE = 5;
-  private static final long REPORT_PROGRESS_EVERY_STEPS = 500000;
+  private static final long REPORT_PROGRESS_EVERY_STEPS = 500_000;
 
   private final Explorer<S, M> explorer;
   private final CollapseModel<M> collapseModel;
