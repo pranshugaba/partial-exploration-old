@@ -73,6 +73,7 @@ public class Distribution implements Iterable<Int2DoubleMap.Entry> {
     return map.int2DoubleEntrySet().iterator();
   }
 
+  @Deprecated
   public Iterator<Map.Entry<Integer, Double>> objectIterator() {
     return map.entrySet().iterator();
   }

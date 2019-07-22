@@ -117,6 +117,7 @@ public class MarkovDecisionProcess extends DefaultModel
   }
 
   @Override
+  @Deprecated
   public Iterator<Map.Entry<Integer, Double>> getTransitionsIterator(int s, int i) {
     return transitions.get(s).get(i).distribution().objectIterator();
   }

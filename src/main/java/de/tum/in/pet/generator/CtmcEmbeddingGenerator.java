@@ -20,10 +20,11 @@ public class CtmcEmbeddingGenerator extends PrismGenerator {
 
     int choiceCount = generator.getNumChoices();
     int transitionCount = generator.getNumTransitions();
-    double sum = 0.0d;
+
     Object2DoubleMap<State> map = new Object2DoubleOpenHashMap<>(transitionCount);
     map.defaultReturnValue(Double.NaN);
 
+    double sum = 0.0d;
     for (int choiceIndex = 0; choiceIndex < choiceCount; choiceIndex++) {
       int choiceTransitionCount = generator.getNumTransitions(choiceIndex);
 

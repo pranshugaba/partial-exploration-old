@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import parser.State;
 import prism.ModelGenerator;
 import prism.PrismException;
@@ -75,17 +76,23 @@ public abstract class PrismGenerator implements Generator<State> {
 
     @Override
     public Object2DoubleMap.Entry<State> next() {
-      try {
-        State target = generator.computeTransitionTarget(choiceIndex, transitionIndex);
-        double probability = generator.getTransitionProbability(choiceIndex, transitionIndex);
-        assert probability > 0.0d;
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
 
-        var entry = new AbstractObject2DoubleMap.BasicEntry<>(target, probability);
-        transitionIndex += 1;
-        return entry;
+      State target;
+      double probability;
+      try {
+        target = generator.computeTransitionTarget(choiceIndex, transitionIndex);
+        probability = generator.getTransitionProbability(choiceIndex, transitionIndex);
       } catch (PrismException e) {
         throw new PrismWrappedException(e);
       }
+      assert probability > 0.0d;
+
+      var entry = new AbstractObject2DoubleMap.BasicEntry<>(target, probability);
+      transitionIndex += 1;
+      return entry;
     }
   }
 }

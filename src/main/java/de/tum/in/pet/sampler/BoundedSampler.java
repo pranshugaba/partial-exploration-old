@@ -160,13 +160,12 @@ public class BoundedSampler<S, M extends Model> implements Sampler<S, M> {
     IntList visitedStates = new IntArrayList();
     IntStack visitStack = (IntStack) visitedStates;
 
-    int currentState = initialState;
-    int remainingSteps = stepBound + 1;
-    int exploreCount = 0;
-
     samples += 1;
 
     // Sample a path
+    int exploreCount = 0;
+    int currentState = initialState;
+    int remainingSteps = stepBound + 1;
     while (remainingSteps > 0) {
       assert remainingSteps == stepBound - visitedStates.size() + 1;
 
@@ -240,8 +239,8 @@ public class BoundedSampler<S, M extends Model> implements Sampler<S, M> {
       // TODO Weird? Figure out when this is happening
       // CSOFF: Indentation
       return Util.sampleNextState(choices, heuristic,
-          d -> stateValues.upperBound(state, remainingSteps, d),
-          s -> stateValues.difference(s, remainingSteps),
+          d -> stateValues.upperBound(state, 0, d),
+          s -> stateValues.difference(s, 0),
           s -> false);
       // CSON: Indentation
     }

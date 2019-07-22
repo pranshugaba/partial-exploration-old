@@ -96,7 +96,7 @@ public final class Mec {
 
   @Override
   public int hashCode() {
-    return Objects.hash(states);
+    return states.hashCode() * 31;
   }
 
   public int size() {

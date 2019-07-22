@@ -131,6 +131,7 @@ task prismJar(type: Jar) {
 task prismNatives(type: Copy) {
     from "lib/prism/prism/lib"
     include "*.so"
+    include "*.dll"
     into "$project.buildDir/lib/"
 }
 

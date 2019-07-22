@@ -83,7 +83,7 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
   @Override
   public AnnotatedModel<M> model() {
     return new AnnotatedModel<>(explorer.model(),
-        explorer::getState, explorer.exploredStates().clone());
+        explorer::getState, NatBitSets.copyOf(explorer.exploredStates()));
   }
 
   @Override
@@ -126,6 +126,8 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
   private boolean sample(int initialState) throws PrismException {
     assert !isSolved(initialState);
 
+    samples += 1;
+
     IntList visitedStates = new IntArrayList();
     IntStack visitStack = (IntStack) visitedStates;
     IntSet visitedStateSet = new IntOpenHashSet();
@@ -133,9 +135,6 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
     int currentState = initialState;
     int exploreCount = 0;
     int sampleBacktraceCount = 0;
-
-    samples += 1;
-
     // Sample a path
     while (!visitedStateSet.contains(currentState)) {
       assert explorer.isExploredState(currentState);
@@ -266,7 +265,7 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
     }
     newStatesSinceCollapse = false;
 
-    NatBitSet states = explorer.exploredStates().clone();
+    NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
     states.andNot(collapseModel.removedStates());
     List<NatBitSet> components = analyser.findComponents(collapseModel, states);
     if (components.isEmpty()) {
