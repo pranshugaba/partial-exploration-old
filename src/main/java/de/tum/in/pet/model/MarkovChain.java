@@ -98,6 +98,7 @@ public class MarkovChain extends DefaultModel implements DTMC, ModelSimple, Mode
   }
 
   @Override
+  @Deprecated
   public Iterator<Map.Entry<Integer, Double>> getTransitionsIterator(int s) {
     Distribution distribution = transitions.get(s);
     if (distribution == null) {

@@ -127,20 +127,20 @@ public final class CoreChecker {
       System.out.println("Failed to parse command line arguments: " + e.getMessage());
       formatter.printHelp("argument list", options);
       System.exit(1);
-      throw new AssertionError();
+      throw new AssertionError(e);
     }
 
 
-    final boolean complete = commandLine.hasOption(completeOption.getLongOpt());
-    final boolean completeAnalysis = commandLine.hasOption(completeAnalysisOption.getLongOpt());
-    final boolean unbounded = commandLine.hasOption(unboundedOption.getLongOpt());
-    final boolean validateCoreProperty = commandLine.hasOption(validateOption.getLongOpt());
-    final boolean boundedExtrapolation = false;
-    final boolean boundedStabilityAnalysis = commandLine.hasOption(stabilityOption.getLongOpt());
-    final double precision = commandLine.hasOption(precisionOption.getLongOpt())
+    boolean complete = commandLine.hasOption(completeOption.getLongOpt());
+    boolean completeAnalysis = commandLine.hasOption(completeAnalysisOption.getLongOpt());
+    boolean unbounded = commandLine.hasOption(unboundedOption.getLongOpt());
+    boolean validateCoreProperty = commandLine.hasOption(validateOption.getLongOpt());
+    boolean boundedExtrapolation = false;
+    boolean boundedStabilityAnalysis = commandLine.hasOption(stabilityOption.getLongOpt());
+    double precision = commandLine.hasOption(precisionOption.getLongOpt())
         ? Double.parseDouble(commandLine.getOptionValue(precisionOption.getLongOpt()))
         : 1e-6;
-    final Double ctmcUniformRate = commandLine.hasOption(uniformizationOption.getLongOpt())
+    Double ctmcUniformRate = commandLine.hasOption(uniformizationOption.getLongOpt())
         ? Double.parseDouble(commandLine.getOptionValue(uniformizationOption.getLongOpt()))
         : null;
 
@@ -156,7 +156,7 @@ public final class CoreChecker {
         System.out.println("Unknown heuristic " + heuristicSetting + ". Possible values are: "
             + values);
         System.exit(1);
-        throw new AssertionError();
+        throw new AssertionError(e);
       }
     } else {
       heuristic = SuccessorHeuristic.WEIGHTED;

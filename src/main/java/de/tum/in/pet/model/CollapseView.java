@@ -177,10 +177,10 @@ public class CollapseView<M extends Model> extends AbstractModel implements Coll
 
     // Representatives are consistent
     assert stateList.stream().allMatch(states ->
-        states.stream().map(this::representative).allMatch(states::contains));
+        states.stream().mapToInt(this::representative).allMatch(states::contains));
     assert stateList.stream().allMatch(states ->
-        states.stream().map(this::representative).distinct().count() == 1L);
-    assert stateList.stream().flatMap(Collection::stream).map(this::representative)
+        states.stream().mapToInt(this::representative).distinct().count() == 1L);
+    assert stateList.stream().flatMap(Collection::stream).mapToInt(this::representative)
         .distinct().count() == stateList.size();
 
     for (int i = 0; i < stateList.size(); i++) {
@@ -216,7 +216,8 @@ public class CollapseView<M extends Model> extends AbstractModel implements Coll
       });
 
       // All states are cleared
-      assert states.stream().map(overwrite::get).allMatch(Objects::isNull);
+      assert states.stream().mapToInt(Integer::intValue)
+          .mapToObj(overwrite::get).allMatch(Objects::isNull);
       overwrite.put(representativeState, new ArrayList<>(collapsedDistributions));
       representatives.add(representativeState);
     }

@@ -14,5 +14,3 @@ Developers:
 
 1. Import project in IntelliJ, enable gradle auto-import
 2. Run `./gradlew compileJava` to create the prism.jar and run the annotation processor
-
-Note: `./gradlew compileJava` has to be run whenever some of the annotation processor classes is changed.
