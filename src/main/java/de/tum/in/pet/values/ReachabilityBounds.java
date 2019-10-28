@@ -1,5 +1,9 @@
 package de.tum.in.pet.values;
 
+import static de.tum.in.pet.util.Util.isEqual;
+import static de.tum.in.pet.util.Util.isOne;
+import static de.tum.in.pet.util.Util.isZero;
+
 import de.tum.in.pet.util.annotation.Tuple;
 import org.immutables.value.Value;
 
@@ -18,16 +22,16 @@ abstract class ReachabilityBounds extends Bounds {
 
   @Override
   public String toString() {
-    if (lowerBound() == 0.0d && upperBound() == 1.0d) {
+    if (isZero(lowerBound()) && isOne(upperBound())) {
       return "[?]";
     }
-    if (lowerBound() == upperBound()) {
+    if (isEqual(lowerBound(), upperBound())) {
       return String.format("=%.5g", lowerBound());
     }
-    if (lowerBound() == 0.0d) {
+    if (isZero(lowerBound())) {
       return String.format("<%.5g", upperBound());
     }
-    if (upperBound() == 1.0d) {
+    if (isOne(upperBound())) {
       return String.format(">%.5g", lowerBound());
     }
     return String.format("[%.5g,%.5g]", lowerBound(), upperBound());

@@ -1,10 +1,13 @@
 package de.tum.in.pet.implementation.core;
 
+import static de.tum.in.pet.util.Util.isEqual;
+import static de.tum.in.pet.util.Util.isOne;
+import static de.tum.in.pet.util.Util.isZero;
+
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.Arrays;
 import java.util.function.IntPredicate;
-import prism.PrismUtils;
 
 public class StateValuesBoundedCoreApproximationSimple extends StateValuesBoundedCoreAbstract
     implements ApproximationMarker {
@@ -47,11 +50,11 @@ public class StateValuesBoundedCoreApproximationSimple extends StateValuesBounde
     if (remainingSteps <= 0) {
       return;
     }
-    if (PrismUtils.doublesAreEqual(value, 1.0d)) {
-      assert PrismUtils.doublesAreEqual(upperBound(state, remainingSteps), 1.0d);
+    if (isOne(value)) {
+      assert isOne(upperBound(state, remainingSteps));
       return;
     }
-    if (value == 0.0d) {
+    if (isZero(value)) {
       setZero(state, remainingSteps);
       return;
     }
@@ -78,7 +81,7 @@ public class StateValuesBoundedCoreApproximationSimple extends StateValuesBounde
       return;
     }
     double oldValue = values[offset];
-    if (PrismUtils.doublesAreEqual(value, oldValue) && oldValue <= value) {
+    if (isEqual(value, oldValue) && oldValue <= value) {
       return;
     }
     // Check monotonicity of added value

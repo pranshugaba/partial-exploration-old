@@ -1,6 +1,8 @@
 package de.tum.in.pet.implementation.reachability;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static de.tum.in.pet.util.Util.isOne;
+import static de.tum.in.pet.util.Util.isZero;
 
 import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
@@ -24,12 +26,12 @@ public class StateUpdateReachability implements StateUpdate {
   public Bounds update(int state, List<Distribution> choices, StateValueFunction values) {
     assert update != ValueUpdate.UNIQUE_VALUE || choices.size() <= 1;
 
-    if (values.lowerBound(state) == 1.0d) {
-      assert values.upperBound(state) == 1.0d;
+    if (isOne(values.lowerBound(state))) {
+      assert isOne(values.upperBound(state));
       return Bounds.reachOne();
     }
-    if (values.upperBound(state) == 0.0d) {
-      assert values.lowerBound(state) == 0.0d;
+    if (isZero(values.upperBound(state))) {
+      assert isZero(values.lowerBound(state));
       return Bounds.reachZero();
     }
     assert !target.test(state);

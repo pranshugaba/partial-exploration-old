@@ -2,6 +2,7 @@ package de.tum.in.pet.model;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
+import de.tum.in.pet.util.Util;
 import it.unimi.dsi.fastutil.doubles.DoubleIterator;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
@@ -11,7 +12,6 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.IntToDoubleFunction;
 import java.util.function.IntUnaryOperator;
-import prism.PrismUtils;
 
 public class Distribution implements Iterable<Int2DoubleMap.Entry> {
   private final Int2DoubleMap map;
@@ -31,6 +31,7 @@ public class Distribution implements Iterable<Int2DoubleMap.Entry> {
 
   public void add(int j, double prob) {
     double old = map.getOrDefault(j, -1.0d);
+    //noinspection FloatingPointEquality
     if (old == -1.0d) {
       map.put(j, prob);
       support.set(j);
@@ -46,7 +47,10 @@ public class Distribution implements Iterable<Int2DoubleMap.Entry> {
   }
 
   public void set(int j, double prob) {
-    if (prob == 0.0) {
+    // Intentionally do a precise comparison since even the smallest probability changes the
+    // underlying graph
+    // -> Important for component (SCC/EC) analysis
+    if (prob == 0.0d) {
       map.remove(j);
       support.clear(j);
     } else {
@@ -154,7 +158,7 @@ public class Distribution implements Iterable<Int2DoubleMap.Entry> {
       return false;
     }
     for (Int2DoubleMap.Entry entry : this.map.int2DoubleEntrySet()) {
-      if (!PrismUtils.doublesAreEqual(entry.getDoubleValue(),
+      if (!Util.isEqual(entry.getDoubleValue(),
           other.map.getOrDefault(entry.getIntKey(), -1))) {
         return false;
       }

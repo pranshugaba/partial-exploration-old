@@ -342,7 +342,7 @@ public final class ReachChecker {
       expressionExpected = Collections.emptyList();
     }
 
-    List<PrismQuery> prismQueries = new ArrayList<>(expressions.size());
+    List<PrismQuery<?>> prismQueries = new ArrayList<>(expressions.size());
     Values values = parse.constants().getPFConstantValues();
     for (Expression expression : expressions) {
       prismQueries.add(PrismQuery.parse(expression, values, precision, relativeError));
@@ -351,7 +351,7 @@ public final class ReachChecker {
     checkArgument(!prismQueries.isEmpty(), "No valid expression found");
 
     List<Result<?, ?>> results = new ArrayList<>();
-    for (PrismQuery expression : prismQueries) {
+    for (PrismQuery<?> expression : prismQueries) {
       Result<?, ?> result = solve(generator, expression, heuristic);
       results.add(result);
     }

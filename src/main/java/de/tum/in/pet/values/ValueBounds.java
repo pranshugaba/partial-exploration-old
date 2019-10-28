@@ -1,5 +1,7 @@
 package de.tum.in.pet.values;
 
+import static de.tum.in.pet.util.Util.isEqual;
+
 import de.tum.in.pet.util.annotation.Tuple;
 import org.immutables.value.Value;
 
@@ -18,7 +20,7 @@ abstract class ValueBounds extends Bounds {
 
   @Override
   public String toString() {
-    return lowerBound() == upperBound()
+    return isEqual(lowerBound(), upperBound())
         ? String.format("=%.5g", lowerBound())
         : String.format("[%.5g,%.5g]", lowerBound(), upperBound());
   }

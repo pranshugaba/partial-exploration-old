@@ -1,6 +1,7 @@
 package de.tum.in.pet.values.unbounded;
 
 import de.tum.in.pet.model.Distribution;
+import de.tum.in.pet.util.Util;
 
 @FunctionalInterface
 public interface DifferenceFunction {
@@ -11,6 +12,6 @@ public interface DifferenceFunction {
   }
 
   default boolean isZeroDifference(int state) {
-    return difference(state) == 0.0d;
+    return Util.isZero(difference(state));
   }
 }

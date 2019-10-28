@@ -1,5 +1,7 @@
 package de.tum.in.pet.util;
 
+import static de.tum.in.pet.util.Util.isZero;
+
 import de.tum.in.pet.model.Distribution;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -41,14 +43,14 @@ public final class Sample {
       sum += values[i];
     }
 
-    if (sum == 0.0d) {
+    if (isZero(sum)) {
       return -1;
     }
 
     // Sample a random value in [0, sum)
     double sampledValue = random.nextDouble() * sum;
     // Search the successor corresponding to this value
-    double partialSum = 0d;
+    double partialSum = 0.0d;
     for (int i = 0; i < bound; i++) {
       partialSum += values[i];
       if (partialSum >= sampledValue) {

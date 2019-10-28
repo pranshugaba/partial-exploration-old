@@ -1,9 +1,11 @@
 package de.tum.in.pet.implementation.core;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static de.tum.in.pet.util.Util.isOne;
+import static de.tum.in.pet.util.Util.isZero;
+import static de.tum.in.pet.util.Util.lessOrEqual;
 
 import de.tum.in.pet.model.Distribution;
-import de.tum.in.pet.util.Util;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.unbounded.StateValues;
 import it.unimi.dsi.fastutil.ints.Int2DoubleLinkedOpenHashMap;
@@ -21,10 +23,8 @@ public class StateValuesUnboundedCore implements StateValues {
 
   @Override
   public Bounds bounds(int state) {
-    double upperBound = upperBound(state);
-    return upperBound == 0.0d ? Bounds.reachZero() : Bounds.reach(0.0d, upperBound);
+    return Bounds.reach(0.0d, upperBound(state));
   }
-
 
   @Override
   public double upperBound(int state) {
@@ -49,29 +49,28 @@ public class StateValuesUnboundedCore implements StateValues {
     return upperBound(state);
   }
 
-
   @Override
   public boolean isZeroDifference(int state) {
     return zeroStates.contains(state);
   }
 
-
   @Override
   public void setUpperBound(int state, double value) {
-    assert 0 <= value && value <= 1.0d
-        : "Value " + String.format("%.6g", value) + " not within bounds";
-    if (value == 1.0d) {
+    assert 0 <= value && value <= 1.0d : "Value " + String.format("%.6g", value)
+        + " not within bounds";
+    if (isOne(value)) {
       assert !bounds.containsKey(state);
       return;
     }
-    if (value == 0.0d) {
+    if (isZero(value)) {
       setZero(state);
       return;
     }
 
     double oldValue = bounds.put(state, value);
-    assert Util.lessOrEqual(value, oldValue) : "Value " + String.format("%.6g", value)
-        + " larger than old value " + String.format("%.6g", oldValue);
+    assert lessOrEqual(value, oldValue) :
+        "Value " + String.format("%.6g", value) + " larger than old value " + String
+            .format("%.6g", oldValue);
   }
 
   @Override
@@ -85,18 +84,17 @@ public class StateValuesUnboundedCore implements StateValues {
     setUpperBound(state, upperBound);
   }
 
-
   public void setZero(int state) {
     bounds.remove(state);
     zeroStates.add(state);
     assert upperBound(state) == 0.0d;
   }
 
-
   @Override
   public void clear(int state) {
     zeroStates.remove(state);
     bounds.remove(state);
+    //noinspection FloatingPointEquality
     assert upperBound(state) == 1.0d;
   }
 }

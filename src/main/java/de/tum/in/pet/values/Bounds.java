@@ -1,11 +1,16 @@
 package de.tum.in.pet.values;
 
+import static de.tum.in.pet.util.Util.isEqual;
+import static de.tum.in.pet.util.Util.isOne;
+import static de.tum.in.pet.util.Util.isZero;
+import static de.tum.in.pet.util.Util.lessOrEqual;
+
 import org.immutables.value.Value;
-import prism.PrismUtils;
 
 public abstract class Bounds {
   public static Bounds of(double lower, double upper) {
-    if (lower == upper) {
+    assert lower <= upper;
+    if (isEqual(lower, upper)) {
       return of(lower);
     }
     return ValueBoundsTuple.create(lower, upper);
@@ -21,20 +26,27 @@ public abstract class Bounds {
 
 
   public static Bounds reach(double lower, double upper) {
-    if (lower == upper) {
+    assert lower <= upper;
+    if (isOne(lower)) {
+      return reachOne();
+    }
+    if (isZero(upper)) {
+      return reachZero();
+    }
+    if (isEqual(lower, upper)) {
       return of(lower);
     }
-    if (lower == 0.0d && upper == 1.0d) {
+    if (isZero(lower) && isOne(upper)) {
       return reachUnknown();
     }
     return ReachabilityBoundsTuple.create(lower, upper);
   }
 
   public static Bounds reach(double value) {
-    if (value == 0.0d) {
+    if (isZero(value)) {
       return reachZero();
     }
-    if (value == 1.0d) {
+    if (isOne(value)) {
       return reachOne();
     }
     return ReachabilityBoundsTuple.create(value, value);
@@ -67,12 +79,13 @@ public abstract class Bounds {
   }
 
   public boolean contains(Bounds other) {
-    return lowerBound() <= other.lowerBound() && other.upperBound() <= upperBound();
+    return lessOrEqual(lowerBound(), other.lowerBound())
+        && lessOrEqual(other.upperBound(), upperBound());
   }
 
   public boolean equalsUpTo(Bounds other) {
-    return PrismUtils.doublesAreEqual(lowerBound(), other.lowerBound())
-        && PrismUtils.doublesAreEqual(upperBound(), other.upperBound());
+    return isEqual(lowerBound(), other.lowerBound())
+        && isEqual(upperBound(), other.upperBound());
   }
 
 
