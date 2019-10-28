@@ -1,11 +1,13 @@
 package de.tum.in.pet.implementation.core;
 
+import static de.tum.in.pet.util.Util.isOne;
+import static de.tum.in.pet.util.Util.isZero;
+
 import de.tum.in.pet.util.Util;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.Arrays;
 import java.util.function.IntPredicate;
-import prism.PrismUtils;
 
 public class StateValuesBoundedCoreDense extends StateValuesBoundedCoreAbstract {
   private final Int2ObjectMap<double[]> stateBounds;
@@ -38,11 +40,11 @@ public class StateValuesBoundedCoreDense extends StateValuesBoundedCoreAbstract 
     if (remainingSteps <= 0) {
       return;
     }
-    if (PrismUtils.doublesAreEqual(value, 1.0d)) {
-      assert PrismUtils.doublesAreEqual(upperBound(state, remainingSteps), 1.0d);
+    if (isOne(value)) {
+      assert isOne(upperBound(state, remainingSteps));
       return;
     }
-    if (value == 0.0d) {
+    if (isZero(value)) {
       setZero(state, remainingSteps);
       return;
     }
@@ -73,7 +75,7 @@ public class StateValuesBoundedCoreDense extends StateValuesBoundedCoreAbstract 
       double oldValue = values[remainingSteps];
       // Check monotonicity of added value
       assert Util.lessOrEqual(value, oldValue) : "Updating " + oldValue + " to " + value;
-      if (PrismUtils.doublesAreEqual(value, oldValue)) {
+      if (Util.isEqual(value, oldValue)) {
         return;
       }
       values[remainingSteps] = value;

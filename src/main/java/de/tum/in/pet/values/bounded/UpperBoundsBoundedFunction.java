@@ -1,6 +1,7 @@
 package de.tum.in.pet.values.bounded;
 
 import de.tum.in.pet.model.Distribution;
+import de.tum.in.pet.util.Util;
 
 @FunctionalInterface
 public interface UpperBoundsBoundedFunction {
@@ -11,6 +12,6 @@ public interface UpperBoundsBoundedFunction {
   }
 
   default boolean isZeroUpperBound(int state, int remainingSteps) {
-    return upperBound(state, remainingSteps) == 0.0d;
+    return Util.isZero(upperBound(state, remainingSteps));
   }
 }

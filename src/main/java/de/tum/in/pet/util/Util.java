@@ -1,7 +1,5 @@
 package de.tum.in.pet.util;
 
-import static prism.PrismUtils.doublesAreEqual;
-
 import de.tum.in.naturals.set.BoundedNatBitSet;
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
@@ -38,7 +36,7 @@ import java.util.function.ToDoubleFunction;
 
 public final class Util {
   public static final double DEFAULT_PRECISION = 1e-6;
-  private static final double MACHINE_EPS = 1e-12;
+  private static final double MACHINE_EPS = 1e-15;
 
   private Util() {
     // Empty
@@ -46,10 +44,10 @@ public final class Util {
 
   public static explicit.Distribution scale(Distribution distribution) {
     double total = distribution.sum();
-    if (equal(total, 0.0d)) {
+    if (isEqual(total, 0.0d)) {
       return null;
     }
-    if (equal(total, 1.0d)) {
+    if (isEqual(total, 1.0d)) {
       return new explicit.Distribution(distribution.objectIterator());
     }
     Map<Integer, Double> map = new HashMap<>(distribution.size());
@@ -103,14 +101,14 @@ public final class Util {
         double upperBound = selectionScore.applyAsDouble(successors);
         actionUpperBounds[choice] = upperBound;
         if (upperBound > bestValue) {
-          maximalBestActions = doublesAreEqual(upperBound, bestValue) ? maximalBestActions + 1 : 1;
+          maximalBestActions = isEqual(upperBound, bestValue) ? maximalBestActions + 1 : 1;
           bestValue = upperBound;
-        } else if (doublesAreEqual(upperBound, bestValue)) {
+        } else if (isEqual(upperBound, bestValue)) {
           maximalBestActions += 1;
         }
       }
 
-      if (bestValue == 0.0d) {
+      if (isZero(bestValue)) {
         // All successors have an score == 0
         return -1;
       }
@@ -119,7 +117,7 @@ public final class Util {
       int bestActionCount = 0;
       int[] bestActions = new int[maximalBestActions];
       for (int choice = 0; choice < choiceCount; choice++) {
-        if (doublesAreEqual(bestValue, actionUpperBounds[choice])) {
+        if (isEqual(bestValue, actionUpperBounds[choice])) {
           bestActions[bestActionCount] = choice;
           bestActionCount += 1;
         }
@@ -128,7 +126,7 @@ public final class Util {
       // There has to be a witness for the bestValue
       assert bestActionCount > 0;
       distribution = choices.get(Sample.sampleUniform(bestActions, bestActionCount));
-      assert doublesAreEqual(bestValue, selectionScore.applyAsDouble(distribution));
+      assert isEqual(bestValue, selectionScore.applyAsDouble(distribution));
     }
 
     if (distribution.isEmpty()) {
@@ -243,7 +241,7 @@ public final class Util {
 
           action.distribution().forEach((target, probability) -> {
             dotString.append(actionNode).append(" -> ").append(target);
-            if (!doublesAreEqual(probability, 1.0d)) {
+            if (!isEqual(probability, 1.0d)) {
               dotString.append(" [label=\"").append(String.format("%.3f", probability))
                   .append("\"]");
             }
@@ -336,7 +334,7 @@ public final class Util {
               return;
             } */
             dotString.append(actionNode).append(" -> ").append(target);
-            if (!doublesAreEqual(probability, 1.0d)) {
+            if (!isEqual(probability, 1.0d)) {
               dotString.append(" [label=\"").append(String.format("%.3f", probability))
                   .append("\"]");
             }
@@ -412,11 +410,19 @@ public final class Util {
     // CSON: Indentation
   }
 
-  public static boolean equal(double d1, double d2) {
-    return Math.abs(d1 - d2) < MACHINE_EPS;
+  public static boolean isEqual(double d1, double d2) {
+    return isZero(d1 - d2);
+  }
+
+  public static boolean isOne(double d) {
+    return isZero(d - 1.0);
+  }
+
+  public static boolean isZero(double d) {
+    return Math.abs(d) < MACHINE_EPS;
   }
 
   public static boolean lessOrEqual(double d1, double d2) {
-    return d1 <= d2 || equal(d1, d2);
+    return d1 <= d2 || isEqual(d1, d2);
   }
 }

@@ -33,15 +33,16 @@ public abstract class PrismQuery<R> {
       return expression.evaluateInt();
     } catch (PrismLangException e) {
       double doubleBound = expression.evaluateDouble();
-      int bound = (int) doubleBound;
-      if (doubleBound != (double) bound) {
+      //noinspection FloatingPointEquality
+      if (Math.rint(doubleBound) != doubleBound) {
         throw e;
       }
-      return bound;
+      //noinspection NumericCastThatLosesPrecision
+      return (int) doubleBound;
     }
   }
 
-  public static PrismQuery parse(Expression expression, Values values,
+  public static PrismQuery<?> parse(Expression expression, Values values,
       double precision, boolean relativeError) throws PrismException {
     checkArgument(expression instanceof ExpressionProb,
         "Could not construct a predicate from %s.", expression);
@@ -59,18 +60,18 @@ public abstract class PrismQuery<R> {
         (ExpressionTemporal) expressionQuant.getExpression();
 
     int lowerBound = 0;
-    int upperBound = Integer.MAX_VALUE;
-
     if (expressionTemporal.getLowerBound() != null) {
       lowerBound = parseBound(expressionTemporal.getLowerBound());
       if (expressionTemporal.lowerBoundIsStrict()) {
-        lowerBound = lowerBound + 1;
+        lowerBound += 1;
       }
     }
+
+    int upperBound = Integer.MAX_VALUE;
     if (expressionTemporal.getUpperBound() != null) {
       upperBound = parseBound(expressionTemporal.getUpperBound());
       if (expressionTemporal.upperBoundIsStrict()) {
-        upperBound = upperBound - 1;
+        upperBound -= 1;
       }
     }
 
@@ -125,8 +126,8 @@ public abstract class PrismQuery<R> {
 
   @Override
   public String toString() {
-    return expression() + "[" + type() + "]"
-        + (isBounded() ? "[" + lowerBound() + ";" + upperBound() + "]" : "");
+    return String.format("%s[%s]%s", expression(), type(),
+        isBounded() ? "[" + lowerBound() + ";" + upperBound() + "]" : "");
   }
 
 

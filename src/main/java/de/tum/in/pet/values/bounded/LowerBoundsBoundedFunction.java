@@ -1,6 +1,7 @@
 package de.tum.in.pet.values.bounded;
 
 import de.tum.in.pet.model.Distribution;
+import de.tum.in.pet.util.Util;
 
 @FunctionalInterface
 public interface LowerBoundsBoundedFunction {
@@ -11,6 +12,6 @@ public interface LowerBoundsBoundedFunction {
   }
 
   default boolean isOneLowerBound(int state, int remainingSteps) {
-    return lowerBound(state, remainingSteps) == 1.0d;
+    return Util.isOne(lowerBound(state, remainingSteps));
   }
 }

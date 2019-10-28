@@ -1,5 +1,8 @@
 package de.tum.in.pet.implementation.reachability;
 
+import static de.tum.in.pet.util.Util.isOne;
+import static de.tum.in.pet.util.Util.isZero;
+
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.pet.values.Bounds;
@@ -36,11 +39,11 @@ public class ReachabilityBounds {
   }
 
   public boolean set(int state, double lowerBound, double upperBound) {
-    if (upperBound == 0.0d) {
+    if (isZero(upperBound)) {
       zeroStates.set(state);
       return true;
     }
-    if (lowerBound == 1.0d) {
+    if (isOne(lowerBound)) {
       oneStates.set(state);
       return true;
     }

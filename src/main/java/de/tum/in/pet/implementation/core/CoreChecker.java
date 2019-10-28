@@ -616,7 +616,7 @@ public final class CoreChecker {
     prob1states.retainAll(stateCollapse.getExploredStates());
     assert prob1states.intStream()
         .mapToDouble(bounds::getUpperBound)
-        .allMatch(d -> PrismUtils.doublesAreEqual(d, 1.0d));
+        .allMatch(d -> Util.isOne(d));
     prob1states.forEach((IntConsumer) stateCollapse::removeExploredState);
     prob1states.forEach((IntConsumer) bounds::clear);
     if (model instanceof MDPSimple) {

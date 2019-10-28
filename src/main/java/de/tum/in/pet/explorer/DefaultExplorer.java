@@ -8,13 +8,13 @@ import de.tum.in.pet.model.Action;
 import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.model.Model;
 import de.tum.in.pet.model.StateToIndex;
+import de.tum.in.pet.util.Util;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import java.util.List;
 import prism.PrismException;
-import prism.PrismUtils;
 
 public class DefaultExplorer<S, M extends Model> implements Explorer<S, M> {
   private final StateToIndex<S> stateMap = new StateToIndex<>();
@@ -60,8 +60,7 @@ public class DefaultExplorer<S, M extends Model> implements Explorer<S, M> {
         double probability = transition.getDoubleValue();
         distribution.add(target, probability);
       }
-      assert distribution.isEmpty() || PrismUtils.doublesAreEqual(distribution.sum(), 1.0d) :
-          distribution;
+      assert distribution.isEmpty() || Util.isOne(distribution.sum()) : distribution;
 
       model.addChoice(stateId, Action.of(distribution, choice.label()));
     }

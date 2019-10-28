@@ -1,5 +1,8 @@
 package de.tum.in.pet.implementation.reachability;
 
+import static de.tum.in.pet.util.Util.isOne;
+import static de.tum.in.pet.util.Util.isZero;
+
 import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.bounded.StateUpdateBounded;
@@ -21,12 +24,12 @@ public class StateUpdateBoundedReachability implements StateUpdateBounded {
       StateValuesBoundedFunction values) {
     assert update != ValueUpdate.UNIQUE_VALUE || choices.size() <= 1;
 
-    if (values.lowerBound(state, remainingSteps) == 1.0d) {
-      assert values.upperBound(state, remainingSteps) == 1.0d;
+    if (isOne(values.lowerBound(state, remainingSteps))) {
+      assert isOne(values.upperBound(state, remainingSteps));
       return Bounds.reachOne();
     }
-    if (values.upperBound(state, remainingSteps) == 0.0d) {
-      assert values.lowerBound(state, remainingSteps) == 0.0d;
+    if (isZero(values.upperBound(state, remainingSteps))) {
+      assert isZero(values.lowerBound(state, remainingSteps));
       return Bounds.reachZero();
     }
     assert !target.test(state);
