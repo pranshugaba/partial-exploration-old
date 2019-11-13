@@ -1,8 +1,8 @@
 package de.tum.in.pet.implementation.reachability;
 
-import de.tum.in.pet.util.annotation.Tuple;
 import de.tum.in.pet.values.ValueInterpretation;
 import de.tum.in.pet.values.ValueVerdict;
+import de.tum.in.probmodels.util.annotation.Tuple;
 import org.immutables.value.Value;
 
 @Value.Immutable

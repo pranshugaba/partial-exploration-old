@@ -1,9 +1,9 @@
 package de.tum.in.pet.implementation.core;
 
-import static de.tum.in.pet.util.Util.isOne;
-import static de.tum.in.pet.util.Util.isZero;
+import static de.tum.in.probmodels.util.Util.isOne;
+import static de.tum.in.probmodels.util.Util.isZero;
 
-import de.tum.in.pet.util.Util;
+import de.tum.in.probmodels.util.Util;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.Arrays;

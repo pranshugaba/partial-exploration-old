@@ -2,9 +2,9 @@ package de.tum.in.pet.implementation.reachability;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import de.tum.in.pet.util.annotation.Tuple;
 import de.tum.in.pet.values.ValueInterpretation;
 import de.tum.in.pet.values.ValueVerdict;
+import de.tum.in.probmodels.util.annotation.Tuple;
 import org.immutables.value.Value;
 import parser.Values;
 import parser.ast.Expression;

@@ -1,29 +1,28 @@
 package de.tum.in.pet.implementation.core;
 
-import static de.tum.in.pet.util.PrismHelper.PrismParseResult;
-import static de.tum.in.pet.util.PrismHelper.parse;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import de.tum.in.naturals.set.DefaultNatBitSetFactory;
 import de.tum.in.naturals.set.NatBitSets;
-import de.tum.in.pet.explorer.DefaultExplorer;
-import de.tum.in.pet.explorer.Explorer;
-import de.tum.in.pet.generator.CtmcEmbeddingGenerator;
-import de.tum.in.pet.generator.CtmcUniformizingGenerator;
-import de.tum.in.pet.generator.DtmcGenerator;
-import de.tum.in.pet.generator.Generator;
-import de.tum.in.pet.generator.MdpGenerator;
-import de.tum.in.pet.graph.MecComponentAnalyser;
-import de.tum.in.pet.graph.SccComponentAnalyser;
-import de.tum.in.pet.model.MarkovChain;
-import de.tum.in.pet.model.MarkovDecisionProcess;
 import de.tum.in.pet.sampler.AnnotatedModel;
 import de.tum.in.pet.sampler.BoundedSampler;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.sampler.UnboundedSampler;
-import de.tum.in.pet.util.Util;
+import de.tum.in.pet.sampler.UnboundedSamplerConfig;
 import de.tum.in.pet.values.bounded.StateValuesBounded;
+import de.tum.in.probmodels.explorer.DefaultExplorer;
+import de.tum.in.probmodels.explorer.Explorer;
+import de.tum.in.probmodels.generator.CtmcEmbeddingGenerator;
+import de.tum.in.probmodels.generator.CtmcUniformizingGenerator;
+import de.tum.in.probmodels.generator.DtmcGenerator;
+import de.tum.in.probmodels.generator.Generator;
+import de.tum.in.probmodels.generator.MdpGenerator;
+import de.tum.in.probmodels.graph.MecComponentAnalyser;
+import de.tum.in.probmodels.graph.SccComponentAnalyser;
+import de.tum.in.probmodels.model.MarkovChain;
+import de.tum.in.probmodels.model.MarkovDecisionProcess;
+import de.tum.in.probmodels.util.PrismHelper;
+import de.tum.in.probmodels.util.Util;
 import explicit.CTMCModelChecker;
 import explicit.ConstructModel;
 import explicit.DTMCModelChecker;
@@ -219,7 +218,7 @@ public final class CoreChecker {
         ? commandLine.getOptionValue(constantsOption.getLongOpt())
         : null;
 
-    PrismParseResult parse = parse(modelPath, null, constantsString);
+    PrismHelper.PrismParseResult parse = PrismHelper.parse(modelPath, null, constantsString);
     ModulesFile modulesFile = parse.modulesFile();
 
 
@@ -286,9 +285,9 @@ public final class CoreChecker {
         StateValuesUnboundedCore stateValues = new StateValuesUnboundedCore();
         StateUpdateCore stateUpdate = new StateUpdateCore(precision);
         UnboundedSampler<State, MarkovDecisionProcess> unboundedBuilder = new UnboundedSampler<>(
-            explorer,
-            stateValues, heuristic, stateUpdate, stateUpdate, new MecComponentAnalyser());
-        unboundedBuilder.build();
+            explorer, stateValues, heuristic, stateUpdate, stateUpdate, new MecComponentAnalyser(),
+            UnboundedSamplerConfig.getDefault());
+        unboundedBuilder.run();
         AnnotatedModel<? extends MarkovDecisionProcess> unboundedPartial = unboundedBuilder.model();
         construction.add(timer.finish(unboundedPartial.exploredStates.size()));
 
@@ -300,8 +299,7 @@ public final class CoreChecker {
       }
 
       if (bounded) {
-        logger
-            .log(Level.INFO, "Building {0}-bounded sampling MarkovDecisionProcess core", stepBound);
+        logger.log(Level.INFO, "Building {0}-bounded sampling MDP core", stepBound);
 
         Timer timer = new Timer("bounded");
         MdpGenerator mdpGenerator = new MdpGenerator(generator);
@@ -312,7 +310,7 @@ public final class CoreChecker {
         BoundedSampler<State, MarkovDecisionProcess> boundedBuilder = new BoundedSampler<>(prism,
             explorer, stepBound,
             stateUpdate, stateUpdate, heuristic, stateValues);
-        boundedBuilder.build();
+        boundedBuilder.run();
         AnnotatedModel<? extends MarkovDecisionProcess> boundedPartial = boundedBuilder.model();
         construction.add(timer.finish(boundedPartial.model.getNumStates()));
 
@@ -356,9 +354,9 @@ public final class CoreChecker {
         StateValuesUnboundedCore stateValues = new StateValuesUnboundedCore();
         StateUpdateCore stateUpdate = new StateUpdateCore(precision);
         UnboundedSampler<State, MarkovChain> unboundedSamplingBuilder = new UnboundedSampler<>(
-            explorer,
-            stateValues, heuristic, stateUpdate, stateUpdate, new SccComponentAnalyser());
-        unboundedSamplingBuilder.build();
+            explorer, stateValues, heuristic, stateUpdate, stateUpdate, new SccComponentAnalyser(),
+            UnboundedSamplerConfig.getDefault());
+        unboundedSamplingBuilder.run();
         AnnotatedModel<? extends MarkovChain> unboundedPartial = unboundedSamplingBuilder.model();
         construction.add(timer.finish(unboundedPartial.exploredStates.size()));
 
@@ -399,7 +397,7 @@ public final class CoreChecker {
         BoundedSampler<State, MarkovChain> boundedSamplingBuilder = new BoundedSampler<>(prism,
             explorer,
             stepBound, stateUpdate, stateUpdate, heuristic, stateValues);
-        boundedSamplingBuilder.build();
+        boundedSamplingBuilder.run();
         AnnotatedModel<? extends MarkovChain> boundedSamplingPartial = boundedSamplingBuilder
             .model();
         construction.add(samplingTimer.finish(boundedSamplingPartial.exploredStates.size()));
@@ -450,8 +448,9 @@ public final class CoreChecker {
         StateValuesUnboundedCore stateValues = new StateValuesUnboundedCore();
         StateUpdateCore stateUpdate = new StateUpdateCore(precision);
         UnboundedSampler<State, MarkovChain> sampler = new UnboundedSampler<>(explorer, stateValues,
-            heuristic, stateUpdate, stateUpdate, new SccComponentAnalyser());
-        sampler.build();
+            heuristic, stateUpdate, stateUpdate, new SccComponentAnalyser(),
+            UnboundedSamplerConfig.getDefault());
+        sampler.run();
         AnnotatedModel<? extends MarkovChain> unboundedPartial = sampler.model();
         construction.add(timer.finish(unboundedPartial.exploredStates.size()));
 
@@ -478,7 +477,7 @@ public final class CoreChecker {
             new BoundedSampler<>(prism, explorer, stepBound, stateUpdate,
                 stateUpdate, heuristic, stateValues);
 
-        boundedSamplingBuilder.build();
+        boundedSamplingBuilder.run();
         AnnotatedModel<? extends MarkovChain> boundedSamplingPartial = boundedSamplingBuilder
             .model();
         construction.add(samplingTimer.finish(boundedSamplingPartial.exploredStates.size()));

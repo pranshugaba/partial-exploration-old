@@ -2,24 +2,24 @@ package de.tum.in.pet.sampler;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
-import de.tum.in.pet.explorer.Explorer;
-import de.tum.in.pet.graph.ComponentAnalyser;
-import de.tum.in.pet.graph.SccDecomposition;
-import de.tum.in.pet.model.CollapseModel;
-import de.tum.in.pet.model.CollapseView;
-import de.tum.in.pet.model.Distribution;
-import de.tum.in.pet.model.Model;
-import de.tum.in.pet.util.Util;
+import de.tum.in.pet.util.ModelHelper;
+import de.tum.in.pet.util.SampleUtil;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.ValueVerdict;
 import de.tum.in.pet.values.unbounded.StateUpdate;
 import de.tum.in.pet.values.unbounded.StateValues;
+import de.tum.in.probmodels.explorer.Explorer;
+import de.tum.in.probmodels.graph.ComponentAnalyser;
+import de.tum.in.probmodels.graph.SccDecomposition;
+import de.tum.in.probmodels.model.CollapseModel;
+import de.tum.in.probmodels.model.CollapseView;
+import de.tum.in.probmodels.model.Distribution;
+import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntStack;
 import java.util.ArrayList;
@@ -39,23 +39,18 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
 
   private static final Logger logger = Logger.getLogger(UnboundedSampler.class.getName());
 
-  private static final long MAX_EXPLORES_PER_SAMPLE = 10;
-  private static final long MAX_BACK_TRACE_PER_SAMPLE = 5;
-  private static final long REPORT_PROGRESS_EVERY_STEPS = 500_000;
-
   private final Explorer<S, M> explorer;
   private final CollapseModel<M> collapseModel;
   private final StateUpdate stateUpdate;
   private final ValueVerdict verdict;
 
   private final ComponentAnalyser analyser;
-  private final NatBitSet statesInComponents = NatBitSets.set();
 
   private final SuccessorHeuristic heuristic;
   private final StateValues stateValues;
 
   private boolean newStatesSinceCollapse = true;
-  private long collapseThreshold = 10;
+  private long collapseThreshold;
   private long loopCount = 0;
 
   private long sampleSteps = 0;
@@ -63,9 +58,18 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
   private long backtraceCount = 0;
   private long backtraceSteps = 0;
 
+  private final NatBitSet statesInComponents = NatBitSets.set();
+  private final NatBitSet sampledStates = NatBitSets.set();
+
+  private final long reportProgressEverySteps;
+  private final int maxBacktrackPerSample;
+  private final int maxExploresPerSample;
+  private final CollapseMethod collapseMethod;
+
   public UnboundedSampler(Explorer<S, M> explorer, StateValues stateValues,
-      SuccessorHeuristic heuristic, StateUpdate stateUpdate,
-      ValueVerdict verdict, ComponentAnalyser analyser) {
+      SuccessorHeuristic heuristic,
+      StateUpdate stateUpdate, ValueVerdict verdict, ComponentAnalyser analyser,
+      UnboundedSamplerConfig config) {
     this.explorer = explorer;
     this.stateValues = stateValues;
     this.heuristic = heuristic;
@@ -73,6 +77,12 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
     this.stateUpdate = stateUpdate;
     this.verdict = verdict;
     this.analyser = analyser;
+    this.collapseThreshold = config.initialCollapseThreshold();
+
+    maxBacktrackPerSample = config.maxBacktrackPerSample();
+    maxExploresPerSample = config.maxExploresPerSample();
+    reportProgressEverySteps = config.reportProgressEverySteps();
+    collapseMethod = config.collapseMethod();
   }
 
   @Override
@@ -82,8 +92,8 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
 
   @Override
   public AnnotatedModel<M> model() {
-    return new AnnotatedModel<>(explorer.model(),
-        explorer::getState, NatBitSets.copyOf(explorer.exploredStates()));
+    return new AnnotatedModel<>(explorer.model(), explorer::getState,
+        NatBitSets.copyOf(explorer.exploredStates()));
   }
 
   @Override
@@ -92,7 +102,7 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
   }
 
   @Override
-  public void build() throws PrismException {
+  public void run() throws PrismException {
     long timer = System.nanoTime();
 
     for (int initialState : explorer.initialStates()) {
@@ -102,9 +112,9 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
         if (sample(representative)) {
           // If MECs have been merged, update the representative (it might have changed)
           representative = collapseModel.representative(initialState);
-          assert collapseModel.representative(representative)
-              == collapseModel.representative(initialState)
-              && explorer.isExploredState(representative);
+          assert collapseModel.representative(representative) == collapseModel
+              .representative(initialState) && explorer
+              .isExploredState(representative);
         }
       }
     }
@@ -113,15 +123,13 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
 
     long elapsedTime = System.nanoTime() - timer;
 
-    logger.log(Level.INFO, () ->
-        String.format("%n== Finished sampling ==%n%s%n  Time: %f sec%n",
-            getProgressString(), elapsedTime / (double) TimeUnit.SECONDS.toNanos(1)));
+    logger.log(Level.INFO, () -> String.format("%n== Finished sampling ==%n%s%n  Time: %f sec%n",
+        getProgressString(), elapsedTime / (double) TimeUnit.SECONDS.toNanos(1)));
   }
 
   private boolean isSolved(int state) {
     return verdict.isSolved(stateValues.bounds(state));
   }
-
 
   private boolean sample(int initialState) throws PrismException {
     assert !isSolved(initialState);
@@ -130,7 +138,7 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
 
     IntList visitedStates = new IntArrayList();
     IntStack visitStack = (IntStack) visitedStates;
-    IntSet visitedStateSet = new IntOpenHashSet();
+    IntSet visitedStateSet = NatBitSets.set();
 
     int currentState = initialState;
     int exploreCount = 0;
@@ -140,7 +148,7 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
       assert explorer.isExploredState(currentState);
 
       sampleSteps++;
-      if (logger.isLoggable(Level.FINE) && sampleSteps % REPORT_PROGRESS_EVERY_STEPS == 0) {
+      if (logger.isLoggable(Level.FINE) && sampleSteps % reportProgressEverySteps == 0) {
         logger.log(Level.FINE, String.format("%n== Progress ==%n%s", getProgressString()));
       }
 
@@ -150,7 +158,7 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
       int nextState = sampleNextState(currentState);
 
       if (nextState == -1 || currentState == nextState) {
-        if (sampleBacktraceCount == MAX_BACK_TRACE_PER_SAMPLE) {
+        if (sampleBacktraceCount == maxBacktrackPerSample) {
           break;
         }
 
@@ -173,7 +181,7 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
         sampleBacktraceCount += 1;
       } else {
         if (!explorer.isExploredState(nextState)) {
-          if (exploreCount == MAX_EXPLORES_PER_SAMPLE) {
+          if (exploreCount == maxExploresPerSample) {
             break;
           }
           exploreCount += 1;
@@ -183,7 +191,8 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
         currentState = nextState;
       }
     }
-    assert visitedStateSet.equals(new IntOpenHashSet(visitedStates));
+    assert visitedStateSet.equals(NatBitSets.copyOf(visitedStates));
+    sampledStates.or(visitedStateSet);
 
     // Handle end components
     if (visitedStateSet.contains(currentState)) {
@@ -194,6 +203,7 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
       // sampling probabilities would decrease
       if (loopCount > collapseThreshold) {
         // Search for fix points in the model
+        // TODO Only search on frequently visited states?
         boolean anythingChanged = handleComponents();
 
         loopCount = 0;
@@ -231,9 +241,7 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
     ToDoubleFunction<Distribution> selectionScore = stateUpdate.isSmallestFixPoint()
         ? d -> 1.0d - stateValues.lowerBound(state, d)
         : d -> stateValues.upperBound(state, d);
-    return Util.sampleNextState(choices, heuristic,
-        selectionScore,
-        stateValues::difference,
+    return SampleUtil.sampleNextState(choices, heuristic, selectionScore, stateValues::difference,
         s -> s == state || verdict.isSolved(stateValues.bounds(s)));
     // CSON: Indentation
   }
@@ -243,7 +251,6 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
     newStatesSinceCollapse = true;
     explorer.exploreState(state);
   }
-
 
   private Bounds update(int state) throws PrismException {
     return update(state, collapseModel.getChoices(state));
@@ -258,16 +265,24 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
     return newValues;
   }
 
-
   private boolean handleComponents() throws PrismException {
     if (!newStatesSinceCollapse) {
       return false;
     }
     newStatesSinceCollapse = false;
 
-    NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
-    states.andNot(collapseModel.removedStates());
+    NatBitSet states;
+    if (collapseMethod == CollapseMethod.ALL_STATES) {
+      states = NatBitSets.copyOf(explorer.exploredStates());
+      states.andNot(collapseModel.removedStates());
+    } else {
+      states = sampledStates;
+    }
+    assert !states.intersects(collapseModel.removedStates());
+
     List<NatBitSet> components = analyser.findComponents(collapseModel, states);
+    sampledStates.clear();
+
     if (components.isEmpty()) {
       logger.log(Level.FINER, "Found no components");
       return false;
@@ -296,8 +311,8 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
 
     if (stateUpdate.isSmallestFixPoint()) {
       // TODO Hack - better?
-      newComponents.removeIf(component ->
-          !SccDecomposition.isBscc(collapseModel::getSuccessors, component));
+      newComponents
+          .removeIf(component -> !SccDecomposition.isBscc(collapseModel::getSuccessors, component));
 
       logger.log(Level.FINER, "Bottom components: {0}", newComponents);
       if (newComponents.isEmpty()) {
@@ -339,19 +354,19 @@ public class UnboundedSampler<S, M extends Model> implements Sampler<S, M> {
     // writeDotModel("test.dot", null);
 
     return String.format("  Trials: %d, steps: %d, avg len: %f, backtrace count: %d, steps: %d%n"
-            + "  States: %d/%d in partial/collapsed model (%d fringe states)%n"
+            + "  States: %d/%d in partial/collapsed model%n"
             + "  Bounds: %s",
         samples, sampleSteps, (double) sampleSteps / (double) samples, backtraceCount,
         backtraceSteps, explorer.exploredStateCount(),
         explorer.exploredStateCount() - collapseModel.removedStates().size(),
-        explorer.fringeStateCount(), initialStateValues);
+        initialStateValues);
   }
 
   @SuppressWarnings("PMD.UnusedPrivateMethod")
   private void writeDotModel(String filename, @Nullable IntPredicate highlight) {
     logger.log(Level.WARNING, "Writing model as dot file!");
     IntPredicate nonRemovedStates = s -> !collapseModel.isRemoved(s);
-    Util.modelWithBoundsToDotFile(filename, collapseModel, explorer, stateValues,
+    ModelHelper.modelWithBoundsToDotFile(filename, collapseModel, explorer, stateValues,
         nonRemovedStates, highlight);
   }
 }

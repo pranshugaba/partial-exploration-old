@@ -1,10 +1,10 @@
 package de.tum.in.pet.implementation.core;
 
-import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.ValueVerdict;
 import de.tum.in.pet.values.bounded.StateUpdateBounded;
 import de.tum.in.pet.values.bounded.StateValuesBoundedFunction;
+import de.tum.in.probmodels.model.Distribution;
 import java.util.List;
 
 public class StateUpdateBoundedCore implements StateUpdateBounded, ValueVerdict {

@@ -2,7 +2,7 @@ package de.tum.in.pet.sampler;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
-import de.tum.in.pet.model.Model;
+import de.tum.in.probmodels.model.Model;
 import explicit.ModelExplicit;
 import java.util.ArrayList;
 import java.util.List;

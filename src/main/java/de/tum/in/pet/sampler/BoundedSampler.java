@@ -1,16 +1,17 @@
 package de.tum.in.pet.sampler;
 
-import de.tum.in.pet.explorer.Explorer;
 import de.tum.in.pet.implementation.core.ApproximationMarker;
-import de.tum.in.pet.model.Distribution;
-import de.tum.in.pet.model.Model;
-import de.tum.in.pet.util.Util;
+import de.tum.in.pet.util.ModelHelper;
+import de.tum.in.pet.util.SampleUtil;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.ValueVerdict;
 import de.tum.in.pet.values.bounded.StateUpdateBounded;
 import de.tum.in.pet.values.bounded.StateValuesBounded;
 import de.tum.in.pet.values.bounded.StateValuesBoundedFunction;
 import de.tum.in.pet.values.unbounded.StateValueFunction;
+import de.tum.in.probmodels.explorer.Explorer;
+import de.tum.in.probmodels.model.Distribution;
+import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -72,7 +73,7 @@ public class BoundedSampler<S, M extends Model> implements Sampler<S, M> {
   }
 
   @Override
-  public void build() throws PrismException {
+  public void run() throws PrismException {
     long timer = System.nanoTime();
 
     long timeInSampling = 0L;
@@ -238,7 +239,7 @@ public class BoundedSampler<S, M extends Model> implements Sampler<S, M> {
     if (remainingSteps == 0) {
       // TODO Weird? Figure out when this is happening
       // CSOFF: Indentation
-      return Util.sampleNextState(choices, heuristic,
+      return SampleUtil.sampleNextState(choices, heuristic,
           d -> stateValues.upperBound(state, 0, d),
           s -> stateValues.difference(s, 0),
           s -> false);
@@ -246,7 +247,7 @@ public class BoundedSampler<S, M extends Model> implements Sampler<S, M> {
     }
 
     // CSOFF: Indentation
-    return Util.sampleNextState(choices, heuristic,
+    return SampleUtil.sampleNextState(choices, heuristic,
         d -> stateValues.upperBound(state, remainingSteps, d),
         s -> stateValues.difference(s, remainingSteps - 1),
         s -> false);
@@ -332,7 +333,7 @@ public class BoundedSampler<S, M extends Model> implements Sampler<S, M> {
   private void writeDotModel(String filename, @Nullable IntPredicate highlight) {
     logger.log(Level.WARNING, "Writing model as dot file!");
     StateValueFunction stateValueFunction = s -> stateValues.bounds(s, stepBound);
-    Util.modelWithBoundsToDotFile(filename, explorer.model(), explorer,
+    ModelHelper.modelWithBoundsToDotFile(filename, explorer.model(), explorer,
         stateValueFunction, s -> true, highlight);
     int states = explorer.model().getNumStates();
     StringBuilder builder = new StringBuilder("\n");

@@ -1,6 +1,6 @@
 package de.tum.in.pet.implementation.reachability;
 
-import de.tum.in.pet.generator.ProductState;
+import de.tum.in.probmodels.generator.ProductState;
 import java.util.function.Predicate;
 
 public class UntilTargetPredicate<S> implements Predicate<ProductState<S, Boolean>> {
@@ -17,6 +17,6 @@ public class UntilTargetPredicate<S> implements Predicate<ProductState<S, Boolea
 
   @Override
   public String toString() {
-    return "UNTIL[" + target + "]";
+    return String.format("UNTIL[%s]", target);
   }
 }

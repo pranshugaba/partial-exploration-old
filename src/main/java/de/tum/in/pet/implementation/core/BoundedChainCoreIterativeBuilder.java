@@ -2,12 +2,12 @@ package de.tum.in.pet.implementation.core;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
-import de.tum.in.pet.explorer.DefaultExplorer;
-import de.tum.in.pet.explorer.Explorer;
-import de.tum.in.pet.generator.DtmcGenerator;
-import de.tum.in.pet.model.Distribution;
-import de.tum.in.pet.model.MarkovChain;
 import de.tum.in.pet.sampler.AnnotatedModel;
+import de.tum.in.probmodels.explorer.DefaultExplorer;
+import de.tum.in.probmodels.explorer.Explorer;
+import de.tum.in.probmodels.generator.DtmcGenerator;
+import de.tum.in.probmodels.model.Distribution;
+import de.tum.in.probmodels.model.MarkovChain;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntIterator;
