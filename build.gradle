@@ -40,7 +40,7 @@ idea {
 // https://docs.gradle.org/current/dsl/org.gradle.api.plugins.quality.Pmd.html
 
 pmd {
-    toolVersion = "6.15.0" // https://pmd.github.io/
+    toolVersion = "6.19.0" // https://pmd.github.io/
     reportsDir = file("$project.buildDir/reports/pmd")
     ruleSetFiles = files("$project.rootDir/config/pmd-rules.xml")
     ruleSets = [] // We specify all rules in rules.xml
@@ -58,7 +58,7 @@ tasks.withType(Pmd) {
 // https://docs.gradle.org/current/dsl/org.gradle.api.plugins.quality.Checkstyle.html
 
 checkstyle {
-    toolVersion = "8.21" // http://checkstyle.sourceforge.net/releasenotes.html
+    toolVersion = "8.26" // http://checkstyle.sourceforge.net/releasenotes.html
     configFile = file("$project.rootDir/config/checkstyle.xml")
     ignoreFailures = false
     maxWarnings = 0
@@ -78,16 +78,8 @@ repositories {
 }
 
 dependencies {
-    implementation files("$project.buildDir/lib/prism.jar")
+    implementation project('lib:models')
 
-    // https://github.com/google/guava
-    implementation 'com.google.guava:guava:28.0-jre'
-    // https://github.com/incaseoftrouble/naturals-util
-    implementation 'de.tum.in:naturals-util:0.13.0'
-    compile 'com.zaxxer:SparseBitSet:1.2' // broken dependency in naturals util
-
-    // https://github.com/vigna/fastutil
-    implementation 'it.unimi.dsi:fastutil:8.3.0'
     // https://immutables.github.io/
     implementation 'org.immutables:value:2.8.1:annotations'
     implementation 'commons-cli:commons-cli:1.4'
@@ -139,16 +131,16 @@ applicationDefaultJvmArgs = ["-Djava.util.logging.config.file=config/logging.pro
 
 task extractScriptTemplates {
     doLast {
-        file("config/template-unix.default.txt").text =
+        file("lib/models/config/template-unix.default.txt").text =
                 startScripts.unixStartScriptGenerator.template.asString()
-        file("config/template-windows.default.txt").text =
+        file("lib/models/config/template-windows.default.txt").text =
                 startScripts.windowsStartScriptGenerator.template.asString()
     }
 }
 
 startScripts {
-    unixStartScriptGenerator.template = resources.text.fromFile('config/template-unix.txt')
-    windowsStartScriptGenerator.template = resources.text.fromFile('config/template-windows.txt')
+    unixStartScriptGenerator.template = resources.text.fromFile('lib/models/config/template-unix.txt')
+    windowsStartScriptGenerator.template = resources.text.fromFile('lib/models/config/template-windows.txt')
 }
 
 distributions {

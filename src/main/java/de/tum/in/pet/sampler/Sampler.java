@@ -1,8 +1,8 @@
 package de.tum.in.pet.sampler;
 
-import de.tum.in.pet.explorer.Explorer;
-import de.tum.in.pet.model.Model;
 import de.tum.in.pet.values.Bounds;
+import de.tum.in.probmodels.explorer.Explorer;
+import de.tum.in.probmodels.model.Model;
 import prism.PrismException;
 
 public interface Sampler<S, M extends Model> {
@@ -12,5 +12,5 @@ public interface Sampler<S, M extends Model> {
 
   Bounds bounds(int state);
 
-  void build() throws PrismException;
+  void run() throws PrismException;
 }

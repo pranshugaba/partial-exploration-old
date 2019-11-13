@@ -1,9 +1,9 @@
 package de.tum.in.pet.implementation.reachability;
 
-import de.tum.in.pet.model.Distribution;
-import de.tum.in.pet.util.Util;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.unbounded.StateValues;
+import de.tum.in.probmodels.model.Distribution;
+import de.tum.in.probmodels.util.Util;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.function.IntPredicate;

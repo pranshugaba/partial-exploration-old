@@ -1,13 +1,13 @@
 package de.tum.in.pet.implementation.core;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static de.tum.in.pet.util.Util.isOne;
-import static de.tum.in.pet.util.Util.isZero;
-import static de.tum.in.pet.util.Util.lessOrEqual;
+import static de.tum.in.probmodels.util.Util.isOne;
+import static de.tum.in.probmodels.util.Util.isZero;
+import static de.tum.in.probmodels.util.Util.lessOrEqual;
 
-import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.unbounded.StateValues;
+import de.tum.in.probmodels.model.Distribution;
 import it.unimi.dsi.fastutil.ints.Int2DoubleLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;

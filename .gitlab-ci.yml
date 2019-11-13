@@ -12,14 +12,14 @@ variables:
   GRADLE: ./.gradle
   GRADLE_HOME: $GRADLE
   GRADLE_USER_HOME: $GRADLE
+  GIT_SUBMODULE_STRATEGY: recursive
 
 Build:
   stage: build
   script:
     - java -version
-    - git submodule sync -- lib/prism
-    - git submodule update --init -- lib/prism
-    - (cd lib/prism/prism && make)
+    - (cd lib/models/lib/prism/prism && make)
+    - rm -rf build/distributions/
     - ./gradlew --no-daemon check distZip
   artifacts:
     paths:
@@ -30,13 +30,13 @@ Build:
     key: "build"
     untracked: true
     paths:
-      - lib/prism
+      - lib/models/lib/prism/prism
       - $GRADLE
 
 
 .variables: &default_variables
   version: 0.1.0
-  tool: build/pet-$version/bin/pet
+  tool: build/partial-exploration-$version/bin/partial-exploration
   args: ""
   JAVA_OPTS: -ea -Djava.util.logging.config.file=config/logging-quiet.properties
   const: ""
@@ -56,7 +56,7 @@ Build:
 .test: &test_template
   stage: test
   before_script:
-    - unzip -d build build/distributions/*.zip
+    - unzip -d build build/distributions/partial-exploration-$version.zip
   dependencies:
     - Build
 

@@ -1,12 +1,12 @@
 package de.tum.in.pet.implementation.reachability;
 
-import static de.tum.in.pet.util.Util.isOne;
-import static de.tum.in.pet.util.Util.isZero;
+import static de.tum.in.probmodels.util.Util.isOne;
+import static de.tum.in.probmodels.util.Util.isZero;
 
-import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.bounded.StateUpdateBounded;
 import de.tum.in.pet.values.bounded.StateValuesBoundedFunction;
+import de.tum.in.probmodels.model.Distribution;
 import java.util.List;
 import java.util.function.IntPredicate;
 

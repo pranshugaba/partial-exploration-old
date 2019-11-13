@@ -1,8 +1,8 @@
 package de.tum.in.pet.values;
 
-import static de.tum.in.pet.util.Util.isEqual;
+import static de.tum.in.probmodels.util.Util.isEqual;
 
-import de.tum.in.pet.util.annotation.Tuple;
+import de.tum.in.probmodels.util.annotation.Tuple;
 import org.immutables.value.Value;
 
 @Value.Immutable

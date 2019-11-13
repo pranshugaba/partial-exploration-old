@@ -1,13 +1,13 @@
 package de.tum.in.pet.implementation.reachability;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static de.tum.in.pet.util.Util.isOne;
-import static de.tum.in.pet.util.Util.isZero;
+import static de.tum.in.probmodels.util.Util.isOne;
+import static de.tum.in.probmodels.util.Util.isZero;
 
-import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.pet.values.unbounded.StateUpdate;
 import de.tum.in.pet.values.unbounded.StateValueFunction;
+import de.tum.in.probmodels.model.Distribution;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import java.util.List;

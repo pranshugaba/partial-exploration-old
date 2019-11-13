@@ -2,35 +2,35 @@ package de.tum.in.pet.implementation.reachability;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static de.tum.in.pet.util.PrismHelper.parse;
 
-import de.tum.in.naturals.set.DefaultNatBitSetFactory;
 import de.tum.in.naturals.set.NatBitSets;
-import de.tum.in.pet.explorer.DefaultExplorer;
-import de.tum.in.pet.explorer.Explorer;
-import de.tum.in.pet.generator.CtmcEmbeddingGenerator;
-import de.tum.in.pet.generator.DtmcGenerator;
-import de.tum.in.pet.generator.Generator;
-import de.tum.in.pet.generator.MdpGenerator;
-import de.tum.in.pet.generator.SafetyGenerator;
-import de.tum.in.pet.graph.ComponentAnalyser;
-import de.tum.in.pet.graph.MecComponentAnalyser;
-import de.tum.in.pet.graph.SccComponentAnalyser;
-import de.tum.in.pet.model.MarkovChain;
-import de.tum.in.pet.model.MarkovDecisionProcess;
-import de.tum.in.pet.model.Model;
+import de.tum.in.naturals.set.RoaringNatBitSetFactory;
+import de.tum.in.pet.Main;
 import de.tum.in.pet.sampler.BoundedSampler;
 import de.tum.in.pet.sampler.Sampler;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.sampler.UnboundedSampler;
+import de.tum.in.pet.sampler.UnboundedSamplerConfig;
 import de.tum.in.pet.util.CliHelper;
-import de.tum.in.pet.util.PrismExpressionWrapper;
-import de.tum.in.pet.util.PrismHelper.PrismParseResult;
 import de.tum.in.pet.util.Result;
-import de.tum.in.pet.util.Util;
 import de.tum.in.pet.values.ValueInterpretation;
 import de.tum.in.pet.values.bounded.StateValuesBounded;
 import de.tum.in.pet.values.unbounded.StateValues;
+import de.tum.in.probmodels.explorer.DefaultExplorer;
+import de.tum.in.probmodels.explorer.Explorer;
+import de.tum.in.probmodels.generator.CtmcEmbeddingGenerator;
+import de.tum.in.probmodels.generator.DtmcGenerator;
+import de.tum.in.probmodels.generator.Generator;
+import de.tum.in.probmodels.generator.MdpGenerator;
+import de.tum.in.probmodels.generator.SafetyGenerator;
+import de.tum.in.probmodels.graph.ComponentAnalyser;
+import de.tum.in.probmodels.graph.MecComponentAnalyser;
+import de.tum.in.probmodels.graph.SccComponentAnalyser;
+import de.tum.in.probmodels.model.MarkovChain;
+import de.tum.in.probmodels.model.MarkovDecisionProcess;
+import de.tum.in.probmodels.model.Model;
+import de.tum.in.probmodels.util.PrismExpressionWrapper;
+import de.tum.in.probmodels.util.PrismHelper;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -159,10 +159,10 @@ public final class ReachChecker {
       throws PrismException {
     StateUpdateReachability stateUpdate = new StateUpdateReachability(predicate, type.update());
     UnboundedSampler<S, M> sampler = new UnboundedSampler<>(explorer, values, heuristic,
-        stateUpdate, type.verdict(), componentAnalyser);
+        stateUpdate, type.verdict(), componentAnalyser, UnboundedSamplerConfig.getDefault());
 
     logger.log(Level.INFO, "Checking expression {0} {1}", new Object[] {predicate, type});
-    sampler.build();
+    sampler.run();
 
     return makeResult(sampler, type.interpretation(), explorer);
   }
@@ -189,7 +189,7 @@ public final class ReachChecker {
         explorer, stepBound, stateUpdate, type.verdict(), heuristic, values);
 
     logger.log(Level.INFO, "Checking expression {0} {1}", new Object[] {predicate, type});
-    sampler.build();
+    sampler.run();
 
     return makeResult(sampler, type.interpretation(), explorer);
   }
@@ -300,15 +300,16 @@ public final class ReachChecker {
     boolean relativeError = commandLine.hasOption(relativeErrorOption.getLongOpt());
     double precision = commandLine.hasOption(precisionOption.getLongOpt())
         ? Double.parseDouble(commandLine.getOptionValue(precisionOption.getLongOpt()))
-        : Util.DEFAULT_PRECISION;
+        : Main.DEFAULT_PRECISION;
 
     SuccessorHeuristic heuristic = CliHelper.parseHeuristic(
         commandLine.getOptionValue(heuristicOption.getLongOpt()), SuccessorHeuristic.WEIGHTED);
 
-    NatBitSets.setFactory(new DefaultNatBitSetFactory((a, b) -> true));
-    // NatBitSets.setFactory(new RoaringNatBitSetFactory());
+    // NatBitSets.setFactory(new DefaultNatBitSetFactory((a, b) -> true));
+    NatBitSets.setFactory(new RoaringNatBitSetFactory());
 
-    PrismParseResult parse = parse(commandLine, modelOption, propertiesOption, constantsOption);
+    PrismHelper.PrismParseResult parse =
+        Main.parse(commandLine, modelOption, propertiesOption, constantsOption);
     ModulesFile modulesFile = parse.modulesFile();
     PropertiesFile propertiesFile = checkNotNull(parse.propertiesFile());
 

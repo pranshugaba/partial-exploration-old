@@ -1,7 +1,7 @@
 package de.tum.in.pet.values.bounded;
 
-import de.tum.in.pet.model.Distribution;
 import de.tum.in.pet.values.Bounds;
+import de.tum.in.probmodels.model.Distribution;
 
 @SuppressWarnings("InterfaceMayBeAnnotatedFunctional")
 public interface StateValueBoundedFunction extends DifferenceBoundedFunction,
