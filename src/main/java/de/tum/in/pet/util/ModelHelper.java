@@ -1,27 +1,19 @@
 package de.tum.in.pet.util;
 
-import static de.tum.in.probmodels.util.PrismHelper.scale;
 import static de.tum.in.probmodels.util.Util.isEqual;
 
-import de.tum.in.naturals.set.BoundedNatBitSet;
 import de.tum.in.naturals.set.NatBitSet;
-import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.pet.sampler.AnnotatedModel;
 import de.tum.in.pet.values.unbounded.StateValueFunction;
 import de.tum.in.probmodels.explorer.Explorer;
 import de.tum.in.probmodels.model.Action;
-import de.tum.in.probmodels.model.Distribution;
-import de.tum.in.probmodels.model.MarkovDecisionProcess;
 import de.tum.in.probmodels.model.Model;
-import explicit.MDPSimple;
 import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.ints.IntSet;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.function.IntPredicate;
 
 public final class ModelHelper {
@@ -119,62 +111,5 @@ public final class ModelHelper {
     } catch (IOException e) {
       throw new AssertionError(e);
     }
-  }
-
-  public static RestrictedMdp buildRestrictedModel(MarkovDecisionProcess mdp, IntSet states) {
-    MDPSimple restrictedModel = new MDPSimple();
-    int[] originalToRestrictedStates = new int[mdp.getNumStates()];
-    Arrays.fill(originalToRestrictedStates, -1);
-    states.forEach((int allowedState) -> originalToRestrictedStates[allowedState] = restrictedModel
-        .addState());
-
-    int restrictedStates = restrictedModel.getNumStates();
-    assert restrictedStates == states.size();
-    int[] restrictedToOriginalStates = new int[restrictedStates];
-    NatBitSet[] restrictedActions = new NatBitSet[restrictedStates];
-
-    for (int originalState = 0; originalState < mdp.getNumStates(); originalState++) {
-      if (originalToRestrictedStates[originalState] == -1) {
-        continue;
-      }
-      int restrictedState = originalToRestrictedStates[originalState];
-      restrictedToOriginalStates[restrictedState] = originalState;
-
-      int numChoices = mdp.getNumChoices(originalState);
-      BoundedNatBitSet removedActions = NatBitSets.boundedSet(numChoices, 0);
-      int addedActions = 0;
-      for (int choiceIndex = 0; choiceIndex < numChoices; choiceIndex++) {
-        Distribution distribution = new Distribution();
-        mdp.forEachTransition(originalState, choiceIndex, (__, t, p) -> {
-          int restrictedDestination = originalToRestrictedStates[t];
-          if (restrictedDestination >= 0) {
-            distribution.add(restrictedDestination, p);
-          }
-        });
-        if (distribution.isEmpty()) {
-          removedActions.set(choiceIndex);
-          continue;
-        }
-        explicit.Distribution scaledDistribution = scale(distribution);
-        restrictedModel.addActionLabelledChoice(restrictedState, scaledDistribution,
-            mdp.getAction(originalState, choiceIndex));
-        addedActions += 1;
-      }
-      restrictedActions[restrictedState] = NatBitSets.compact(removedActions.complement());
-      if (addedActions == 0) {
-        restrictedModel.addDeadlockState(restrictedState);
-      }
-    }
-    mdp.getInitialStates().forEach((int initialState) -> {
-      int restrictedInitialState = originalToRestrictedStates[initialState];
-      if (restrictedInitialState != -1) {
-        restrictedModel.addInitialState(restrictedInitialState);
-      }
-    });
-
-    // CSOFF: Indentation
-    return new RestrictedMdp(restrictedModel, i -> restrictedToOriginalStates[i],
-        i -> restrictedActions[i]);
-    // CSON: Indentation
   }
 }
