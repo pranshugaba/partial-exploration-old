@@ -3,6 +3,7 @@
 FROM openjdk:12-alpine
 
 # Add build dependencies for PRISM
+
 RUN apk --update --no-cache add \
     autoconf \
     automake \

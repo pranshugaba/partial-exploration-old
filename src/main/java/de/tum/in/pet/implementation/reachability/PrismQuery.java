@@ -1,8 +1,9 @@
 package de.tum.in.pet.implementation.reachability;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static de.tum.in.pet.values.ValueVerdict.Qualitative;
+import static de.tum.in.pet.values.ValueVerdict.Quantitative;
 
-import de.tum.in.pet.values.ValueInterpretation;
 import de.tum.in.pet.values.ValueVerdict;
 import de.tum.in.probmodels.util.annotation.Tuple;
 import org.immutables.value.Value;
@@ -78,44 +79,41 @@ public abstract class PrismQuery<R> {
     OpRelOpBound boundInfo = expressionQuant.getRelopBoundInfo(values);
     RelOp relOp = expressionQuant.getRelOp();
 
-    ValueVerdict verdict;
+    ValueVerdict<?> verdict;
     ValueUpdate updateType;
     switch (relOp) {
       case GT:
-        verdict = new QualitativeVerdict(QualitativeQuery.GREATER_THAN, boundInfo.getBound());
+        verdict = new Qualitative(QualitativeQuery.GREATER_THAN, boundInfo.getBound());
         updateType = ValueUpdate.MIN_VALUE;
         break;
       case GEQ:
-        verdict = new QualitativeVerdict(QualitativeQuery.GREATER_OR_EQUAL, boundInfo.getBound());
+        verdict = new Qualitative(QualitativeQuery.GREATER_OR_EQUAL, boundInfo.getBound());
         updateType = ValueUpdate.MIN_VALUE;
         break;
       case MIN:
-        verdict = new QuantitativeVerdict(precision, relativeError);
+        verdict = new Quantitative(precision, relativeError);
         updateType = ValueUpdate.MIN_VALUE;
         break;
       case LT:
-        verdict = new QualitativeVerdict(QualitativeQuery.LESS_THAN, boundInfo.getBound());
+        verdict = new Qualitative(QualitativeQuery.LESS_THAN, boundInfo.getBound());
         updateType = ValueUpdate.MAX_VALUE;
         break;
       case LEQ:
-        verdict = new QualitativeVerdict(QualitativeQuery.LESS_OR_EQUAL, boundInfo.getBound());
+        verdict = new Qualitative(QualitativeQuery.LESS_OR_EQUAL, boundInfo.getBound());
         updateType = ValueUpdate.MAX_VALUE;
         break;
       case MAX:
-        verdict = new QuantitativeVerdict(precision, relativeError);
+        verdict = new Quantitative(precision, relativeError);
         updateType = ValueUpdate.MAX_VALUE;
         break;
       case EQ:
-        verdict = new QuantitativeVerdict(precision, relativeError);
+        verdict = new Quantitative(precision, relativeError);
         updateType = ValueUpdate.UNIQUE_VALUE;
         break;
       default:
         throw new AssertionError();
     }
-    // TODO
-    ValueInterpretation<?> interpretation = (ValueInterpretation<?>) verdict;
-
-    QueryType<?> type = QueryType.of(verdict, updateType, interpretation);
+    QueryType<?> type = QueryType.of(verdict, updateType);
     return PrismQueryTuple.create(expressionTemporal, lowerBound, upperBound, type);
   }
 
@@ -127,7 +125,7 @@ public abstract class PrismQuery<R> {
   @Override
   public String toString() {
     return String.format("%s[%s]%s", expression(), type(),
-        isBounded() ? "[" + lowerBound() + ";" + upperBound() + "]" : "");
+        isBounded() ? "[" + lowerBound() + ';' + upperBound() + ']' : "");
   }
 
 

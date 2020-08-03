@@ -1,4 +1,4 @@
-image: gitlab.lrz.de:5005/i7/partial-exploration:4add7081
+image: gitlab.lrz.de:5005/i7/partial-exploration:8864a066
 
 before_script:
   - chmod +x gradlew
@@ -9,7 +9,7 @@ stages:
   - deploy
 
 variables:
-  GRADLE: ./.gradle
+  GRADLE: $CI_PROJECT_DIR/.gradle
   GRADLE_HOME: $GRADLE
   GRADLE_USER_HOME: $GRADLE
   GIT_SUBMODULE_STRATEGY: recursive
@@ -30,7 +30,8 @@ Build:
     key: "build"
     untracked: true
     paths:
-      - lib/models/lib/prism/prism
+      - $CI_PROJECT_DIR/lib/models/lib/prism/cudd
+      - $CI_PROJECT_DIR/lib/models/lib/prism/prism
       - $GRADLE
 
 
@@ -46,6 +47,7 @@ Build:
   unbounded_args: ''
   unbounded_heuristics: WEIGHTED PROB DIFFERENCE GRAPH_WEIGHTED GRAPH_DIFFERENCE
   step_bound: 50
+  simple_step_bound: 30
   bounded_args: ''
   bounded_heuristics: WEIGHTED PROB DIFFERENCE GRAPH_WEIGHTED GRAPH_DIFFERENCE
 
@@ -68,6 +70,9 @@ Build:
       done
     - for heuristic in $bounded_heuristics; do
         $tool core -m "$model" --const "$const" $args $bounded_args --bounded "$step_bound" --bounded-update dense --heuristic $heuristic --validate;
+      done
+    - for heuristic in $bounded_heuristics; do
+        $tool core -m "$model" --const "$const" $args $bounded_args --bounded "$simple_step_bound" --bounded-update simple,5 --heuristic $heuristic --validate;
       done
 
 .reach_test: &reach_test_template
@@ -97,11 +102,11 @@ Core BRP.10-20:
     bounded_heuristics: ''
   <<: *core_test_template
 
-Core Cyclin.3:
+Core Cyclin.4:
   variables:
     <<: *core_variables
     model: "data/models/cyclin.prism"
-    const: "N=3"
+    const: "N=4"
     unbounded_heuristics: ''
     bounded_heuristics: WEIGHTED
     bounded_args: --uniformization 30 --precision 1e-5

@@ -1,5 +1,7 @@
 package de.tum.in.pet;
 
+import de.tum.in.naturals.set.NatBitSets;
+import de.tum.in.naturals.set.RoaringNatBitSetFactory;
 import de.tum.in.pet.implementation.core.CoreChecker;
 import de.tum.in.pet.implementation.reachability.ReachChecker;
 import de.tum.in.probmodels.util.PrismHelper;
@@ -46,12 +48,17 @@ public final class Main {
     String[] subArgs = new String[args.length - 1];
     System.arraycopy(args, 1, subArgs, 0, subArgs.length);
 
+    NatBitSets.setFactory(new RoaringNatBitSetFactory());
+
     switch (args[0]) {
       case "reachability":
         ReachChecker.main(subArgs);
         break;
       case "core":
         CoreChecker.main(subArgs);
+        break;
+      case "uniform":
+        CoreChecker.computeUniformisationRate(subArgs);
         break;
       default:
         System.out.println("Unknown tool " + args[0]);

@@ -2,18 +2,19 @@ package de.tum.in.pet.util;
 
 import static de.tum.in.probmodels.util.Util.isEqual;
 
-import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.pet.sampler.AnnotatedModel;
-import de.tum.in.pet.values.unbounded.StateValueFunction;
+import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.explorer.Explorer;
 import de.tum.in.probmodels.model.Action;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
 
 public final class ModelHelper {
@@ -21,17 +22,17 @@ public final class ModelHelper {
   }
 
   public static void modelWithBoundsToDotFile(String filename,
-      Model model, Explorer<?, ?> explorer, StateValueFunction values, IntPredicate stateFilter,
+      Model model, Explorer<?, ?> explorer, IntFunction<Bounds> values, IntPredicate stateFilter,
       IntPredicate highlight) {
     modelWithBoundsToDotFile(filename, new AnnotatedModel<>(model, explorer::getState,
         explorer.exploredStates()), values, stateFilter, highlight);
   }
 
   public static void modelWithBoundsToDotFile(String filename,
-      AnnotatedModel<? extends Model> annotatedModel, StateValueFunction values,
+      AnnotatedModel<? extends Model> annotatedModel, IntFunction<Bounds> values,
       IntPredicate stateFilter, IntPredicate highlight) {
     Model model = annotatedModel.model;
-    NatBitSet exploredStates = annotatedModel.exploredStates;
+    IntSet exploredStates = annotatedModel.exploredStates;
 
     StringBuilder dotString = new StringBuilder("digraph Model {\n\tnode [shape=box];\n");
 
@@ -51,7 +52,7 @@ public final class ModelHelper {
       } else if (!exploredStates.contains(state)) {
         dotString.append("#CC2222");
         appendBounds = false;
-      } else if (values.isZeroDifference(state)) {
+      } else if (values.apply(state).difference() == 0.0d) {
         dotString.append("#CD9D87");
         appendBounds = true;
       } else {
@@ -60,7 +61,7 @@ public final class ModelHelper {
       }
       dotString.append("\",label=\"").append(state);
       if (appendBounds) {
-        dotString.append(' ').append(values.bounds(state));
+        dotString.append(' ').append(values.apply(state));
       }
       dotString.append("\"];\n");
 
