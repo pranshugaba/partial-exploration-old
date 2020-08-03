@@ -7,15 +7,13 @@ import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.set.RoaringNatBitSetFactory;
 import de.tum.in.pet.Main;
 import de.tum.in.pet.sampler.BoundedSampler;
-import de.tum.in.pet.sampler.Sampler;
+import de.tum.in.pet.sampler.Iterator;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.sampler.UnboundedSampler;
 import de.tum.in.pet.sampler.UnboundedSamplerConfig;
 import de.tum.in.pet.util.CliHelper;
 import de.tum.in.pet.util.Result;
-import de.tum.in.pet.values.ValueInterpretation;
-import de.tum.in.pet.values.bounded.StateValuesBounded;
-import de.tum.in.pet.values.unbounded.StateValues;
+import de.tum.in.pet.values.ValueVerdict;
 import de.tum.in.probmodels.explorer.DefaultExplorer;
 import de.tum.in.probmodels.explorer.Explorer;
 import de.tum.in.probmodels.generator.CtmcEmbeddingGenerator;
@@ -133,15 +131,15 @@ public final class ReachChecker {
   }
 
   private static Result<?, ?> solve(ModelGenerator generator, PrismQuery<?> expression,
-      SuccessorHeuristic heuristic) throws PrismException {
+      SuccessorHeuristic heuristic, double precision) throws PrismException {
     ModelType modelType = generator.getModelType();
     switch (modelType) {
       case CTMC:
-        return solveCtmc(generator, expression, heuristic);
+        return solveCtmc(generator, expression, heuristic, precision);
       case DTMC:
-        return solveDtmc(generator, expression, heuristic);
+        return solveDtmc(generator, expression, heuristic, precision);
       case MDP:
-        return solveMdp(generator, expression, heuristic);
+        return solveMdp(generator, expression, heuristic, precision);
       case LTS:
       case CTMDP:
       case PTA:
@@ -152,23 +150,21 @@ public final class ReachChecker {
     }
   }
 
-
-  private static <S, M extends Model, R> Result<S, R> solve(StateValues values,
-      Explorer<S, M> explorer, SuccessorHeuristic heuristic,
-      ComponentAnalyser componentAnalyser, IntPredicate predicate, QueryType<R> type)
-      throws PrismException {
-    StateUpdateReachability stateUpdate = new StateUpdateReachability(predicate, type.update());
-    UnboundedSampler<S, M> sampler = new UnboundedSampler<>(explorer, values, heuristic,
-        stateUpdate, type.verdict(), componentAnalyser, UnboundedSamplerConfig.getDefault());
+  private static <S, M extends Model, R> Result<S, R> solve(Explorer<S, M> explorer,
+      SuccessorHeuristic heuristic, double precision, ComponentAnalyser componentAnalyser,
+      IntPredicate predicate, QueryType<R> type) throws PrismException {
+    var target = new ReachabilityCache(predicate);
+    var values = new UnboundedReachValues(type.update(), target, precision, heuristic);
+    UnboundedSamplerConfig config = UnboundedSamplerConfig.getDefault();
+    var sampler = new UnboundedSampler<>(explorer, componentAnalyser, values, config);
 
     logger.log(Level.INFO, "Checking expression {0} {1}", new Object[] {predicate, type});
     sampler.run();
-
-    return makeResult(sampler, type.interpretation(), explorer);
+    return makeResult(sampler, type.verdict(), explorer);
   }
 
-  private static <S, R> Result<S, R> makeResult(Sampler<S, ?> sampler,
-      ValueInterpretation<R> interpretation, Explorer<S, ?> explorer) {
+  private static <S, R> Result<S, R> makeResult(Iterator<S, ?> sampler,
+      ValueVerdict<R> interpretation, Explorer<S, ?> explorer) {
     IntCollection initialStateIds = explorer.initialStates();
     Map<S, R> results = new HashMap<>();
     for (int initialState : initialStateIds) {
@@ -179,34 +175,30 @@ public final class ReachChecker {
     return Result.of(results);
   }
 
-  private static <S, M extends Model, R> Result<S, R> solveBounded(StateValuesBounded values,
-      Explorer<S, M> explorer, SuccessorHeuristic heuristic, IntPredicate predicate,
-      QueryType<R> type, int stepBound)
-      throws PrismException {
-    StateUpdateBoundedReachability stateUpdate =
-        new StateUpdateBoundedReachability(predicate, type.update());
-    BoundedSampler<S, M> sampler = new BoundedSampler<>(new Prism(new PrismDevNullLog()),
-        explorer, stepBound, stateUpdate, type.verdict(), heuristic, values);
+  private static <S, M extends Model, R> Result<S, R> solveBounded(Explorer<S, M> explorer,
+      SuccessorHeuristic heuristic, double precision, IntPredicate predicate, QueryType<R> type,
+      int stepBound) throws PrismException {
+    var target = new ReachabilityCache(predicate);
+    var values = new BoundedReachValues(precision, heuristic, target, type.update());
+    var sampler = new BoundedSampler<>(explorer, stepBound, values, null);
 
     logger.log(Level.INFO, "Checking expression {0} {1}", new Object[] {predicate, type});
     sampler.run();
-
-    return makeResult(sampler, type.interpretation(), explorer);
+    return makeResult(sampler, type.verdict(), explorer);
   }
 
   private static <M extends Model, R> Result<?, R> solve(PrismQuery<R> query,
-      ComponentAnalyser componentAnalyser, M partialModel, Generator<State> generator,
-      SuccessorHeuristic heuristic) throws PrismException {
+      ComponentAnalyser analyser, M partialModel, Generator<State> generator,
+      SuccessorHeuristic heuristic, double precision) throws PrismException {
     if (query.isBounded()) {
       ExpressionTemporal prismExpression = query.expression();
       checkArgument(prismExpression.getOperator() == ExpressionTemporal.P_F);
 
       Expression right = prismExpression.getOperand2();
-      var explorer = new DefaultExplorer<>(partialModel, generator);
+      var explorer = DefaultExplorer.of(partialModel, generator, false);
       var predicate = new StateToIntTarget<>(new PrismExpressionWrapper(right), explorer::getState);
-      StateValuesBounded stateValuesBounded = new StateValuesBoundedReachability(predicate);
 
-      return solveBounded(stateValuesBounded, explorer, heuristic, predicate, query.type(),
+      return solveBounded(explorer, heuristic, precision, predicate, query.type(),
           query.upperBound());
     }
 
@@ -216,10 +208,9 @@ public final class ReachChecker {
 
     Expression right = prismExpression.getOperand2();
     if (prismExpression.getOperator() == ExpressionTemporal.P_F) {
-      var explorer = new DefaultExplorer<>(partialModel, generator);
+      var explorer = DefaultExplorer.of(partialModel, generator, false);
       var predicate = new StateToIntTarget<>(new PrismExpressionWrapper(right), explorer::getState);
-      StateValues stateValues = new StateValuesReachability(predicate);
-      return solve(stateValues, explorer, heuristic, componentAnalyser, predicate, query.type());
+      return solve(explorer, heuristic, precision, analyser, predicate, query.type());
     }
 
     Expression left = prismExpression.getOperand1();
@@ -234,36 +225,37 @@ public final class ReachChecker {
 
     var productGenerator = new SafetyGenerator<>(generator, new PrismExpressionWrapper(safety));
     var predicate = new UntilTargetPredicate<>(new PrismExpressionWrapper(right));
-    var explorer = new DefaultExplorer<>(partialModel, productGenerator);
+    var explorer = DefaultExplorer.of(partialModel, productGenerator, false);
     var productPredicate = new StateToIntTarget<>(predicate, explorer::getState);
-    StateValues stateValues = new StateValuesReachability(productPredicate);
 
-    return solve(stateValues, explorer, heuristic, componentAnalyser, productPredicate,
-        query.type());
+    return solve(explorer, heuristic, precision, analyser, productPredicate, query.type());
   }
 
   private static <R> Result<?, R> solveMdp(ModelGenerator prismGenerator,
-      PrismQuery<R> expression, SuccessorHeuristic heuristic) throws PrismException {
+      PrismQuery<R> expression, SuccessorHeuristic heuristic, double precision)
+      throws PrismException {
     MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
     ComponentAnalyser componentAnalyser = new MecComponentAnalyser();
     Generator<State> generator = new MdpGenerator(prismGenerator);
-    return solve(expression, componentAnalyser, partialModel, generator, heuristic);
+    return solve(expression, componentAnalyser, partialModel, generator, heuristic, precision);
   }
 
   private static <R> Result<?, R> solveCtmc(ModelGenerator prismGenerator,
-      PrismQuery<R> expression, SuccessorHeuristic heuristic) throws PrismException {
+      PrismQuery<R> expression, SuccessorHeuristic heuristic, double precision)
+      throws PrismException {
     MarkovChain partialModel = new MarkovChain();
     ComponentAnalyser componentAnalyser = new SccComponentAnalyser();
     Generator<State> generator = new CtmcEmbeddingGenerator(prismGenerator);
-    return solve(expression, componentAnalyser, partialModel, generator, heuristic);
+    return solve(expression, componentAnalyser, partialModel, generator, heuristic, precision);
   }
 
   private static <R> Result<?, R> solveDtmc(ModelGenerator prismGenerator,
-      PrismQuery<R> expression, SuccessorHeuristic heuristic) throws PrismException {
+      PrismQuery<R> expression, SuccessorHeuristic heuristic, double precision)
+      throws PrismException {
     MarkovChain partialModel = new MarkovChain();
     ComponentAnalyser componentAnalyser = new SccComponentAnalyser();
     Generator<State> generator = new DtmcGenerator(prismGenerator);
-    return solve(expression, componentAnalyser, partialModel, generator, heuristic);
+    return solve(expression, componentAnalyser, partialModel, generator, heuristic, precision);
   }
 
   public static void main(String... args) throws IOException, PrismException {
@@ -353,7 +345,7 @@ public final class ReachChecker {
 
     List<Result<?, ?>> results = new ArrayList<>();
     for (PrismQuery<?> expression : prismQueries) {
-      Result<?, ?> result = solve(generator, expression, heuristic);
+      Result<?, ?> result = solve(generator, expression, heuristic, precision);
       results.add(result);
     }
 

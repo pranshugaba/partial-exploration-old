@@ -1,3 +1,5 @@
+venv/
+
 # ==== Gradle files ====
 # Source: https://github.com/github/gitignore/blob/master/Gradle.gitignore
 
@@ -28,5 +30,6 @@ __pycache__/
 # ==== C/C++ files
 
 *.so
+*.dll
 *cmake-build-*
 .DS_Store

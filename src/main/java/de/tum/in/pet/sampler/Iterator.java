@@ -5,7 +5,7 @@ import de.tum.in.probmodels.explorer.Explorer;
 import de.tum.in.probmodels.model.Model;
 import prism.PrismException;
 
-public interface Sampler<S, M extends Model> {
+public interface Iterator<S, M extends Model> {
   Explorer<S, M> explorer();
 
   AnnotatedModel<M> model();

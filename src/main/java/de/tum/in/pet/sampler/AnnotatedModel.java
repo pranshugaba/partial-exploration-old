@@ -4,6 +4,8 @@ import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.probmodels.model.Model;
 import explicit.ModelExplicit;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.IntSets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
@@ -11,12 +13,12 @@ import parser.State;
 
 public class AnnotatedModel<M extends Model> {
   public final M model;
-  public final NatBitSet exploredStates;
-  private NatBitSet fringeStates;
+  public final IntSet exploredStates;
+  private IntSet fringeStates;
 
-  public AnnotatedModel(M model, IntFunction<?> stateToIndex, NatBitSet exploredStates) {
+  public AnnotatedModel(M model, IntFunction<?> stateToIndex, IntSet exploredStates) {
     this.model = model;
-    this.exploredStates = NatBitSets.compact(exploredStates);
+    this.exploredStates = IntSets.unmodifiable(exploredStates);
 
     if (model instanceof ModelExplicit) {
       // TODO HACK
@@ -34,10 +36,10 @@ public class AnnotatedModel<M extends Model> {
     }
   }
 
-  public NatBitSet getFringeStates() {
+  public IntSet getFringeStates() {
     if (fringeStates == null) {
       int numStates = model.getNumStates();
-      NatBitSet fringeStates = NatBitSets.modifiableCopyOf(exploredStates, numStates + 1);
+      NatBitSet fringeStates = NatBitSets.copyOf(exploredStates);
       fringeStates.flip(0, numStates);
       this.fringeStates = NatBitSets.compact(fringeStates);
     }

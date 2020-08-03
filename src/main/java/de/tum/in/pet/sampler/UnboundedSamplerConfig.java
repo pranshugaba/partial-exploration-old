@@ -5,8 +5,8 @@ import org.immutables.value.Value;
 @Value.Immutable(builder = true)
 @SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class UnboundedSamplerConfig {
-  public static final int DEFAULT_MAX_EXPLORES_PER_SAMPLE = 10;
-  public static final int DEFAULT_MAX_BACK_TRACE_PER_SAMPLE = 5;
+  public static final int DEFAULT_MAX_EXPLORES_PER_SAMPLE = 4;
+  public static final int DEFAULT_MAX_BACK_TRACE_PER_SAMPLE = 4;
   public static final long DEFAULT_REPORT_PROGRESS_EVERY_STEPS = 500_000;
   public static final int DEFAULT_INITIAL_COLLAPSE_THRESHOLD = 10;
 

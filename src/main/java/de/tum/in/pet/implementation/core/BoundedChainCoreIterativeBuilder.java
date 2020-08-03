@@ -32,7 +32,7 @@ public class BoundedChainCoreIterativeBuilder {
 
   public BoundedChainCoreIterativeBuilder(ModelGenerator generator, int stepBound, double precision)
       throws PrismException {
-    this.explorer = new DefaultExplorer<>(new MarkovChain(), new DtmcGenerator(generator));
+    this.explorer = DefaultExplorer.of(new MarkovChain(), new DtmcGenerator(generator), false);
     this.stepBound = stepBound;
     this.precision = precision;
   }
@@ -44,19 +44,18 @@ public class BoundedChainCoreIterativeBuilder {
     long timer = System.nanoTime();
 
     for (int initialState : explorer.initialStates()) {
-      double totalExitSum;
 
       boolean finished = false;
       while (!finished) {
         finished = true;
 
         Int2DoubleMap weight = new Int2DoubleOpenHashMap();
-        Int2DoubleMap fringeWeight = new Int2DoubleOpenHashMap();
         weight.put(initialState, 1.0d);
         NatBitSet exploredNonZeroStates = NatBitSets.set();
         exploredNonZeroStates.set(initialState);
 
-        totalExitSum = 0.0d;
+        double totalExitSum = 0.0d;
+        Int2DoubleMap fringeWeight = new Int2DoubleOpenHashMap();
         for (int step = 0; step <= stepBound; step++) {
           Int2DoubleMap newWeight = new Int2DoubleOpenHashMap(weight.size());
           NatBitSet newNonZeroStates = NatBitSets.set();
