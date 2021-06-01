@@ -117,6 +117,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
         Mec mec = Mec.create(explorer.model(), mecStates);
 
         Supplier<M> modelSupplier;
+
         ModelType modelType = explorer.model().getModelType();
         if(modelType==ModelType.MDP){
           modelSupplier = () -> (M) new MarkovDecisionProcess();
