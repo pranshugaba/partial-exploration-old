@@ -127,7 +127,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
         }
         RestrictedModel<M> mecRestrictedModel = ModelBuilder.buildMecRestrictedModel(explorer().model(),
                 modelSupplier, mec);
-        // handle precomputed rewards
+        // handle precomputed rewards a
 
       }
     }
