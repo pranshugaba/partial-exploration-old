@@ -88,7 +88,7 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
       Bounds oldRepresentativeBound = getBoundsFromStayAction(stayActionMap.get(representative));
 
       double newLowerBound = Math.max(representativeBound.lowerBound(), oldRepresentativeBound.lowerBound());
-      double newUpperBound = Math.max(oldRepresentativeBound.lowerBound(), oldRepresentativeBound.upperBound());
+      double newUpperBound = Math.max(representativeBound.upperBound(), oldRepresentativeBound.upperBound());
       Bounds newRepresentativeBound = Bounds.of(newLowerBound, newUpperBound);
 
       updateStayAction(representative, newRepresentativeBound);

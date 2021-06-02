@@ -15,13 +15,10 @@ import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.ComponentAnalyser;
 import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.graph.MecComponentAnalyser;
-import de.tum.in.probmodels.model.MarkovDecisionProcess;
+import de.tum.in.probmodels.model.*;
 import de.tum.in.probmodels.model.Model;
-import de.tum.in.probmodels.model.ModelBuilder;
-import de.tum.in.probmodels.model.RestrictedModel;
 import de.tum.in.probmodels.util.PrismHelper;
-import it.unimi.dsi.fastutil.ints.IntSet;
-import it.unimi.dsi.fastutil.ints.IntSets;
+import it.unimi.dsi.fastutil.ints.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -37,6 +34,12 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/* This code's purpose is to facilitate the independent testing of the RestrictedValueIterator. Right now, this code
+* only accepts 3 parameters, -m/--model (model file path) --precision (precision required from vi) --const
+* defining constants in models, if any. Right now, the file only supports MDPs having singular initial states and
+* runs the VI for the first random mec it chooses. To really test your code, it is advised to use models where
+* all states in a model belong to a single mec. */
+
 
 public class RestrictedValueIteratorChecker {
   private static final Logger logger = Logger.getLogger(RestrictedValueIteratorChecker.class.getName());
@@ -45,25 +48,31 @@ public class RestrictedValueIteratorChecker {
 
   }
 
+  // This function makes sure the entire model is explored so that the model is fully built.
   private static void exploreFullModel(Explorer<?, ?> explorer) {
 
-    IntSet exploredStates = IntSets.unmodifiable(explorer.exploredStates());
-    int exploredSize = 0;
+    IntSet exploredStates = new IntOpenHashSet(explorer.exploredStates());
+    IntSet newExploredStates = new IntOpenHashSet(exploredStates);
 
-    while (exploredStates.size()!=exploredSize) {
-      exploredSize = exploredStates.size();
-
+    while (newExploredStates.size()!=0) {
       exploredStates.forEach((IntConsumer) s -> {
-        if (!explorer.isExploredState(s)){
-          try {
-            explorer.exploreState(s);
-          } catch (PrismException e) {
-            e.printStackTrace();
+        List<Distribution> choices = explorer.getChoices(s);
+        IntSet neighbours = new IntArraySet();
+        choices.forEach(d -> neighbours.addAll(d.support()));
+
+        for(int n: neighbours)
+          if (!explorer.isExploredState(n)){
+            try {
+              explorer.exploreState(n);
+            } catch (PrismException e) {
+              e.printStackTrace();
+            }
           }
-        }
       });
 
-      exploredStates = IntSets.unmodifiable(explorer.exploredStates());
+      newExploredStates = new IntOpenHashSet(explorer.exploredStates());
+      newExploredStates.removeAll(exploredStates);
+      exploredStates = new IntOpenHashSet(explorer.exploredStates());
     }
 
   }
@@ -96,14 +105,7 @@ public class RestrictedValueIteratorChecker {
       System.exit(0);
     }
 
-    Supplier<M> modelSupplier;
-    ModelType modelType = model.getModelType();
-    if(modelType==ModelType.MDP){
-      modelSupplier = () -> (M) new MarkovDecisionProcess();
-    }
-    else{
-      throw new UnsupportedOperationException("Only Markov Decision Processes are supported at the moment");
-    }
+    Supplier<M> modelSupplier = () -> (M) new MarkovDecisionProcess();
 
     NatBitSet component = components.get(0);
 
@@ -115,7 +117,7 @@ public class RestrictedValueIteratorChecker {
     Bounds bounds = valueIterator.getBounds();
     if(bounds==null){
       logger.log(Level.WARNING, "Value Iterator returns null bounds.");
-      bounds = Bounds.reachOne();
+      bounds = Bounds.unknown();
     }
 
     return bounds;

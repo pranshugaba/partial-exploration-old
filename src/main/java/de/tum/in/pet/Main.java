@@ -63,6 +63,7 @@ public final class Main {
         break;
       case "mecVI":
         RestrictedValueIteratorChecker.main(subArgs);
+        break;
       default:
         System.out.println("Unknown tool " + args[0]);
         System.exit(1);
