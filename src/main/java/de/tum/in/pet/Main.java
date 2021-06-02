@@ -3,6 +3,7 @@ package de.tum.in.pet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.set.RoaringNatBitSetFactory;
 import de.tum.in.pet.implementation.core.CoreChecker;
+import de.tum.in.pet.implementation.meanPayoff.RestrictedValueIteratorChecker;
 import de.tum.in.pet.implementation.reachability.ReachChecker;
 import de.tum.in.probmodels.util.PrismHelper;
 import java.io.IOException;
@@ -60,6 +61,8 @@ public final class Main {
       case "uniform":
         CoreChecker.computeUniformisationRate(subArgs);
         break;
+      case "mecVI":
+        RestrictedValueIteratorChecker.main(subArgs);
       default:
         System.out.println("Unknown tool " + args[0]);
         System.exit(1);

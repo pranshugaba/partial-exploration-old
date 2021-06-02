@@ -8,6 +8,7 @@ import de.tum.in.pet.sampler.UnboundedSampler;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.explorer.Explorer;
+import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.graph.MecComponentAnalyser;
 import de.tum.in.probmodels.model.*;
@@ -29,7 +30,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   private final Explorer<S, M> explorer;
   private final UnboundedValues values;
   private final BoundedMecQuotient<M> boundedMecQuotient;
-  private final MDPRewards mdpRewards;
+  private final RewardGenerator rewardGenerator;
 
   private final int revisitThreshold;
   private boolean newStatesSinceCollapse = false;
@@ -38,10 +39,10 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   private final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
 
-  public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, MDPRewards mdpRewards, int revisitThreshold) {
+  public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator rewardGenerator, int revisitThreshold) {
     this.explorer = explorer;
     this.values = values;
-    this.mdpRewards = mdpRewards;
+    this.rewardGenerator = rewardGenerator;
     this.revisitThreshold = revisitThreshold;
     this.boundedMecQuotient = new BoundedMecQuotient<>(explorer.model());
   }
@@ -171,7 +172,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
     Int2DoubleOpenHashMap valueCache = mecValueCache.computeIfAbsent(mecRepresentative, s -> new Int2DoubleOpenHashMap());
 
-    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(mecRestrictedModel, targetPrecision, mdpRewards, valueCache);
+    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(mecRestrictedModel, targetPrecision, rewardGenerator, valueCache);
 
     valueIterator.run();
 
