@@ -12,8 +12,8 @@ import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.graph.MecComponentAnalyser;
 import de.tum.in.probmodels.model.*;
-import explicit.rewards.MDPRewards;
 import it.unimi.dsi.fastutil.ints.*;
+import parser.State;
 import prism.ModelType;
 import prism.PrismException;
 
@@ -30,7 +30,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   private final Explorer<S, M> explorer;
   private final UnboundedValues values;
   private final BoundedMecQuotient<M> boundedMecQuotient;
-  private final RewardGenerator rewardGenerator;
+  private final RewardGenerator<State> rewardGenerator;
 
   private final int revisitThreshold;
   private boolean newStatesSinceCollapse = false;
@@ -39,7 +39,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   private final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
 
-  public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator rewardGenerator, int revisitThreshold) {
+  public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<State> rewardGenerator, int revisitThreshold) {
     this.explorer = explorer;
     this.values = values;
     this.rewardGenerator = rewardGenerator;
