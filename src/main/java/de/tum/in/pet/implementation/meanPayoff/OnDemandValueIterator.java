@@ -13,7 +13,6 @@ import de.tum.in.probmodels.graph.MecComponentAnalyser;
 import de.tum.in.probmodels.model.*;
 import it.unimi.dsi.fastutil.ints.*;
 import parser.State;
-import prism.ModelType;
 import prism.PrismException;
 
 import java.util.List;
@@ -22,7 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-
+// This class implements the OnDemand VI Algorithm from the CAV'17 paper.
 public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M> {
   private static final Logger logger = Logger.getLogger(OnDemandValueIterator.class.getName());
 
@@ -33,8 +32,10 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   private final int revisitThreshold;
   private final double rMax;
+  // variable keeps track if new states have been explored and if handleComponents() needs to be run again.
   private boolean newStatesSinceCollapse = false;
 
+  // stores most recent VI results for all states.
   private final Int2ObjectOpenHashMap<Int2DoubleOpenHashMap> mecValueCache = new Int2ObjectOpenHashMap<>();
 
   private final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
@@ -66,6 +67,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     return values.bounds(state);
   }
 
+  // Initialize Sink State bounds.
   private void initSinkStates(){
 
     int plusState = boundedMecQuotient.getPlusState();
@@ -157,6 +159,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   }
 
+  // Implements lines 11-15 in the paper. Runs VI on mec.
   @SuppressWarnings("unchecked")
   public void updateMec(int mecRepresentative){
     assert boundedMecQuotient.representative(mecRepresentative)==mecRepresentative;
@@ -191,6 +194,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     mecValueCache.put(mecRepresentative, valueCache);
   }
 
+  // Implements OnTheFlyEC from paper.
   public void handleComponents(){
     if(!newStatesSinceCollapse){
       return;
@@ -219,11 +223,13 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
     while(collapseIterator.hasNext()){
       int representative = representativeIterator.nextInt();
+      // updates the bounds of the representative according to all actions of mec members.
       values.collapse(representative, choices(representative), collapseIterator.next());
     }
 
   }
 
+  // Add state to partial model. Initialize bounds.
   private void explore(int state) throws PrismException {
     assert !explorer.isExploredState(state);
     assert !boundedMecQuotient.isSinkState(state);

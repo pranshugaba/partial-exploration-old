@@ -35,7 +35,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /* This code's purpose is to facilitate the independent testing of the RestrictedValueIterator. Right now, this code
-* only accepts 3 parameters, -m/--model (model file path) --precision (precision required from vi) --const
+* accepts only 3 parameters, -m/--model (model file path) --precision (precision required from vi) --const
 * defining constants in models, if any. Right now, the file only supports MDPs having singular initial states and
 * runs the VI for the first random mec it chooses. To really test your code, it is advised to use models where
 * all states in a model belong to a single mec. */

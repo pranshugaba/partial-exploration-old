@@ -31,6 +31,10 @@ import java.io.IOException;
 import java.util.function.IntPredicate;
 import java.util.logging.Logger;
 
+/* This code's purpose is to facilitate the testing of the OnDemandValueIterator. Right now, this code accepts 5
+parameters, -m/--model (model file path) --precision, --const (defining constants in model , if any). Right now, only
+MDPs are supported.
+* */
 public final class MeanPayoffChecker {
   private static final Logger logger = Logger.getLogger(MeanPayoffChecker.class.getName());
   public static final int DEFAULT_THRESHOLD = 2;
