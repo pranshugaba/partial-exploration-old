@@ -1,0 +1,27 @@
+mdp
+
+module example
+
+	s: [0..10] init 0;
+	
+	[blue] s=0 -> 0.5: (s'=1) + 0.5: (s'=2);
+	[green] s=0 -> (s'=3);
+	[blue] s=1 -> (s'=4);
+	[blue] s=2 -> 0.5: (s'=5) + 0.5: (s'=6);
+	[blue] s=3 -> 0.5: (s'=9) + 0.3: (s'=7) + 0.2: (s'=4);
+	[blue] s=4 -> (s'=8);
+	[blue] s=5 -> (s'=4);
+	[blue] s=6 -> (s'=6);
+	[blue] s=7 -> (s'=7);
+	[blue] s=8 -> 0.5: (s'=4) + 0.5: (s'=5);
+	[green] s=8 -> 0.2: (s'=7) + 0.8: (s'=10);
+	[blue] s=9 -> (s'=9);
+	[blue] s=10 -> (s'=10);
+
+endmodule
+
+label "target" = s>=9;
+
+rewards
+	//  define rewards here in format [action] (s=x)
+endrewards
