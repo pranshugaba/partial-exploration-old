@@ -4,7 +4,6 @@ import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.pet.sampler.AnnotatedModel;
 import de.tum.in.pet.sampler.Iterator;
-import de.tum.in.pet.sampler.UnboundedSampler;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.explorer.Explorer;
@@ -25,7 +24,7 @@ import java.util.stream.Collectors;
 
 
 public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M> {
-  private static final Logger logger = Logger.getLogger(UnboundedSampler.class.getName());
+  private static final Logger logger = Logger.getLogger(OnDemandValueIterator.class.getName());
 
   private final Explorer<S, M> explorer;
   private final UnboundedValues values;
@@ -33,18 +32,21 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   private final RewardGenerator<State> rewardGenerator;
 
   private final int revisitThreshold;
+  private final double rMax;
   private boolean newStatesSinceCollapse = false;
 
   private final Int2ObjectOpenHashMap<Int2DoubleOpenHashMap> mecValueCache = new Int2ObjectOpenHashMap<>();
 
   private final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
 
-  public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<State> rewardGenerator, int revisitThreshold) {
+  public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<State> rewardGenerator, int revisitThreshold, double rMax) {
     this.explorer = explorer;
+
     this.values = values;
     this.rewardGenerator = rewardGenerator;
     this.revisitThreshold = revisitThreshold;
     this.boundedMecQuotient = new BoundedMecQuotient<>(explorer.model());
+    this.rMax = rMax;
   }
 
   @Override
@@ -70,11 +72,13 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     int minusState = boundedMecQuotient.getMinusState();
     int uncertainState = boundedMecQuotient.getUncertainState();
 
-    values.update(plusState, List.of());
+    values.update(plusState, List.of(Distributions.singleton(Integer.MAX_VALUE, 1d)));
+    assert values.bounds(plusState).lowerBound()==1;
 
     values.update(minusState, List.of());
+    assert values.bounds(minusState).upperBound()==0;
 
-    values.update(uncertainState, List.of());
+    assert values.bounds(uncertainState).equals(Bounds.reachUnknown());
 
   }
 
@@ -82,14 +86,20 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
     initSinkStates();
 
+    logger.log(Level.INFO, "Initialized Sink States.");
+
+    int run = 0;
+
     int initialState = explorer.initialStates().stream().findFirst().orElse(-1);
     assert initialState!=-1: "Explorer has no initial state";
     int representative = boundedMecQuotient.representative(initialState);
 
     while(!values.isSolved(representative)) {
+      logger.log(Level.INFO, "Run "+run);
       if (sample(representative)) {
         representative = boundedMecQuotient.representative(initialState);
       }
+      run++;
     }
 
   }
@@ -104,12 +114,8 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
     while(true){
 
-      assert explorer.isExploredState(currentState);
-
-      currentState = values.sampleNextState(currentState, choices(currentState));
-
       visitStack.push(currentState);
-      visitCounts.putIfAbsent(currentState, 1);
+      visitCounts.putIfAbsent(currentState, 0);
       visitCounts.addTo(currentState, 1);
 
       if(boundedMecQuotient.isSinkState(currentState)){
@@ -123,6 +129,10 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       if(!explorer.isExploredState(currentState)) {
         explore(currentState);
       }
+
+      assert explorer.isExploredState(currentState);
+
+      currentState = values.sampleNextState(currentState, choices(currentState));
 
     }
 
@@ -138,7 +148,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     }
 
     while(!visitStack.isEmpty()){
-      int state = visitStack.popInt();
+      int state = boundedMecQuotient.representative(visitStack.popInt());
       assert !boundedMecQuotient.isSinkState(state);
       values.update(state, choices(state));
     }
@@ -151,6 +161,8 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   public void updateMec(int mecRepresentative){
     assert boundedMecQuotient.representative(mecRepresentative)==mecRepresentative;
 
+    logger.log(Level.INFO, "updating MEC");
+
     Bounds mecBounds = bounds(mecRepresentative);
     double targetPrecision = mecBounds.difference()/2;
 
@@ -160,13 +172,8 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     Mec mec = Mec.create(explorer.model(), mecStates);
 
     Supplier<M> modelSupplier;
-    ModelType modelType = explorer.model().getModelType();
-    if(modelType==ModelType.MDP){
-      modelSupplier = () -> (M) new MarkovDecisionProcess();
-    }
-    else {
-      throw new UnsupportedOperationException("Only Markov Decision Processes are supported at the moment");
-    }
+    modelSupplier = () -> (M) new MarkovDecisionProcess();
+
     RestrictedModel<M> mecRestrictedModel = ModelBuilder.buildMecRestrictedModel(explorer().model(),
             modelSupplier, mec);
 
@@ -177,7 +184,8 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     valueIterator.run();
 
     Bounds newBounds = valueIterator.getBounds();
-    boundedMecQuotient.updateStayAction(mecRepresentative, newBounds);
+    Bounds scaledBounds = Bounds.of(newBounds.lowerBound()/this.rMax, newBounds.upperBound()/this.rMax);
+    boundedMecQuotient.updateStayAction(mecRepresentative, scaledBounds);
 
     valueCache = valueIterator.getValues();
     mecValueCache.put(mecRepresentative, valueCache);
@@ -212,7 +220,6 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     while(collapseIterator.hasNext()){
       int representative = representativeIterator.nextInt();
       values.collapse(representative, choices(representative), collapseIterator.next());
-      boundedMecQuotient.updateStayAction(representative, bounds(representative));
     }
 
   }

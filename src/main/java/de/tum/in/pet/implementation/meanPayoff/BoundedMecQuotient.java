@@ -8,6 +8,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntSet;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.IntConsumer;
 
@@ -22,9 +24,9 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
   public BoundedMecQuotient(M model) {
     super(model);
 
-    this.plusState = model.addState();
-    this.minusState = model.addState();
-    this.uncertainState = model.addState();
+    this.plusState = -1;
+    this.minusState = -2;
+    this.uncertainState = -3;
 
   }
 
@@ -58,10 +60,20 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
 
   public Distribution getStayDistribution(Bounds bounds){
 
+    assert bounds.lowerBound()<=1 && bounds.upperBound()<=1;
+    assert bounds.lowerBound()>=0 && bounds.upperBound()>=0;
+
     DistributionBuilder builder = Distributions.defaultBuilder();
-    builder.add(plusState, bounds.lowerBound());
-    builder.add(minusState, 1-bounds.upperBound());
-    builder.add(uncertainState, 1-bounds.difference());
+    if(bounds.lowerBound()>0) {
+      builder.add(plusState, bounds.lowerBound());
+    }
+    if(1-bounds.upperBound()>0) {
+      builder.add(minusState, 1-bounds.upperBound());
+
+    }
+    if(bounds.difference()>0) {
+      builder.add(uncertainState, bounds.difference());
+    }
 
     return builder.build();
 
@@ -76,8 +88,6 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
     NatBitSet removedRepresentatives = NatBitSets.copyOf(oldRepresentatives);
 
     newRepresentatives.forEach((IntConsumer) removedRepresentatives::remove);
-
-    assert removedRepresentatives.size() == oldRepresentatives.size()-newRepresentatives.size();
 
     for (int removedRepresentative : removedRepresentatives) {
       stayActionMap.remove(removedRepresentative);
@@ -95,6 +105,12 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
 
     }
 
+    for(int i: newRepresentatives){
+      if(!stayActionMap.containsKey(i)){
+        updateStayAction(i, Bounds.reachUnknown());
+      }
+    }
+
     assert stayActionMap.size() == newRepresentatives.size();
 
     return newRepresentatives;
@@ -102,17 +118,21 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
 
   @Override
   public List<Distribution> getChoices(int representative){
-    List<Distribution> choices = super.getChoices(representative);
+    List<Distribution> choices = new ArrayList<>(super.getChoices(representative));
     if(stayActionMap.containsKey(representative)){
       choices.add(stayActionMap.get(representative));
     }
 
-    return choices;
+    return Collections.unmodifiableList(choices);
   }
 
   private Bounds getBoundsFromStayAction(Distribution stayAction){
     double upperBound = 1-stayAction.get(minusState);
     double lowerBound = stayAction.get(plusState);
+
+    assert upperBound>=lowerBound;
+    assert upperBound<=1 && lowerBound<=1;
+    assert upperBound>=0 && lowerBound>=0;
 
     return Bounds.of(lowerBound, upperBound);
   }

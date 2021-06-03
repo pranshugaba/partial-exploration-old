@@ -3,6 +3,7 @@ package de.tum.in.pet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.set.RoaringNatBitSetFactory;
 import de.tum.in.pet.implementation.core.CoreChecker;
+import de.tum.in.pet.implementation.meanPayoff.MeanPayoffChecker;
 import de.tum.in.pet.implementation.meanPayoff.RestrictedValueIteratorChecker;
 import de.tum.in.pet.implementation.reachability.ReachChecker;
 import de.tum.in.probmodels.util.PrismHelper;
@@ -63,6 +64,9 @@ public final class Main {
         break;
       case "mecVI":
         RestrictedValueIteratorChecker.main(subArgs);
+        break;
+      case "meanPayoff":
+        MeanPayoffChecker.main(subArgs);
         break;
       default:
         System.out.println("Unknown tool " + args[0]);
