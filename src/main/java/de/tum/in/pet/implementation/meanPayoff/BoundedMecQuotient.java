@@ -82,30 +82,40 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
   @Override
   public IntList collapse(List<? extends IntSet> stateList){
 
+    // The key set of the stayActionMap should have an old list of representatives
     IntSet oldRepresentatives = stayActionMap.keySet();
+    // New set of representatives
     IntList newRepresentatives = super.collapse(stateList);
 
+    // These 2 operations give removedRepresentatives = oldRepresentatives-newRepresentatives
     NatBitSet removedRepresentatives = NatBitSets.copyOf(oldRepresentatives);
-
     newRepresentatives.forEach((IntConsumer) removedRepresentatives::remove);
 
+    // For every group, we need to have only one stayAction to update. However, the collapse operation may create groups
+    // with more than one stayActions as it may now have more than 1 members from oldRepresentatives. This loop merges
+    // the stay actions for such groups.
     for (int removedRepresentative : removedRepresentatives) {
+      Bounds removedRepresentativeBound = getBoundsFromStayAction(stayActionMap.get(removedRepresentative));
+      // Removing stay action of removed representative
       stayActionMap.remove(removedRepresentative);
 
-      Bounds representativeBound = getBoundsFromStayAction(stayActionMap.get(removedRepresentative));
-
+      // Representative of group to which removedRepresentative now belongs
       int representative = this.representative(removedRepresentative);
-      Bounds oldRepresentativeBound = getBoundsFromStayAction(stayActionMap.get(representative));
+      Bounds representativeBound = getBoundsFromStayAction(stayActionMap.get(representative));
 
-      double newLowerBound = Math.max(representativeBound.lowerBound(), oldRepresentativeBound.lowerBound());
-      double newUpperBound = Math.max(representativeBound.upperBound(), oldRepresentativeBound.upperBound());
+      // Creating new bounds based on both stayAction bounds.
+      double newLowerBound = Math.max(removedRepresentativeBound.lowerBound(), representativeBound.lowerBound());
+      double newUpperBound = Math.max(removedRepresentativeBound.upperBound(), representativeBound.upperBound());
       Bounds newRepresentativeBound = Bounds.of(newLowerBound, newUpperBound);
 
+      // Update stayAction of group
       updateStayAction(representative, newRepresentativeBound);
 
     }
 
     for(int i: newRepresentatives){
+      // The below condition will be true when we collapse a new group with zero members in removedRepresentatives.
+      // For such a group, l = 0, u = 1
       if(!stayActionMap.containsKey(i)){
         updateStayAction(i, Bounds.reachUnknown());
       }
@@ -118,7 +128,9 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
 
   @Override
   public List<Distribution> getChoices(int representative){
+    // Get the choices from the collapse model
     List<Distribution> choices = new ArrayList<>(super.getChoices(representative));
+    // Adding the stay action if there is one associated with representative
     if(stayActionMap.containsKey(representative)){
       choices.add(stayActionMap.get(representative));
     }
@@ -126,6 +138,7 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
     return Collections.unmodifiableList(choices);
   }
 
+  // Calculates upper and lower bound for a state from it's stayAction distribution
   private Bounds getBoundsFromStayAction(Distribution stayAction){
     double upperBound = 1-stayAction.get(minusState);
     double lowerBound = stayAction.get(plusState);

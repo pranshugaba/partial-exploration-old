@@ -98,6 +98,7 @@ public class RestrictedMecValueIterator<M extends Model> {
     return null;
   }
 
+  // Return values such that in future, value iteration can be continued from current state.
   public Int2DoubleOpenHashMap getValues(){
     return this.values;
   }
