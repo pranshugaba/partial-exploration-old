@@ -79,7 +79,7 @@ public class RestrictedMecValueIterator<M extends Model> {
 
   private double getActionVal(int state, Distribution distribution) {
     //int numSuccessors = distribution.size();
-    double sum = rewardGenerator.transitionReward();
+    double sum = 0.0;
     for (Int2DoubleMap.Entry entry : distribution) {
       int successor = entry.getIntKey();
 /*
