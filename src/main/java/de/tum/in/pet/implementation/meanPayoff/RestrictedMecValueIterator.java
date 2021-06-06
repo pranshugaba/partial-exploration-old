@@ -47,50 +47,35 @@ public class RestrictedMecValueIterator<M extends Model> {
     int numStates = restrictedModel.model().getNumStates();
 
     for (int state = 0; state < numStates; state++) {
-      Bounds max_bound_action_value = Bounds.of(0.0, 0.0);
+      double max_action_value = 0.0;
       List<Action> actions = restrictedModel.model().getActions(state);
       for (Action action : actions) {
-        Bounds bounds = get_action_bounds(state, action.distribution());
+        double val = rewardGenerator.transitionReward(new State(state), action) + getActionVal(state, action.distribution());
 
       }
 
     }
   }
 
-  private Bounds get_action_bounds(int state, Distribution distribution) {
-    int numSuccessors = distribution.size();
-    for (int successor = 0; successor < numSuccessors; successor++) {
-      Bounds bounds = bounds(successor);
-
-    }
-
-
-
-    double lower = 0.0d;
-    double upper = 0.0d;
-    double sum = 0.0d;
+  private double getActionVal(int state, Distribution distribution) {
+    //int numSuccessors = distribution.size();
+    double sum = rewardGenerator.transitionReward();
     for (Int2DoubleMap.Entry entry : distribution) {
       int successor = entry.getIntKey();
+/*
       if (successor == state) {
         continue;
       }
-      Bounds successorBounds = bounds(successor);
+*/
       double probability = entry.getDoubleValue();
-      sum += probability;
-      lower += successorBounds.lowerBound() * probability;
-      upper += successorBounds.upperBound() * probability;
-    }
-    if (sum == 0.0d) {
-      return bounds(state);
-    }
-    return Bounds.reach(lower / sum, upper / sum);
-  }
+      if (values.containsKey(successor)) {
+        double successorVal = values.get(successor);
+        sum = sum + probability * successorVal;
+      }
 
-  @Override
-  public Bounds bounds(int state) {
-    return target.test(state)
-            ? Bounds.reachOne()
-            : bounds.getOrDefault(state, Bounds.reachUnknown());
+    }
+    return sum;
+
   }
 
 
