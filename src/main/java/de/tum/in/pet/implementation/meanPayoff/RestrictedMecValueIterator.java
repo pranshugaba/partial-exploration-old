@@ -2,6 +2,7 @@ package de.tum.in.pet.implementation.meanPayoff;
 
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.generator.RewardGenerator;
+import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.model.Action;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
@@ -16,7 +17,8 @@ import java.util.List;
 
 public class RestrictedMecValueIterator<M extends Model> {
 
-  public final RestrictedModel<M> restrictedModel;
+  public final M model; // Original Model
+  public final Mec mec; // Mec with respect to original model
   public final double targetPrecision;
   public final Int2DoubleOpenHashMap values;  // map of states and total values; the average value can be obtained by dividing by iterCount
   public final RewardGenerator<State> rewardGenerator;
@@ -25,9 +27,10 @@ public class RestrictedMecValueIterator<M extends Model> {
 
   private Bounds bounds;
 
-  public RestrictedMecValueIterator(RestrictedModel<M> restrictedModel, double targetPrecision,
-                                    RewardGenerator<State> rewardGenerator, Int2ObjectOpenHashMap<State> stateIndexMap){
-    this.restrictedModel = restrictedModel;
+  public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<State> rewardGenerator,
+                                    Int2ObjectOpenHashMap<State> stateIndexMap){
+    this.model = model;
+    this.mec = mec;
     this.targetPrecision = targetPrecision;
     this.values = new Int2DoubleOpenHashMap();
     this.rewardGenerator = rewardGenerator;
@@ -35,22 +38,23 @@ public class RestrictedMecValueIterator<M extends Model> {
     this.iterCount = 0;
   }
 
-  public RestrictedMecValueIterator(RestrictedModel<M> restrictedModel, double targetPrecision,
-                                    RewardGenerator<State> rewardGenerator, Int2ObjectOpenHashMap< State> stateIndexMap,
-                                    Int2DoubleOpenHashMap values){
-    this.restrictedModel = restrictedModel;
+  public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<State> rewardGenerator,
+                                    Int2ObjectOpenHashMap< State> stateIndexMap, Int2DoubleOpenHashMap values){
+    this.model = model;
+    this.mec = mec;
     this.targetPrecision = targetPrecision;
     this.values = values;
     this.rewardGenerator = rewardGenerator;
     this.stateIndexMap = stateIndexMap;
     this.iterCount = 0;
   }
-
+  //
   public void run(){
     int numStates = restrictedModel.model().getNumStates();
     double[] diff =new double[numStates];  // This array stores the difference of values for each state between two successive iterations.
 
     if(values.size()==0) { // no pre-computed values sent
+      // TODO loop over mec states
       for (int state = 0; state < numStates; state++) {  // initialise hashmap values
         values.put(state, 0.0);
       }
@@ -59,9 +63,9 @@ public class RestrictedMecValueIterator<M extends Model> {
     double max, min;
     do {
       Int2DoubleOpenHashMap oldValues = new Int2DoubleOpenHashMap(values);
-      for (int state = 0; state < numStates; state++) {
+      for (int state = 0; state < numStates; state++) { // TODO loop over mec states
         double maxActionValue = 0.0;
-        List<Action> actions = restrictedModel.model().getActions(state);
+        List<Action> actions = restrictedModel.model().getActions(state); // TODO Get Actions from original model, filter according to mec actions
         for (Action action : actions) {  // find the value of the state over all actions
           // Send action label instead of action object. State object needs to be fetched from stateIndexMap. Send original state number (Example: int originalState = stateMapping().applyAsInt(stateNumber);)
           double val = rewardGenerator.transitionReward(stateIndexMap.get(restrictedModel.stateMapping().applyAsInt(state)), action.label())

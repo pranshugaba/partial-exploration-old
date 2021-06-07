@@ -30,7 +30,6 @@ import simulator.ModulesFileModelGenerator;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.IntConsumer;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -77,6 +76,7 @@ public class RestrictedValueIteratorChecker {
 
   }
 
+  // Providing general solve function outside. This function calls appropriate function for model type.
   private static Bounds solve(ModelGenerator generator, double precision) {
     ModelType modelType = generator.getModelType();
     switch (modelType) {
@@ -94,8 +94,11 @@ public class RestrictedValueIteratorChecker {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private static <M extends Model> Bounds solve(ComponentAnalyser analyser, Explorer<State, M> explorer, RewardGenerator<State> rewardGenerator, double precision) {
+  // General solving code.
+  private static <M extends Model> Bounds solve(M partialModel, Generator<State> generator, ComponentAnalyser analyser, RewardGenerator<State> rewardGenerator, double precision) {
+
+    var explorer = DefaultExplorer.of(partialModel, generator, false);
+    exploreFullModel(explorer);
 
     Int2ObjectOpenHashMap<State> getStateFromIndex = new Int2ObjectOpenHashMap<>();
     for(int stateId: explorer.exploredStates()){
@@ -111,14 +114,11 @@ public class RestrictedValueIteratorChecker {
       System.exit(0);
     }
 
-    Supplier<M> modelSupplier = () -> (M) new MarkovDecisionProcess();
-
     NatBitSet component = components.get(0);
 
     Mec mec = Mec.create(model, component);
-    RestrictedModel<M> restrictedModel = ModelBuilder.buildMecRestrictedModel(model, modelSupplier, mec);
 
-    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(restrictedModel, precision, rewardGenerator, getStateFromIndex);
+    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(model, mec, precision, rewardGenerator, getStateFromIndex);
     valueIterator.run();
     Bounds bounds = valueIterator.getBounds();
     if(bounds==null){
@@ -130,17 +130,16 @@ public class RestrictedValueIteratorChecker {
 
   }
 
+  // MDP specific loading operations
   private static Bounds solveMdp(ModelGenerator prismGenerator, double precision) {
 
     MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
     ComponentAnalyser componentAnalyser = new MecComponentAnalyser();
     Generator<State> generator = new MdpGenerator(prismGenerator);
-    var explorer = DefaultExplorer.of(partialModel, generator, false);
-    exploreFullModel(explorer);
 
     RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(0, prismGenerator);
 
-    return solve(componentAnalyser, explorer, rewardGenerator, precision);
+    return solve(partialModel, generator, componentAnalyser, rewardGenerator, precision);
   }
 
   public static void main(String... args) throws IOException, PrismException{

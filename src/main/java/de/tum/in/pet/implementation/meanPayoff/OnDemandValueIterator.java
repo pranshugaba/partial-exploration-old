@@ -172,7 +172,6 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   }
 
   // Implements lines 11-15 in the paper. Runs VI on mec.
-  @SuppressWarnings("unchecked")
   public void updateMec(int mecRepresentative){
     assert boundedMecQuotient.representative(mecRepresentative)==mecRepresentative;
 
@@ -187,18 +186,11 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
             .collect(Collectors.toList()));
     Mec mec = Mec.create(explorer.model(), mecStates);
 
-    Supplier<M> modelSupplier;
-    modelSupplier = () -> (M) new MarkovDecisionProcess();
-
-    // build an MEC restricted model
-    RestrictedModel<M> mecRestrictedModel = ModelBuilder.buildMecRestrictedModel(explorer().model(),
-            modelSupplier, mec);
-
     // Fetch the precomputed value map of the mec from the cache, and if there is not any, then returns an empty map.
     // the key of the map is mecRepresentative.
     Int2DoubleOpenHashMap valueCache = mecValueCache.computeIfAbsent(mecRepresentative, s -> new Int2DoubleOpenHashMap());
 
-    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(mecRestrictedModel, targetPrecision, rewardGenerator, StateIndexMap, valueCache);
+    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(this.explorer.model(), mec, targetPrecision, rewardGenerator, StateIndexMap, valueCache);
 
     valueIterator.run();
 

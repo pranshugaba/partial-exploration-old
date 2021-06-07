@@ -22,7 +22,7 @@ import java.util.function.ToDoubleFunction;
 public class UnboundedReachValues implements UnboundedValues {
   private final Int2ObjectMap<Bounds> bounds = new Int2ObjectOpenHashMap<>();
   private final ValueUpdate update;
-  private final IntPredicate target;
+  private final IntPredicate target; // Predicate to indicate if a given state is a target state
   private final double precision;
   private final SuccessorHeuristic heuristic;
 
@@ -40,7 +40,9 @@ public class UnboundedReachValues implements UnboundedValues {
   }
 
   @Override
+  // Returns the bounds for a state
   public Bounds bounds(int state) {
+    // Checks if the given state is the target state. Return a reached bound (u=1, l=1), else if present, return the stored value or return an unknown value (u=1, l=0)
     return target.test(state)
         ? Bounds.reachOne()
         : bounds.getOrDefault(state, Bounds.reachUnknown());
@@ -64,17 +66,21 @@ public class UnboundedReachValues implements UnboundedValues {
 
 
   @Override
+  // Checks if u-l for a state is less than precision
   public boolean isSolved(int state) {
     return bounds(state).difference() < precision;
   }
 
   @Override
+  // Checks if u-l for a state is one.
   public boolean isUnknown(int state) {
     return isOne(bounds(state).difference());
   }
 
   @Override
+  // Samples a successor from a state given a list of choices.
   public int sampleNextState(int state, List<Distribution> choices) {
+    // Gives weights to action according the their respective support's upper bounds.
     ToDoubleFunction<Distribution> actionScore = isSmallestFixPoint()
         ? d -> 1.0d - d.sumWeighted(this::lowerBound)
         : d -> d.sumWeighted(this::upperBound);
@@ -84,6 +90,7 @@ public class UnboundedReachValues implements UnboundedValues {
   }
 
   @Override
+  // collapse a set of state into a new representative. Updates the bounds of the representative and removes bounds for all other states
   public void collapse(int representative, List<Distribution> choices, IntSet collapsed) {
     bounds.keySet().removeAll(collapsed);
 
@@ -92,19 +99,23 @@ public class UnboundedReachValues implements UnboundedValues {
       checkArgument(choices.isEmpty());
     }
 
+    // checks if any of the collapsed states is a target, if yes, set bounds to one (u=1, l=1).
     if (IntIterators.any(collapsed.iterator(), target)) {
       bounds.put(representative, Bounds.reachOne());
     } else {
+      // updates bounds according to choices
       update(representative, choices);
     }
   }
 
+  // Calculates new bounds according to an action. Lines 20, 21 in OnDemandVI in CAV'17 paper
   private Bounds successorBounds(int state, Distribution distribution) {
     double lower = 0.0d;
     double upper = 0.0d;
     double sum = 0.0d;
     for (Int2DoubleMap.Entry entry : distribution) {
       int successor = entry.getIntKey();
+      // It may be that the distribution has self loops, we want to avoid those
       if (successor == state) {
         continue;
       }
@@ -121,6 +132,7 @@ public class UnboundedReachValues implements UnboundedValues {
   }
 
   @Override
+  // updates bound of a state according to the given list of distributions
   public void update(int state, List<Distribution> choices) {
     assert update != ValueUpdate.UNIQUE_VALUE || choices.size() <= 1;
 
@@ -132,15 +144,20 @@ public class UnboundedReachValues implements UnboundedValues {
 
     Bounds oldBounds;
     Bounds newBounds;
+    // If there are no choices from the state, it must have a zero value (u=0, l=0)
     if (choices.isEmpty()) {
       newBounds = Bounds.reachZero();
       oldBounds = bounds.put(state, newBounds);
-    } else if (choices.size() == 1) {
+    }
+    else if (choices.size() == 1) {
       newBounds = successorBounds(state, choices.get(0));
       oldBounds = bounds.put(state, newBounds);
-    } else {
+    }
+    else {
       double newLowerBound;
       double newUpperBound;
+
+      // finds bounds for each distribution using successorBounds. The new upper and lower bound are either the maximum or minimum of all computed respective bounds
 
       if (update == ValueUpdate.MAX_VALUE) {
         newLowerBound = 0.0d;
