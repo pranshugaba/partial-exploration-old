@@ -97,6 +97,12 @@ public class RestrictedValueIteratorChecker {
   @SuppressWarnings("unchecked")
   private static <M extends Model> Bounds solve(ComponentAnalyser analyser, Explorer<State, M> explorer, RewardGenerator<State> rewardGenerator, double precision) {
 
+    Int2ObjectOpenHashMap<State> getStateFromIndex = new Int2ObjectOpenHashMap<>();
+    for(int stateId: explorer.exploredStates()){
+      State stateObject = explorer.getState(stateId);
+      getStateFromIndex.put(stateId, stateObject);
+    }
+
     M model = explorer.model();
 
     List<NatBitSet> components = analyser.findComponents(model, explorer.exploredStates());
@@ -112,7 +118,7 @@ public class RestrictedValueIteratorChecker {
     Mec mec = Mec.create(model, component);
     RestrictedModel<M> restrictedModel = ModelBuilder.buildMecRestrictedModel(model, modelSupplier, mec);
 
-    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(restrictedModel, precision, rewardGenerator);
+    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(restrictedModel, precision, rewardGenerator, getStateFromIndex);
     valueIterator.run();
     Bounds bounds = valueIterator.getBounds();
     if(bounds==null){

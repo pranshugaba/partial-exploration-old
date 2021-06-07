@@ -16,6 +16,7 @@ import parser.State;
 import prism.PrismException;
 
 import java.util.List;
+import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,6 +40,8 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   private final Int2ObjectOpenHashMap<Int2DoubleOpenHashMap> mecValueCache = new Int2ObjectOpenHashMap<>();
 
   private final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
+
+  private final Int2ObjectOpenHashMap<State> StateIndexMap = new Int2ObjectOpenHashMap<>();
 
   public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<State> rewardGenerator, int revisitThreshold, double rMax) {
     this.explorer = explorer;
@@ -91,6 +94,9 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     logger.log(Level.INFO, "Initialized Sink States.");
 
     int run = 0;
+
+    // Adding initial states to stateindexmap.
+    explorer.initialStates().forEach((IntConsumer) s -> StateIndexMap.put(s, (State) explorer.getState(s)));
 
     int initialState = explorer.initialStates().stream().findFirst().orElse(-1);
     assert initialState!=-1: "Explorer has no initial state";
@@ -192,7 +198,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     // the key of the map is mecRepresentative.
     Int2DoubleOpenHashMap valueCache = mecValueCache.computeIfAbsent(mecRepresentative, s -> new Int2DoubleOpenHashMap());
 
-    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(mecRestrictedModel, targetPrecision, rewardGenerator, valueCache);
+    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(mecRestrictedModel, targetPrecision, rewardGenerator, StateIndexMap, valueCache);
 
     valueIterator.run();
 
@@ -246,7 +252,8 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     assert !explorer.isExploredState(state);
     assert !boundedMecQuotient.isSinkState(state);
     newStatesSinceCollapse = true;
-    explorer.exploreState(state);  //  state added to partial model, and explorer.isExploredState(state) is set to true.
+    State stateObject = (State) explorer.exploreState(state);  //  state added to partial model, and explorer.isExploredState(state) is set to true. Obtained State Object.
+    StateIndexMap.put(state, stateObject); // State object added to map
     values.explored(state);  // the bounds are initialised
   }
 
