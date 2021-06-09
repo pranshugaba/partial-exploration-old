@@ -183,7 +183,7 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
     // the key of the map is mecRepresentative.
     Int2DoubleOpenHashMap valueCache = mecValueCache.computeIfAbsent(mecRepresentative, s -> new Int2DoubleOpenHashMap());
 
-    Int2ObjectFunction<State> stateIndexMap = explorer::getState;
+    Int2ObjectFunction<State> stateIndexMap = explorer::getState; // lambda function that returns a state object when given the state index. required for accessing reward generator function.
 
     RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(this.explorer.model(), mec, targetPrecision, rewardGenerator, stateIndexMap, valueCache);
 

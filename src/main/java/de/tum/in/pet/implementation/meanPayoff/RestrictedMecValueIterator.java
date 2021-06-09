@@ -7,8 +7,6 @@ import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.model.Action;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
-import de.tum.in.probmodels.model.RestrictedModel;
-import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.ints.*;
 import parser.State;
 
@@ -54,7 +52,6 @@ public class RestrictedMecValueIterator<M extends Model> {
     double[] diff =new double[numStates];  // This array stores the difference of values for each state between two successive iterations.
 
     if(values.size()==0) { // no pre-computed values sent
-      // TODO loop over mec states
       IntIterator stateIterator = states.iterator();
       while (stateIterator.hasNext()) {
         int state = stateIterator.nextInt();
@@ -69,10 +66,10 @@ public class RestrictedMecValueIterator<M extends Model> {
       while (stateIterator.hasNext()) {
         int state = stateIterator.nextInt();
         double maxActionValue = 0.0;
-        IntSet allowedActions = mec.actions.get(state);  // TODO allowedActions numbered as in original model?
+        IntSet allowedActions = mec.actions.get(state);  // allowedActions numbered as in original model
         assert allowedActions != null;
         List<Action> choices = model.getActions(state);  // get all actions (not distributions)
-        // TODO Get Actions from original model, filter according to mec actions
+        // Get Actions from original model, filter according to mec actions
         for (int action : allowedActions) {  // find the value of the state over all actions
           // Send action label instead of action object. State object needs to be fetched from stateIndexMap.
           // Send original state number (Example: int originalState = stateMapping().applyAsInt(stateNumber);)
@@ -82,8 +79,8 @@ public class RestrictedMecValueIterator<M extends Model> {
             maxActionValue = val;
           }
         }
-        values.put(state, maxActionValue);
-        diff[state] = maxActionValue - oldValues.get(state);
+        values.put(state, maxActionValue); // TODO values should be updated after the end of the loop. Otherwise, for any 2 states, a, b. where there is an edge from b to a and a is updated before b. t_n(b) is influenced by t_n(a) instead of t_{n-1}(a)
+        diff[state] = maxActionValue - oldValues.get(state); // TODO it can be the case the "state" which is from mec.states, is greater than "numStates" which is used while declaration.
       }
       iterCount++;
 
