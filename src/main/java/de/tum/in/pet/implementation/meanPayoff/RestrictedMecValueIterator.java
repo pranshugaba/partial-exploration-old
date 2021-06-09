@@ -1,5 +1,6 @@
 package de.tum.in.pet.implementation.meanPayoff;
 
+import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
@@ -8,9 +9,7 @@ import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import de.tum.in.probmodels.model.RestrictedModel;
 import it.unimi.dsi.fastutil.Function;
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.*;
 import parser.State;
 
 import java.util.List;
@@ -50,12 +49,15 @@ public class RestrictedMecValueIterator<M extends Model> {
   }
   //
   public void run(){
-    int numStates = restrictedModel.model().getNumStates();
+    int numStates = mec.size();
+    NatBitSet states = mec.states;
     double[] diff =new double[numStates];  // This array stores the difference of values for each state between two successive iterations.
 
     if(values.size()==0) { // no pre-computed values sent
       // TODO loop over mec states
-      for (int state = 0; state < numStates; state++) {  // initialise hashmap values
+      IntIterator stateIterator = states.iterator();
+      while (stateIterator.hasNext()) {
+        int state = stateIterator.nextInt();
         values.put(state, 0.0);
       }
     }
@@ -63,13 +65,19 @@ public class RestrictedMecValueIterator<M extends Model> {
     double max, min;
     do {
       Int2DoubleOpenHashMap oldValues = new Int2DoubleOpenHashMap(values);
-      for (int state = 0; state < numStates; state++) { // TODO loop over mec states
+      IntIterator stateIterator = states.iterator();
+      while (stateIterator.hasNext()) {
+        int state = stateIterator.nextInt();
         double maxActionValue = 0.0;
-        List<Action> actions = restrictedModel.model().getActions(state); // TODO Get Actions from original model, filter according to mec actions
-        for (Action action : actions) {  // find the value of the state over all actions
-          // Send action label instead of action object. State object needs to be fetched from stateIndexMap. Send original state number (Example: int originalState = stateMapping().applyAsInt(stateNumber);)
-          double val = rewardGenerator.transitionReward(stateIndexMap.get(restrictedModel.stateMapping().applyAsInt(state)), action.label())
-                  + getActionVal(state, action.distribution());
+        IntSet allowedActions = mec.actions.get(state);  // TODO allowedActions numbered as in original model?
+        assert allowedActions != null;
+        List<Distribution> choices = model.getChoices(state);  // get all distributions
+        // TODO Get Actions from original model, filter according to mec actions
+        for (int action : allowedActions) {  // find the value of the state over all actions
+          // Send action label instead of action object. State object needs to be fetched from stateIndexMap.
+          // Send original state number (Example: int originalState = stateMapping().applyAsInt(stateNumber);)
+          double val = rewardGenerator.transitionReward(stateIndexMap.get(state), model.getAction(state, action))
+                  + getActionVal(state, choices.get(action));
           if (val > maxActionValue) {
             maxActionValue = val;
           }

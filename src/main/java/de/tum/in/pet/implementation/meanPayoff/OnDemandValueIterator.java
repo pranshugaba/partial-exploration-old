@@ -41,6 +41,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   private final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
 
+  // TODO: Add comment on what is this map for
   private final Int2ObjectOpenHashMap<State> StateIndexMap = new Int2ObjectOpenHashMap<>();
 
   public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<State> rewardGenerator, int revisitThreshold, double rMax) {
