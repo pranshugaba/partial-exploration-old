@@ -62,7 +62,9 @@ public class RestrictedMecValueIterator<M extends Model> {
     double max, min;
     do {
       Int2DoubleOpenHashMap oldValues = new Int2DoubleOpenHashMap(values);
+      Int2DoubleOpenHashMap tempValues = new Int2DoubleOpenHashMap();
       IntIterator stateIterator = states.iterator();
+      int count = 0;
       while (stateIterator.hasNext()) {
         int state = stateIterator.nextInt();
         double maxActionValue = 0.0;
@@ -79,8 +81,8 @@ public class RestrictedMecValueIterator<M extends Model> {
             maxActionValue = val;
           }
         }
-        values.put(state, maxActionValue); // TODO values should be updated after the end of the loop. Otherwise, for any 2 states, a, b. where there is an edge from b to a and a is updated before b. t_n(b) is influenced by t_n(a) instead of t_{n-1}(a)
-        diff[state] = maxActionValue - oldValues.get(state); // TODO it can be the case the "state" which is from mec.states, is greater than "numStates" which is used while declaration.
+        tempValues.put(state, maxActionValue); // TODO values should be updated after the end of the loop. Otherwise, for any 2 states, a, b. where there is an edge from b to a and a is updated before b. t_n(b) is influenced by t_n(a) instead of t_{n-1}(a)
+        diff[count++] = maxActionValue - oldValues.get(state); // TODO it can be the case the "state" which is from mec.states, is greater than "numStates" which is used while declaration.
       }
       iterCount++;
 
