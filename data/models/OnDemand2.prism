@@ -32,22 +32,22 @@ module onDemand1
 endmodule
 
 rewards "default"
-    [a] true = 1;
-    [b] true = 2;
-    [c] true = 3;
-    [d] true = 4;
-    [e] true = 5;
-    [f] true = 1;
-    [g] true = 2;
-    [h] true = 4;
-    [i] true = 7;
-    [j] true = 9;
-    [k] true = 10;
-    [l] true = 12;
-    [m] true = 13;
-    [n] true = 10;
-    [o] true = 1;
-    [p] true = 100;
-    [q] true = 10;
-    [r] true = 1;
+    [a] true: 1;
+    [b] true: 2;
+    [c] true: 3;
+    [d] true: 4;
+    [e] true: 5;
+    [f] true: 1;
+    [g] true: 2;
+    [h] true: 4;
+    [i] true: 7;
+    [j] true: 9;
+    [k] true: 10;
+    [l] true: 12;
+    [m] true: 13;
+    [n] true: 10;
+    [o] true: 1;
+    [p] true: 100;
+    [q] true: 10;
+    [r] true: 1;
 endrewards
