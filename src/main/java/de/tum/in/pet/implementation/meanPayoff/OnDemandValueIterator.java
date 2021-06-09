@@ -16,17 +16,15 @@ import parser.State;
 import prism.PrismException;
 
 import java.util.List;
-import java.util.function.IntConsumer;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 // This class implements the OnDemand VI Algorithm from the CAV'17 paper.
-public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M> {
+public class OnDemandValueIterator<M extends Model> implements Iterator<State, M> {
   private static final Logger logger = Logger.getLogger(OnDemandValueIterator.class.getName());
 
-  private final Explorer<S, M> explorer;
+  private final Explorer<State, M> explorer;
   private final UnboundedValues values;
   private final BoundedMecQuotient<M> boundedMecQuotient;
   private final RewardGenerator<State> rewardGenerator;
@@ -41,10 +39,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   private final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
 
-  // TODO: Add comment on what is this map for
-  private final Int2ObjectOpenHashMap<State> StateIndexMap = new Int2ObjectOpenHashMap<>();
-
-  public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<State> rewardGenerator, int revisitThreshold, double rMax) {
+  public OnDemandValueIterator(Explorer<State, M> explorer, UnboundedValues values, RewardGenerator<State> rewardGenerator, int revisitThreshold, double rMax) {
     this.explorer = explorer;
 
     this.values = values;
@@ -55,7 +50,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   }
 
   @Override
-  public Explorer<S, M> explorer() {
+  public Explorer<State, M> explorer() {
     return explorer;
   }
 
@@ -95,9 +90,6 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     logger.log(Level.INFO, "Initialized Sink States.");
 
     int run = 0;
-
-    // Adding initial states to stateindexmap.
-    explorer.initialStates().forEach((IntConsumer) s -> StateIndexMap.put(s, (State) explorer.getState(s)));
 
     int initialState = explorer.initialStates().stream().findFirst().orElse(-1);
     assert initialState!=-1: "Explorer has no initial state";
@@ -191,7 +183,9 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     // the key of the map is mecRepresentative.
     Int2DoubleOpenHashMap valueCache = mecValueCache.computeIfAbsent(mecRepresentative, s -> new Int2DoubleOpenHashMap());
 
-    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(this.explorer.model(), mec, targetPrecision, rewardGenerator, StateIndexMap, valueCache);
+    Int2ObjectFunction<State> stateIndexMap = explorer::getState;
+
+    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(this.explorer.model(), mec, targetPrecision, rewardGenerator, stateIndexMap, valueCache);
 
     valueIterator.run();
 
@@ -245,8 +239,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     assert !explorer.isExploredState(state);
     assert !boundedMecQuotient.isSinkState(state);
     newStatesSinceCollapse = true;
-    State stateObject = (State) explorer.exploreState(state);  //  state added to partial model, and explorer.isExploredState(state) is set to true. Obtained State Object.
-    StateIndexMap.put(state, stateObject); // State object added to map
+    explorer.exploreState(state);  //  state added to partial model, and explorer.isExploredState(state) is set to true.
     values.explored(state);  // the bounds are initialised
   }
 

@@ -22,12 +22,12 @@ public class RestrictedMecValueIterator<M extends Model> {
   public final Int2DoubleOpenHashMap values;  // map of states and total values; the average value can be obtained by dividing by iterCount
   public final RewardGenerator<State> rewardGenerator;
   private int iterCount;  // number of iterations in value iteration
-  private final Int2ObjectOpenHashMap<State> stateIndexMap; // map from original model state number to corresponding state object
+  private final Int2ObjectFunction<State> stateIndexMap; // map from original model state number to corresponding state object
 
   private Bounds bounds;
 
   public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<State> rewardGenerator,
-                                    Int2ObjectOpenHashMap<State> stateIndexMap){
+                                    Int2ObjectFunction<State> stateIndexMap){
     this.model = model;
     this.mec = mec;
     this.targetPrecision = targetPrecision;
@@ -38,7 +38,7 @@ public class RestrictedMecValueIterator<M extends Model> {
   }
 
   public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<State> rewardGenerator,
-                                    Int2ObjectOpenHashMap< State> stateIndexMap, Int2DoubleOpenHashMap values){
+                                    Int2ObjectFunction<State> stateIndexMap, Int2DoubleOpenHashMap values){
     this.model = model;
     this.mec = mec;
     this.targetPrecision = targetPrecision;
@@ -71,13 +71,13 @@ public class RestrictedMecValueIterator<M extends Model> {
         double maxActionValue = 0.0;
         IntSet allowedActions = mec.actions.get(state);  // TODO allowedActions numbered as in original model?
         assert allowedActions != null;
-        List<Distribution> choices = model.getChoices(state);  // get all distributions
+        List<Action> choices = model.getActions(state);  // get all actions (not distributions)
         // TODO Get Actions from original model, filter according to mec actions
         for (int action : allowedActions) {  // find the value of the state over all actions
           // Send action label instead of action object. State object needs to be fetched from stateIndexMap.
           // Send original state number (Example: int originalState = stateMapping().applyAsInt(stateNumber);)
-          double val = rewardGenerator.transitionReward(stateIndexMap.get(state), model.getAction(state, action))
-                  + getActionVal(state, choices.get(action));
+          double val = rewardGenerator.transitionReward(stateIndexMap.get(state), choices.get(action).label()) // Action.label() returns label
+                  + getActionVal(state, choices.get(action).distribution()); // Action.distribution returns distribution
           if (val > maxActionValue) {
             maxActionValue = val;
           }

@@ -100,11 +100,7 @@ public class RestrictedValueIteratorChecker {
     var explorer = DefaultExplorer.of(partialModel, generator, false);
     exploreFullModel(explorer);
 
-    Int2ObjectOpenHashMap<State> getStateFromIndex = new Int2ObjectOpenHashMap<>();
-    for(int stateId: explorer.exploredStates()){
-      State stateObject = explorer.getState(stateId);
-      getStateFromIndex.put(stateId, stateObject);
-    }
+    Int2ObjectFunction<State> stateIndexMap = explorer::getState;
 
     M model = explorer.model();
 
@@ -118,7 +114,7 @@ public class RestrictedValueIteratorChecker {
 
     Mec mec = Mec.create(model, component);
 
-    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(model, mec, precision, rewardGenerator, getStateFromIndex);
+    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(model, mec, precision, rewardGenerator, stateIndexMap);
     valueIterator.run();
     Bounds bounds = valueIterator.getBounds();
     if(bounds==null){
