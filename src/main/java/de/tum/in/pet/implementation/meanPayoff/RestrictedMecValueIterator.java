@@ -26,7 +26,8 @@ public class RestrictedMecValueIterator<M extends Model> {
 
   // self loops are induced in the model for every action, and the self loop transition is chosen with probability 1-self.aperiodictyConstant
   // this helps in ensuring the convergence of the algorithm in a finite number of steps. Increasing the constant gives a more precise value.
-  // however, it takes a larger number of steps
+  // however, it takes a larger number of steps. This is primarily required when considering periodic Models. this process makes the model aperiodic.
+  // Refer to Puterman '94 Section 8.5.4 for details and proofs.
   private final double aperidocityConstant;
 
   public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<State> rewardGenerator,
@@ -81,8 +82,9 @@ public class RestrictedMecValueIterator<M extends Model> {
         // Get Actions from original model, filter according to mec actions
         for (int action : allowedActions) {  // find the value of the state over all actions
           // Send action label instead of action object. State object needs to be fetched from stateIndexMap.
-          // Send original state number (Example: int originalState = stateMapping().applyAsInt(stateNumber);)
+          // val_transformed = const*rewards + actionVal. Instead, we have found val = rewards + actionVal/const (This division is done by actionVal itself). We do this to store the original value.
           double val = rewardGenerator.transitionReward(stateIndexMap.get(state), choices.get(action).label()) // Action.label() returns label
+                  + rewardGenerator.stateReward(stateIndexMap.get(state))
                   + getActionVal(state, choices.get(action).distribution()); // Action.distribution returns distribution
           if (val > maxActionValue) {
             maxActionValue = val;
@@ -123,10 +125,12 @@ public class RestrictedMecValueIterator<M extends Model> {
 */
       double probability = this.aperidocityConstant*entry.getDoubleValue();
       assert values.containsKey(successor);
+      // this gives transformed value of successor
       double successorVal = this.aperidocityConstant*values.get(successor);
       sum = sum + probability * successorVal;
     }
     sum += (1-this.aperidocityConstant)*this.aperidocityConstant*values.get(state);
+    // sum stores the transformed value. This returns the original value
     return sum/this.aperidocityConstant;
   }
 
