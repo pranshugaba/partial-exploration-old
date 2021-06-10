@@ -24,6 +24,11 @@ public class RestrictedMecValueIterator<M extends Model> {
 
   private Bounds bounds;
 
+  // self loops are induced in the model for every action, and the self loop transition is chosen with probability 1-self.aperiodictyConstant
+  // this helps in ensuring the convergence of the algorithm in a finite number of steps. Increasing the constant gives a more precise value.
+  // however, it takes a larger number of steps
+  private final double aperidocityConstant;
+
   public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<State> rewardGenerator,
                                     Int2ObjectFunction<State> stateIndexMap){
     this.model = model;
@@ -33,6 +38,7 @@ public class RestrictedMecValueIterator<M extends Model> {
     this.rewardGenerator = rewardGenerator;
     this.stateIndexMap = stateIndexMap;
     this.iterCount = 0;
+    this.aperidocityConstant = 0.8;
   }
 
   public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<State> rewardGenerator,
@@ -44,6 +50,7 @@ public class RestrictedMecValueIterator<M extends Model> {
     this.rewardGenerator = rewardGenerator;
     this.stateIndexMap = stateIndexMap;
     this.iterCount = 0;
+    this.aperidocityConstant = 0.8;
   }
   //
   public void run(){
@@ -82,7 +89,7 @@ public class RestrictedMecValueIterator<M extends Model> {
           }
         }
         tempValues.put(state, maxActionValue);
-        diff[count++] = maxActionValue - oldValues.get(state);
+        diff[count++] = (maxActionValue - oldValues.get(state));
       }
       for(int state: values.keySet()) {
         values.put(state, tempValues.get(state));
@@ -114,12 +121,13 @@ public class RestrictedMecValueIterator<M extends Model> {
         continue;
       }
 */
-      double probability = entry.getDoubleValue();
+      double probability = this.aperidocityConstant*entry.getDoubleValue();
       assert values.containsKey(successor);
-      double successorVal = values.get(successor);
+      double successorVal = this.aperidocityConstant*values.get(successor);
       sum = sum + probability * successorVal;
     }
-    return sum;
+    sum += (1-this.aperidocityConstant)*this.aperidocityConstant*values.get(state);
+    return sum/this.aperidocityConstant;
   }
 
 
