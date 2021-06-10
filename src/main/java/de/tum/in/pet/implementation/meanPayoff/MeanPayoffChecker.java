@@ -61,8 +61,10 @@ public final class MeanPayoffChecker {
     }
   }
 
-  private static <M extends Model> double solve(Explorer<State, M> explorer, RewardGenerator<State> rewardGenerator,
+  private static <M extends Model> double solve(M partialModel, Generator<State> generator, RewardGenerator<State> rewardGenerator,
       SuccessorHeuristic heuristic, double precision, int revisitThreshold) throws PrismException {
+
+    var explorer = DefaultExplorer.of(partialModel, generator, false);
 
     IntPredicate target = (x) -> x==-1;
     UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, 2*precision/REWARD_UPPERBOUND, heuristic);
@@ -81,11 +83,10 @@ public final class MeanPayoffChecker {
 
     MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
     Generator<State> generator = new MdpGenerator(prismGenerator);
-    var explorer = DefaultExplorer.of(partialModel, generator, false);
 
     RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(0, prismGenerator);
 
-    return solve(explorer, rewardGenerator, heuristic, precision, revisitThreshold);
+    return solve(partialModel, generator, rewardGenerator, heuristic, precision, revisitThreshold);
 
   }
 
