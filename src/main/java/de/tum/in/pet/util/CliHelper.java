@@ -22,7 +22,7 @@ public final class CliHelper {
   }
 
   public static Option getDefaultHeuristicOption() {
-    return new Option(null, "heuristic", true, "Heuristic to use");
+    return new Option(null, "heuristic", true, "Sampling heuristic to use");
   }
 
   public static SuccessorHeuristic parseHeuristic(String optionString,

@@ -166,11 +166,19 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
       choices = getModel().getChoices(state);
       List<Distribution> transformedChoices = new ArrayList<>();
 
-      IntUnaryOperator map = this::representative;
-      Predicate<Distribution> unchanged = d -> d.support().stream().noneMatch(this::isRemoved);
+      IntUnaryOperator map = successor -> {
+        int representative = representative(successor);
+        // Checking if the state hasn't been removed
+        assert !isRemoved(representative);
+        return representative == state ? -1 : representative;
+      };
+      Predicate<Distribution> unchanged = d -> !d.containsOneOf(this.removedStates()) && !d.contains(state);
 
       for (Distribution choice : choices) {
-        if (!unchanged.test(choice)) {
+        if (choice.support().size()==1 && choice.support().contains(state)){
+
+        }
+        else if (!unchanged.test(choice)) {
           DistributionBuilder builder = choice.map(map);
           choice = builder.build();
         }

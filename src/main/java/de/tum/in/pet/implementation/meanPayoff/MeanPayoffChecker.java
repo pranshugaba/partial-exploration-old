@@ -39,8 +39,8 @@ the values INT_MAX, INT_MAX-1, INT_MAX-2 are assigned to special states.
 * */
 public final class MeanPayoffChecker {
   private static final Logger logger = Logger.getLogger(MeanPayoffChecker.class.getName());
-  public static final int DEFAULT_THRESHOLD = 2;
-  public static final double REWARD_UPPERBOUND = 1000;
+  public static final int DEFAULT_THRESHOLD = 5;
+  public static final double REWARD_UPPERBOUND = 10;
 
   private MeanPayoffChecker(){
 
