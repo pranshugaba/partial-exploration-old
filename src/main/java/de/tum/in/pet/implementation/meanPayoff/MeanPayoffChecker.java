@@ -11,7 +11,6 @@ import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.CliHelper;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.explorer.DefaultExplorer;
-import de.tum.in.probmodels.explorer.Explorer;
 import de.tum.in.probmodels.generator.Generator;
 import de.tum.in.probmodels.generator.MdpGenerator;
 import de.tum.in.probmodels.generator.PrismRewardGenerator;
@@ -28,12 +27,15 @@ import prism.*;
 import simulator.ModulesFileModelGenerator;
 
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import java.util.function.IntPredicate;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /* This code's purpose is to facilitate the testing of the OnDemandValueIterator. Right now, this code accepts 5
 parameters, -m/--model (model file path) --precision, --const (defining constants in model , if any). Right now, only
-MDPs are supported.
+MDPs are supported. This code should return correct results if the number of states is lesser than or equal to INT_MAX-3
+the values INT_MAX, INT_MAX-1, INT_MAX-2 are assigned to special states.
 * */
 public final class MeanPayoffChecker {
   private static final Logger logger = Logger.getLogger(MeanPayoffChecker.class.getName());
@@ -44,11 +46,11 @@ public final class MeanPayoffChecker {
 
   }
 
-  public static double solve(ModelGenerator generator, SuccessorHeuristic heuristic, double precision, int revisitThreshold) throws PrismException {
+  public static double solve(ModelGenerator generator, int rewardIndex, SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward) throws PrismException {
     ModelType modelType = generator.getModelType();
     switch (modelType) {
       case MDP:
-        return solveMdp(generator, heuristic, precision, revisitThreshold);
+        return solveMdp(generator, rewardIndex, heuristic, precision, revisitThreshold, maxReward);
       case CTMC:
       case DTMC:
       case LTS:
@@ -62,31 +64,31 @@ public final class MeanPayoffChecker {
   }
 
   private static <M extends Model> double solve(M partialModel, Generator<State> generator, RewardGenerator<State> rewardGenerator,
-      SuccessorHeuristic heuristic, double precision, int revisitThreshold) throws PrismException {
+      SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward) throws PrismException {
 
     var explorer = DefaultExplorer.of(partialModel, generator, false);
 
-    IntPredicate target = (x) -> x==-1;
-    UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, 2*precision/REWARD_UPPERBOUND, heuristic);
+    IntPredicate target = (x) -> x==Integer.MAX_VALUE;
+    UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, 2*precision/maxReward, heuristic);
 
-    Iterator<State, M> valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, REWARD_UPPERBOUND);
+    Iterator<State, M> valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward);
     valueIterator.run();
 
     int initState = explorer.initialStates().iterator().nextInt();
     Bounds bounds = valueIterator.bounds(initState);
 
-    return REWARD_UPPERBOUND*bounds.average();
+    return maxReward*bounds.average();
 
   }
 
-  private static double solveMdp(ModelGenerator prismGenerator, SuccessorHeuristic heuristic, double precision, int revisitThreshold) throws PrismException {
+  private static double solveMdp(ModelGenerator prismGenerator, int rewardIndex, SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward) throws PrismException {
 
     MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
     Generator<State> generator = new MdpGenerator(prismGenerator);
 
-    RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(0, prismGenerator);
+    RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(rewardIndex, prismGenerator);
 
-    return solve(partialModel, generator, rewardGenerator, heuristic, precision, revisitThreshold);
+    return solve(partialModel, generator, rewardGenerator, heuristic, precision, revisitThreshold, maxReward);
 
   }
 
@@ -105,6 +107,8 @@ public final class MeanPayoffChecker {
 //            "Only print result");
 //    Option relativeErrorOption = new Option(null, "relative-error", false,
 //            "Use relative error estimate");
+    Option rewardModuleOption = new Option(null, "rewardModule", true, "Name of the reward module");
+    Option maxRewardOption = new Option(null, "maxReward", true, "Estimated max reward value for a single transition in the model");
 
     modelOption.setRequired(true);
 
@@ -113,7 +117,9 @@ public final class MeanPayoffChecker {
             .addOption(modelOption)
             .addOption(heuristicOption)
             .addOption(constantsOption)
-            .addOption(revisitThresholdOption);
+            .addOption(revisitThresholdOption)
+            .addOption(rewardModuleOption)
+            .addOption(maxRewardOption);
 
     CommandLine commandLine = CliHelper.parse(options, args);
 
@@ -125,8 +131,12 @@ public final class MeanPayoffChecker {
             ? Integer.parseInt(commandLine.getOptionValue(revisitThresholdOption.getLongOpt()))
             : DEFAULT_THRESHOLD;
 
+    double maxReward = commandLine.hasOption(maxRewardOption.getLongOpt())
+            ? Double.parseDouble(commandLine.getOptionValue(maxRewardOption.getLongOpt()))
+            : REWARD_UPPERBOUND;
+
     SuccessorHeuristic heuristic = CliHelper.parseHeuristic(
-            commandLine.getOptionValue(heuristicOption.getLongOpt()), SuccessorHeuristic.WEIGHTED);
+            commandLine.getOptionValue(heuristicOption.getLongOpt()), SuccessorHeuristic.PROB);
 
     NatBitSets.setFactory(new RoaringNatBitSetFactory());
 
@@ -138,9 +148,17 @@ public final class MeanPayoffChecker {
 
     ModelGenerator generator = new ModulesFileModelGenerator(modulesFile, prism);
 
-    double meanPayoff = solve(generator, heuristic, precision, revisitThreshold);
+    int rewardIndex = commandLine.hasOption(rewardModuleOption.getLongOpt())
+            ? generator.getRewardStructIndex(commandLine.getOptionValue(rewardModuleOption.getLongOpt()))
+            : 0;
 
-    System.out.println(meanPayoff);
+    if(rewardIndex==-1){
+      throw new NoSuchElementException("Reward module "+commandLine.getOptionValue(rewardModuleOption.getLongOpt())+" not found");
+    }
+
+    double meanPayoff = solve(generator, rewardIndex, heuristic, precision, revisitThreshold, maxReward);
+
+    logger.log(Level.INFO, "Result is {0}", new Object[] {meanPayoff});
   }
 
 }

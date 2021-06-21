@@ -47,4 +47,36 @@ endrewards
 label "hungry" = ((p1>0)&(p1<8))|((p2>0)&(p2<8))|((p3>0)&(p3<8));
 label "eat" = ((p1>=8)&(p1<=9))|((p2>=8)&(p2<=9))|((p3>=8)&(p3<=9));
 
+rewards "think"
+ (p1=0) : 1;
+ (p2=0) : 1;
+ (p3=0) : 1;
+endrewards
+
+rewards "eat"
+ ((p1>=8)&(p1<=9)) : 1;
+ ((p2>=8)&(p2<=9)) : 1;
+ ((p3>=8)&(p3<=9)) : 1;
+endrewards
+
+rewards "both"
+ (p1=0) : 1;
+ (p2=0) : 1;
+ (p3=0) : 1;
+ ((p1>=8)&(p1<=9)) : 1;
+ ((p2>=8)&(p2<=9)) : 1;
+ ((p3>=8)&(p3<=9)) : 1;
+endrewards
+
+rewards "eat1"
+ ((p1>=8)&(p1<=9)) : 1;
+endrewards
+
+rewards "eat2"
+ ((p2>=8)&(p2<=9)) : 1;
+endrewards
+
+rewards "eat3"
+ ((p3>=8)&(p3<=9)) : 1;
+endrewards
 

@@ -73,6 +73,7 @@ public class RestrictedMecValueIterator<M extends Model> {
       Int2DoubleOpenHashMap tempValues = new Int2DoubleOpenHashMap();
       IntIterator stateIterator = states.iterator();
       int count = 0;
+      // A single iteration of VI
       while (stateIterator.hasNext()) {
         int state = stateIterator.nextInt();
         double maxActionValue = 0.0;
@@ -109,10 +110,11 @@ public class RestrictedMecValueIterator<M extends Model> {
           min = v;
         }
       }
-    } while ((max-min) >= targetPrecision);  // stopping criterion of value iteration
+    } while ((max-min) >= targetPrecision && iterCount < 500);  // stopping criterion of value iteration
     bounds = Bounds.of(min, max);
   }
 
+  // todo: vectorize operation
   private double getActionVal(int state, Distribution distribution) {
     //int numSuccessors = distribution.size();
     double sum = 0.0;

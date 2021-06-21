@@ -20,6 +20,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static de.tum.in.probmodels.util.Util.isZero;
+
 // This class implements the OnDemand VI Algorithm from the CAV'17 paper.
 public class OnDemandValueIterator<M extends Model> implements Iterator<State, M> {
   private static final Logger logger = Logger.getLogger(OnDemandValueIterator.class.getName());
@@ -63,7 +65,7 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
 
   @Override
   public Bounds bounds(int state) {
-    return values.bounds(state);
+    return values.bounds(this.boundedMecQuotient.representative(state));
   }
 
   // Initialize Sink State bounds.
@@ -73,7 +75,6 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
     int minusState = boundedMecQuotient.getMinusState();
     int uncertainState = boundedMecQuotient.getUncertainState();
 
-    values.update(plusState, List.of(Distributions.singleton(Integer.MAX_VALUE, 1d)));
     assert values.bounds(plusState).lowerBound()==1;
 
     values.update(minusState, List.of());
@@ -104,6 +105,9 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
         representative = boundedMecQuotient.representative(initialState);
       }
       run++;  // count of episodic runs
+      if(run%1000==0){
+        logger.log(Level.INFO, bounds(representative).toString());
+      }
     }
 
   }
@@ -115,6 +119,7 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
     Int2IntOpenHashMap stateVisitCounts = new Int2IntOpenHashMap();  // keeps counts of the number of times a state is visited
 
     boolean updatedEC = false;
+    boolean foundDesignatedSinkState = false;
 
     while(true){
 
@@ -122,7 +127,9 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
       stateVisitCounts.putIfAbsent(currentState, 0);
       stateVisitCounts.addTo(currentState, 1);
 
+      // checks plus state,minus state and uncertain state
       if(boundedMecQuotient.isSinkState(currentState)){
+        foundDesignatedSinkState = true;
         break;
       }
       if(stateVisitCounts.get(currentState)>=this.revisitThreshold){
@@ -134,9 +141,15 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
         explore(currentState);  // action choices etc. are populated in the partial model. The bounds of currentState are also initialised.
       }
 
-      assert explorer.isExploredState(currentState);
+      // todo: fetch action as well
+      int nextState = values.sampleNextState(currentState, choices(currentState));
 
-      currentState = values.sampleNextState(currentState, choices(currentState));
+      // This is true when the currentState doesn't have any choices from it, i.e. it is a sink state.
+      if (nextState==-1){
+        break;
+      }
+
+      currentState = nextState;
 
     }
 
@@ -144,10 +157,13 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
       handleComponents();
     }
     else{
-      int sinkState = visitStack.popInt();
-      if(boundedMecQuotient.isUncertainState(sinkState)){
-        int mecRepresentative = visitStack.popInt();
-        updateMec(mecRepresentative);
+      // The last state can also be some normal sink state in the model
+      if(foundDesignatedSinkState) {
+        int sinkState = visitStack.popInt();
+        if (boundedMecQuotient.isUncertainState(sinkState)) {
+          int mecRepresentative = visitStack.popInt();
+          updateMec(mecRepresentative);
+        }
       }
     }
 
@@ -170,14 +186,20 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
 
     logger.log(Level.INFO, "updating MEC");
 
-    Bounds mecBounds = bounds(mecRepresentative);
-    double targetPrecision = mecBounds.difference()/2;
+    Bounds mecBounds = boundedMecQuotient.getBoundsFromStayAction(boundedMecQuotient.getStayAction(mecRepresentative));
+    double targetPrecision = mecBounds.difference()*this.rMax/2;
 
     // get all the MEC states corresponding to mecRepresentative.
     NatBitSet mecStates = NatBitSets.copyOf(explorer.exploredStates().stream()
             .filter(s -> boundedMecQuotient.representative(s)==mecRepresentative)
             .collect(Collectors.toList()));
     Mec mec = Mec.create(explorer.model(), mecStates);
+
+    if(isZero(targetPrecision)){
+      targetPrecision = 0.5*this.rMax;
+    }
+
+    assert !isZero(targetPrecision);
 
     // Fetch the precomputed value map of the mec from the cache, and if there is not any, then returns an empty map.
     // the key of the map is mecRepresentative.
@@ -191,13 +213,16 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
 
     Bounds newBounds = valueIterator.getBounds();
     Bounds scaledBounds = Bounds.of(newBounds.lowerBound()/this.rMax, newBounds.upperBound()/this.rMax);
-    boundedMecQuotient.updateStayAction(mecRepresentative, scaledBounds);
+
+    if (scaledBounds.lowerBound() >= mecBounds.lowerBound()){
+      boundedMecQuotient.updateStayAction(mecRepresentative, scaledBounds);
+    }
 
     valueCache = valueIterator.getValues();
     mecValueCache.put(mecRepresentative, valueCache);
   }
 
-  // Implements OnTheFlyEC from paper.
+  // Implements OnTheFlyEC from CAV'17 paper.
   public void handleComponents(){
     if(!newStatesSinceCollapse){
       return;
@@ -209,38 +234,42 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
     NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
     states.removeAll(boundedMecQuotient.removedStates()); // states variable now stores only the states in the current collapsed partial model.
 
-    List<NatBitSet> components = mecAnalyser.findComponents(boundedMecQuotient, states);  // find all MECs in the partial model.
+    List<NatBitSet> newComponents = mecAnalyser.findComponents(boundedMecQuotient, states);  // find all MECs in the partial model.
+    // This contains only newly found components. Since all previously found components are collapsed, they won't be recognized as MECs anymore.
 
-    if(components.isEmpty()){
+    if(newComponents.isEmpty()){
       return;
     }
 
     if (logger.isLoggable(Level.FINE)) {
-      int count = components.stream().mapToInt(NatBitSet::size).sum();
+      int count = newComponents.stream().mapToInt(NatBitSet::size).sum();
       logger.log(Level.FINE, "Found {0} new components with {1} new states",
-              new Object[] {components.size(), count});
+              new Object[] {newComponents.size(), count});
     }
 
-    IntList representatives = boundedMecQuotient.collapse(components);  // the stay action is added here.
-    var collapseIterator = components.iterator();
+    IntList representatives = boundedMecQuotient.collapse(newComponents);  // the stay action is added here.
+    var collapseIterator = newComponents.iterator();
     IntIterator representativeIterator = representatives.iterator();
 
     while(collapseIterator.hasNext()){
       // the components and the corresponding representatives are in the same order.
       int representative = representativeIterator.nextInt();
+      mecValueCache.remove(representative); // Removing from cache as new states have been added to mec and all values need to computed again from start.
+
+      updateMec(representative);
+
       // updates the bounds of the representative according to all actions of mec members going out of the MEC.
       values.collapse(representative, choices(representative), collapseIterator.next());
     }
 
   }
 
-  // Add state to partial model. Initialize bounds.
+  // Add state to partial model.
   private void explore(int state) throws PrismException {
     assert !explorer.isExploredState(state);
     assert !boundedMecQuotient.isSinkState(state);
     newStatesSinceCollapse = true;
     explorer.exploreState(state);  //  state added to partial model, and explorer.isExploredState(state) is set to true.
-    values.explored(state);  // the bounds are initialised
   }
 
   private List<Distribution> choices(int state) {

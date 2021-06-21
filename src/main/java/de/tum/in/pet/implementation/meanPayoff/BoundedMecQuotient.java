@@ -9,10 +9,13 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntSet;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.IntConsumer;
+import java.util.function.IntUnaryOperator;
+import java.util.function.Predicate;
 
+// Class to represent the Bounded MEC Quotient of a partially explored model. Please make sure that the number of states
+// is less than or equal to Integer.MAX_VALUE-3.
 public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
 
   private final int plusState;
@@ -24,9 +27,9 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
   public BoundedMecQuotient(M model) {
     super(model);
 
-    this.plusState = -1;
-    this.minusState = -2;
-    this.uncertainState = -3;
+    this.plusState = Integer.MAX_VALUE;
+    this.minusState = Integer.MAX_VALUE-1;
+    this.uncertainState = Integer.MAX_VALUE-2;
 
   }
 
@@ -91,16 +94,42 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
     NatBitSet removedRepresentatives = NatBitSets.copyOf(oldRepresentatives);
     newRepresentatives.forEach((IntConsumer) removedRepresentatives::remove);
 
+    // Note that oldRepresentatives may also contain representatives that are not a part of the stateList. These
+    // maybe previously collapsed components' representatives. The below if condition should filter out such
+    // representatives from removedRepresentatives.
+    for (int oldRepresentative : oldRepresentatives) {
+      if (oldRepresentative==representative(oldRepresentative)){
+        removedRepresentatives.remove(oldRepresentative);
+      }
+    }
+
+    for(int i: newRepresentatives){
+      // The below condition will be true when we collapse a new group with zero members in removedRepresentatives.
+      // For such a group, l = 0, u = 1
+      if(!stayActionMap.containsKey(i)){
+        updateStayAction(i, Bounds.reachUnknown());
+      }
+    }
+
     // For every group, we need to have only one stayAction to update. However, the collapse operation may create groups
     // with more than one stayActions as it may now have more than 1 members from oldRepresentatives. This loop merges
     // the stay actions for such groups.
     for (int removedRepresentative : removedRepresentatives) {
       Bounds removedRepresentativeBound = getBoundsFromStayAction(stayActionMap.get(removedRepresentative));
-      // Removing stay action of removed representative
-      stayActionMap.remove(removedRepresentative);
+
+      // it can be the case that "stateList" only consists of newComponents.
+      if (this.representative(removedRepresentative)!=removedRepresentative) {
+        // Removing stay action of removed representative
+        stayActionMap.remove(removedRepresentative);
+      }
+      else{
+        continue;
+      }
 
       // Representative of group to which removedRepresentative now belongs
       int representative = this.representative(removedRepresentative);
+      assert representative!=removedRepresentative;
+
       Bounds representativeBound = getBoundsFromStayAction(stayActionMap.get(representative));
 
       // Creating new bounds based on both stayAction bounds.
@@ -113,33 +142,50 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
 
     }
 
-    for(int i: newRepresentatives){
-      // The below condition will be true when we collapse a new group with zero members in removedRepresentatives.
-      // For such a group, l = 0, u = 1
-      if(!stayActionMap.containsKey(i)){
-        updateStayAction(i, Bounds.reachUnknown());
-      }
-    }
-
-    assert stayActionMap.size() == newRepresentatives.size();
-
     return newRepresentatives;
   }
 
   @Override
-  public List<Distribution> getChoices(int representative){
+  public List<Distribution> getChoices(int state){
     // Get the choices from the collapse model
-    List<Distribution> choices = new ArrayList<>(super.getChoices(representative));
-    // Adding the stay action if there is one associated with representative
-    if(stayActionMap.containsKey(representative)){
-      choices.add(stayActionMap.get(representative));
+    List<Distribution> choices;
+
+    // CollapseView.getChoices() returns all actions from a state, but the self-loops. This may produce deadlock states
+    // and ignore several MECs(eg. states with nothing but self loops). This can be bad for reward calculation.
+    if(stayActionMap.containsKey(state)) {
+      // if a state is a key in stayActionMap, it must be a representative of a few collapsed states.
+      // if the state is a representative of collapsed states, we don't need to take care of self-loops. We have already
+      // taken care of the rewards for these states during VI.
+      choices = new ArrayList<>(super.getChoices(state));
+      // Adding the stay action if there is one associated with representative
+      choices.add(stayActionMap.get(state));
+    }
+    else{
+      // for states that aren't collapsed yet, we need to fetch the distributions directly from the model.
+      // The Model.getChoices() function doesn't ignore self loops.
+      choices = getModel().getChoices(state);
+      List<Distribution> transformedChoices = new ArrayList<>();
+
+      IntUnaryOperator map = this::representative;
+      Predicate<Distribution> unchanged = d -> d.support().stream().noneMatch(this::isRemoved);
+
+      for (Distribution choice : choices) {
+        if (!unchanged.test(choice)) {
+          DistributionBuilder builder = choice.map(map);
+          choice = builder.build();
+        }
+
+        transformedChoices.add(choice);
+      }
+
+      choices = transformedChoices;
     }
 
-    return Collections.unmodifiableList(choices);
+    return choices;
   }
 
   // Calculates upper and lower bound for a state from it's stayAction distribution
-  private Bounds getBoundsFromStayAction(Distribution stayAction){
+  public Bounds getBoundsFromStayAction(Distribution stayAction){
     double upperBound = 1-stayAction.get(minusState);
     double lowerBound = stayAction.get(plusState);
 
@@ -148,6 +194,12 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
     assert upperBound>=0 && lowerBound>=0;
 
     return Bounds.of(lowerBound, upperBound);
+  }
+
+  public Distribution getStayAction(int representative){
+    assert stayActionMap.containsKey(representative);
+
+    return stayActionMap.get(representative);
   }
 
 }
