@@ -12,7 +12,6 @@ import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.graph.MecComponentAnalyser;
 import de.tum.in.probmodels.model.*;
 import it.unimi.dsi.fastutil.ints.*;
-import parser.State;
 import prism.PrismException;
 
 import java.util.List;
@@ -23,16 +22,17 @@ import java.util.stream.Collectors;
 import static de.tum.in.probmodels.util.Util.isZero;
 
 // This class implements the OnDemand VI Algorithm from the CAV'17 paper.
-public class OnDemandValueIterator<M extends Model> implements Iterator<State, M> {
+public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M> {
   private static final Logger logger = Logger.getLogger(OnDemandValueIterator.class.getName());
 
-  private final Explorer<State, M> explorer;
+  private final Explorer<S, M> explorer;
   private final UnboundedValues values;
   private final BoundedMecQuotient<M> boundedMecQuotient;
-  private final RewardGenerator<State> rewardGenerator;
+  private final RewardGenerator<S> rewardGenerator;
 
   private final int revisitThreshold;
   private final double rMax;
+
   // variable keeps track if new states have been explored and if handleComponents() needs to be run again.
   private boolean newStatesSinceCollapse = false;
 
@@ -41,18 +41,24 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
 
   private final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
 
-  public OnDemandValueIterator(Explorer<State, M> explorer, UnboundedValues values, RewardGenerator<State> rewardGenerator, int revisitThreshold, double rMax) {
+  public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator, 
+                               int revisitThreshold, double rMax) {
     this.explorer = explorer;
 
     this.values = values;
     this.rewardGenerator = rewardGenerator;
+
     this.revisitThreshold = revisitThreshold;
     this.boundedMecQuotient = new BoundedMecQuotient<>(explorer.model());
     this.rMax = rMax;
+
   }
 
+  /**
+   * Returns explorer object consisting of the partial model.
+   */
   @Override
-  public Explorer<State, M> explorer() {
+  public Explorer<S, M> explorer() {
     return explorer;
   }
 
@@ -63,12 +69,18 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
     return new AnnotatedModel<>(explorer.model(), explorer::getState, exploredStates);
   }
 
+  /**
+   * Returns lower and upper bounds of the reachability value of state.
+   * @param state: Integer value of state for which value is to be found.
+   */
   @Override
   public Bounds bounds(int state) {
     return values.bounds(this.boundedMecQuotient.representative(state));
   }
 
-  // Initialize Sink State bounds.
+  /**
+   * Initialize Sink State bounds.
+   */
   private void initSinkStates(){
 
     int plusState = boundedMecQuotient.getPlusState();
@@ -84,6 +96,9 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
 
   }
 
+  /**
+   * Run OnDemandVI Algorithm.
+   */
   public void run() throws PrismException {
 
     initSinkStates();
@@ -99,20 +114,24 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
     // isSolved() defined in UnboundedReachValues
     while(!values.isSolved(representative)) {  // The values between upper and lower bounds for the initial states should,be less than epsilon
       logger.log(Level.INFO, "Run "+run);
-      if (sample(representative)) {
+      if (sample(representative, run)) {
         // initialState may be part of an MEC and the MEC may be collapsed, and we may have a representative that is different
         // from initialState
         representative = boundedMecQuotient.representative(initialState);
       }
       run++;  // count of episodic runs
-      if(run%1000==0){
-        logger.log(Level.INFO, bounds(representative).toString());
-      }
     }
 
   }
 
-  private boolean sample(int initialState) throws PrismException {
+  /**
+   * Simulate a single iteration of the OnDemandVI algorithm. Encapsulates sample, findMec and update functions
+   * of the algorithm.
+   * @param initialState: Integer value of state from which sampling should start.
+   * @param run: Integer value representing how many iterations of the algorithm have been done.
+   * @return whether MECs were updated during the simulation.
+   */
+  protected boolean sample(int initialState, int run) throws PrismException {
 
     IntStack visitStack = new IntArrayList();
     int currentState = initialState;
@@ -141,11 +160,10 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
         explore(currentState);  // action choices etc. are populated in the partial model. The bounds of currentState are also initialised.
       }
 
-      // todo: fetch action as well
       int nextState = values.sampleNextState(currentState, choices(currentState));
 
       // This is true when the currentState doesn't have any choices from it, i.e. it is a sink state.
-      if (nextState==-1){
+      if (nextState == -1) {
         break;
       }
 
@@ -180,12 +198,16 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
 
   }
 
-  // Implements lines 11-15 in the paper. Runs VI on mec.
+  /**
+   * Implements lines 11-15 in CAV'17 paper. Runs VI on mec.
+   * @param mecRepresentative: Representative state of mec on which VI has to be run.
+   */
   public void updateMec(int mecRepresentative){
     assert boundedMecQuotient.representative(mecRepresentative)==mecRepresentative;
 
     logger.log(Level.INFO, "updating MEC");
 
+    // mecBounds now contain the scared reward upper and lower bounds.
     Bounds mecBounds = boundedMecQuotient.getBoundsFromStayAction(boundedMecQuotient.getStayAction(mecRepresentative));
     double targetPrecision = mecBounds.difference()*this.rMax/2;
 
@@ -195,25 +217,41 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
             .collect(Collectors.toList()));
     Mec mec = Mec.create(explorer.model(), mecStates);
 
+    // It can be the case that the bounds are already very precise and running VI again can take a lot of time. We
+    // essentially run VI from the start assuming that no progress has been made yet. There are 2 cases when this
+    // happens. 1. There are new states in the MEC and VI needs to be run again. 2. The sampler reaches the uncertain
+    // state (The probability of this happening is infinitesimally small).
+    // In both these cases, it is fine to assume that no progress has been made. 1. Since, a new state has been added,
+    // the reward can increase. 2. Since, the bounds are already very precise, very little would be achieved by making
+    // VI more precise.
+    // Note that in the second case, even though we don't need to run the VI at all, the cost of differentiating from
+    // case 1 is more than the cost of simply running the VI for a few steps, so we run it anyway.
     if(isZero(targetPrecision)){
       targetPrecision = 0.5*this.rMax;
     }
 
     assert !isZero(targetPrecision);
 
-    // Fetch the precomputed value map of the mec from the cache, and if there is not any, then returns an empty map.
-    // the key of the map is mecRepresentative.
+    // Fetch the precomputed value map of the mec from the cache, and if there isn't any, then returns an empty map.
+    // The key of the map is mecRepresentative.
     Int2DoubleOpenHashMap valueCache = mecValueCache.computeIfAbsent(mecRepresentative, s -> new Int2DoubleOpenHashMap());
 
-    Int2ObjectFunction<State> stateIndexMap = explorer::getState; // lambda function that returns a state object when given the state index. required for accessing reward generator function.
+    // lambda function that returns a state object when given the state index. required for accessing reward generator function.
+    Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
-    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(this.explorer.model(), mec, targetPrecision, rewardGenerator, stateIndexMap, valueCache);
+    RestrictedMecValueIterator<S, M> valueIterator = new RestrictedMecValueIterator<>(this.explorer.model(), mec, targetPrecision, rewardGenerator, stateIndexMap, valueCache);
 
     valueIterator.run();
 
     Bounds newBounds = valueIterator.getBounds();
     Bounds scaledBounds = Bounds.of(newBounds.lowerBound()/this.rMax, newBounds.upperBound()/this.rMax);
 
+    // In the case when we run VI from scratch, the new bounds may be worse than the previously computed bounds. In that
+    // case we discard the new bounds. Specifically, we check if the new lower bound is worse than the previously
+    // computer lower bound. In both cases the cases where we run VI from scratch, this operation is valid. 1. If the
+    // new lower bound is lower than the previous lower bound, we can discard it safely as we can simply assume that
+    // the optimal strategy wouldn't include newly added states and the VI didn't achieve anything. 2. We already had a
+    // precise value, so we didn't need to run VI anyway.
     if (scaledBounds.lowerBound() >= mecBounds.lowerBound()){
       boundedMecQuotient.updateStayAction(mecRepresentative, scaledBounds);
     }
@@ -222,8 +260,12 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
     mecValueCache.put(mecRepresentative, valueCache);
   }
 
-  // Implements OnTheFlyEC from CAV'17 paper.
+
+  /**
+   * Implements OnTheFlyEC from CAV'17 paper.
+   */
   public void handleComponents(){
+
     if(!newStatesSinceCollapse){
       return;
     }
@@ -247,15 +289,22 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
               new Object[] {newComponents.size(), count});
     }
 
-    IntList representatives = boundedMecQuotient.collapse(newComponents);  // the stay action is added here.
+    // This collapses the sets of states into representatives. Further, the stay action is added here.
+    IntList representatives = boundedMecQuotient.collapse(newComponents);
     var collapseIterator = newComponents.iterator();
     IntIterator representativeIterator = representatives.iterator();
 
     while(collapseIterator.hasNext()){
       // the components and the corresponding representatives are in the same order.
       int representative = representativeIterator.nextInt();
-      mecValueCache.remove(representative); // Removing from cache as new states have been added to mec and all values need to computed again from start.
 
+      // Removing from cache as new states have been added to mec and all values need to computed again from start.
+      mecValueCache.remove(representative);
+
+      // We need to run VI on the MEC again to account for the following case. It can be that the bounds on the MEC are
+      // already very precise. Thus, the probability of reaching the uncertain state would be very small and we may
+      // never be able to run VI on the newly added states again. Thus, we need to run VI straight after adding new
+      // states.
       updateMec(representative);
 
       // updates the bounds of the representative according to all actions of mec members going out of the MEC.
@@ -264,7 +313,10 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
 
   }
 
-  // Add state to partial model.
+  /**
+   * Add state to partial model.
+   * @param state: Integer value of state to be explored.
+   */
   private void explore(int state) throws PrismException {
     assert !explorer.isExploredState(state);
     assert !boundedMecQuotient.isSinkState(state);
@@ -272,6 +324,11 @@ public class OnDemandValueIterator<M extends Model> implements Iterator<State, M
     explorer.exploreState(state);  //  state added to partial model, and explorer.isExploredState(state) is set to true.
   }
 
+  /**
+   * Fetch choices from state in partial model
+   * @param state: Integer value of state from whom choices are required.
+   * @return List of distributions of the choices from the state in the partial model.
+   */
   private List<Distribution> choices(int state) {
     assert explorer.isExploredState(state);
     assert !boundedMecQuotient.isSinkState(state);

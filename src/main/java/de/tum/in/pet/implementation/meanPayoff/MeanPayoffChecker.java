@@ -63,7 +63,7 @@ public final class MeanPayoffChecker {
     }
   }
 
-  private static <M extends Model> double solve(M partialModel, Generator<State> generator, RewardGenerator<State> rewardGenerator,
+  private static <S, M extends Model> double solve(M partialModel, Generator<S> generator, RewardGenerator<S> rewardGenerator,
       SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward) throws PrismException {
 
     var explorer = DefaultExplorer.of(partialModel, generator, false);
@@ -71,7 +71,7 @@ public final class MeanPayoffChecker {
     IntPredicate target = (x) -> x==Integer.MAX_VALUE;
     UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, 2*precision/maxReward, heuristic);
 
-    Iterator<State, M> valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward);
+    Iterator<S, M> valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward);
     valueIterator.run();
 
     int initState = explorer.initialStates().iterator().nextInt();
@@ -93,22 +93,22 @@ public final class MeanPayoffChecker {
   }
 
   public static void main(String[] args) throws PrismException, IOException {
-    Option precisionOption = new Option(null, "precision", true, "Precision");
+    Option precisionOption = new Option(null, "precision", true, "Required precision of the returned value. (Default: 10^{-6})");
     Option heuristicOption = CliHelper.getDefaultHeuristicOption();
     Option modelOption = new Option("m", "model", true, "Path to model file");
 //    Option propertiesOption = new Option("p", "properties", true, "Path to properties file");
 //    Option propertyNameOption = new Option(null, "property", true, "Name of property to check");
     Option constantsOption = new Option("c", "const", true,
             "Constants of model/property file, comma separated list");
-    Option revisitThresholdOption = new Option(null, "revisitThreshold", true, "Revisit Threshold");
+    Option revisitThresholdOption = new Option(null, "revisitThreshold", true, "Number of times a state should be visited before a sampling run is stopped. (Default: 5)");
 //    Option expectedValuesOption = new Option(null, "expected", true,
 //            "Comma separated list of the true values of the properties");
 //    Option onlyPrintResultOption = new Option(null, "only-result", false,
 //            "Only print result");
 //    Option relativeErrorOption = new Option(null, "relative-error", false,
 //            "Use relative error estimate");
-    Option rewardModuleOption = new Option(null, "rewardModule", true, "Name of the reward module");
-    Option maxRewardOption = new Option(null, "maxReward", true, "Estimated max reward value for a single transition in the model");
+    Option rewardModuleOption = new Option(null, "rewardModule", true, "Name of the reward module in the model file.");
+    Option maxRewardOption = new Option(null, "maxReward", true, "Estimated max reward value for a single transition in the model. (Default: 10)");
 
     modelOption.setRequired(true);
 

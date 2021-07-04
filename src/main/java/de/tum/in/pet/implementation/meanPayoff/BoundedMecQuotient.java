@@ -33,27 +33,49 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
 
   }
 
+  /**
+   * @return Returns the integer value of the plusState of Bounded MEC Quotient.
+   */
   public int getPlusState() {
     return plusState;
   }
 
+  /**
+   * @return Returns the integer value of the minusState of Bounded MEC Quotient.
+   */
   public int getMinusState() {
     return minusState;
   }
 
+  /**
+   * @return Returns the integer value of the uncertainState of Bounded MEC Quotient.
+   */
   public int getUncertainState() {
     return uncertainState;
   }
 
+  /**
+   * @param state Integer value of state to be checked.
+   * @return Returns whether the given state is a sink state in the Bounded MEC Quotient.
+   */
   public boolean isSinkState(int state){
     return state==this.plusState||state==this.minusState
             ||state==this.uncertainState;
   }
 
+  /**
+   * @param state Integer value of state to be checked
+   * @return Returns whether the given state is the uncertain state in the Bounded MEC Quotient.
+   */
   public boolean isUncertainState(int state){
     return state==this.uncertainState;
   }
 
+  /**
+   * Updates the stay action originating from the representative state of an MEC.
+   * @param representative Integer value of representative state of an MEC.
+   * @param bounds Reward upper bounds using which the distribution of the stay action is to be calculated.
+   */
   public void updateStayAction(int representative, Bounds bounds) {
 
     Distribution distribution = getStayDistribution(bounds);
@@ -61,6 +83,10 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
 
   }
 
+  /**
+   * @param bounds Bounds from which the stay distribution is to be calculated.
+   * @return Returns the distribution of the stay action.
+   */
   public Distribution getStayDistribution(Bounds bounds){
 
     assert bounds.lowerBound()<=1 && bounds.upperBound()<=1;
@@ -82,6 +108,12 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
 
   }
 
+  /**
+   * Collapses the stateList into a set of representative states. If representatives for subsets already exist, they
+   * will be merged into a single representative state. The stay action is updated for all representative states.
+   * @param stateList A list of Integer sets where each set consists of the states in a single MEC.
+   * @return An Integer list consisting of the representatives of the respective MECs.
+   */
   @Override
   public IntList collapse(List<? extends IntSet> stateList){
 
@@ -145,42 +177,62 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
     return newRepresentatives;
   }
 
+  /**
+   * @param state: Integer value of state from which choices are to be found.
+   * @return Returns the choices from a state in the collapsed model.
+   */
   @Override
   public List<Distribution> getChoices(int state){
     // Get the choices from the collapse model
     List<Distribution> choices;
 
-    // CollapseView.getChoices() returns all actions from a state, but the self-loops. This may produce deadlock states
-    // and ignore several MECs(eg. states with nothing but self loops). This can be bad for reward calculation.
+    // CollapseView.getChoices() returns all actions from a state, but the self-loops. This may produce states with
+    // dead-ends and ignore several MECs(single states with self-loops). This can be bad for reward calculation. So we
+    // need to handle such cases separately.
+
+    // If a state is a key in stayActionMap, it must be a representative of a few collapsed states. If the state is a
+    // representative of collapsed states, we don't need to take care of self-loops. We have already taken care of the
+    // rewards for these states during VI.
     if(stayActionMap.containsKey(state)) {
-      // if a state is a key in stayActionMap, it must be a representative of a few collapsed states.
-      // if the state is a representative of collapsed states, we don't need to take care of self-loops. We have already
-      // taken care of the rewards for these states during VI.
+
       choices = new ArrayList<>(super.getChoices(state));
       // Adding the stay action if there is one associated with representative
       choices.add(stayActionMap.get(state));
     }
     else{
-      // for states that aren't collapsed yet, we need to fetch the distributions directly from the model.
-      // The Model.getChoices() function doesn't ignore self loops.
+      // For states that aren't collapsed yet, we need to fetch the distributions directly from the model. The
+      // Model.getChoices() function doesn't ignore self loops. However, at the same time, we also need to take care of
+      // choices that may point to states that are now collapsed into some MECs.
       choices = getModel().getChoices(state);
       List<Distribution> transformedChoices = new ArrayList<>();
 
+      // Function to remap distributions
       IntUnaryOperator map = successor -> {
         int representative = representative(successor);
         // Checking if the state hasn't been removed
         assert !isRemoved(representative);
         return representative == state ? -1 : representative;
       };
-      Predicate<Distribution> unchanged = d -> !d.containsOneOf(this.removedStates()) && !d.contains(state);
+
+      // There may be some distributions for which we don't need to remap distributions at all. This predicate checks
+      // if the choice points to a removed state or if the choice has a self-loop, but with other transitions. Note
+      // that choices with a single self loop would be deemed "unchanged".
+      Predicate<Distribution> unchanged = d -> !d.containsOneOf(this.removedStates()) &&
+              !(d.contains(state) && d.support().size()>1);
+
+      // This checks if the choice has a self-loop along with other transitions. Since self loops are going to be
+      // removed from the choice, we need to accordingly scale these distributions.
+      Predicate<Distribution> removed = d -> d.contains(state) && d.support().size()>1;
 
       for (Distribution choice : choices) {
-        if (choice.support().size()==1 && choice.support().contains(state)){
-
-        }
-        else if (!unchanged.test(choice)) {
+        if (!unchanged.test(choice)) {
           DistributionBuilder builder = choice.map(map);
-          choice = builder.build();
+          if (removed.test(choice)) {
+            choice = builder.scaled();
+          }
+          else {
+            choice = builder.build();
+          }
         }
 
         transformedChoices.add(choice);
@@ -192,7 +244,10 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
     return choices;
   }
 
-  // Calculates upper and lower bound for a state from it's stayAction distribution
+  /**
+   * @param stayAction: Distribution of the stay action.
+   * @return Returns upper and lower bound for a state from it's stayAction distribution
+   */
   public Bounds getBoundsFromStayAction(Distribution stayAction){
     double upperBound = 1-stayAction.get(minusState);
     double lowerBound = stayAction.get(plusState);
@@ -204,6 +259,10 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
     return Bounds.of(lowerBound, upperBound);
   }
 
+  /**
+   * @param representative: Integer value of the representative state of an MEC.
+   * @return Returns the distribution of the stay action from the representative state.
+   */
   public Distribution getStayAction(int representative){
     assert stayActionMap.containsKey(representative);
 

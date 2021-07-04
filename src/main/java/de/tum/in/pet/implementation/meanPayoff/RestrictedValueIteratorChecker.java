@@ -95,12 +95,12 @@ public class RestrictedValueIteratorChecker {
   }
 
   // General solving code.
-  private static <M extends Model> Bounds solve(M partialModel, Generator<State> generator, ComponentAnalyser analyser, RewardGenerator<State> rewardGenerator, double precision) {
+  private static <S, M extends Model> Bounds solve(M partialModel, Generator<S> generator, ComponentAnalyser analyser, RewardGenerator<S> rewardGenerator, double precision) {
 
     var explorer = DefaultExplorer.of(partialModel, generator, false);
     exploreFullModel(explorer);
 
-    Int2ObjectFunction<State> stateIndexMap = explorer::getState;
+    Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
     M model = explorer.model();
 
@@ -114,7 +114,7 @@ public class RestrictedValueIteratorChecker {
 
     Mec mec = Mec.create(model, component);
 
-    RestrictedMecValueIterator<M> valueIterator = new RestrictedMecValueIterator<>(model, mec, precision, rewardGenerator, stateIndexMap);
+    RestrictedMecValueIterator<S, M> valueIterator = new RestrictedMecValueIterator<>(model, mec, precision, rewardGenerator, stateIndexMap);
     valueIterator.run();
     Bounds bounds = valueIterator.getBounds();
     if(bounds==null){

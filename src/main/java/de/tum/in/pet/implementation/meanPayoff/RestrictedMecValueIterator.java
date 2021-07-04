@@ -8,19 +8,18 @@ import de.tum.in.probmodels.model.Action;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.ints.*;
-import parser.State;
 
 import java.util.List;
 
-public class RestrictedMecValueIterator<M extends Model> {
+public class RestrictedMecValueIterator<S, M extends Model> {
 
   public final M model; // Original Model
   public final Mec mec; // Mec with respect to original model
   public final double targetPrecision;
   public final Int2DoubleOpenHashMap values;  // map of states and total values; the average value can be obtained by dividing by iterCount
-  public final RewardGenerator<State> rewardGenerator;
+  public final RewardGenerator<S> rewardGenerator;
   private int iterCount;  // number of iterations in value iteration
-  private final Int2ObjectFunction<State> stateIndexMap; // map from original model state number to corresponding state object
+  private final Int2ObjectFunction<S> stateIndexMap; // map from original model state number to corresponding state object
 
   private Bounds bounds;
 
@@ -30,8 +29,8 @@ public class RestrictedMecValueIterator<M extends Model> {
   // Refer to Puterman '94 Section 8.5.4 for details and proofs.
   private final double aperidocityConstant;
 
-  public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<State> rewardGenerator,
-                                    Int2ObjectFunction<State> stateIndexMap){
+  public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
+                                    Int2ObjectFunction<S> stateIndexMap){
     this.model = model;
     this.mec = mec;
     this.targetPrecision = targetPrecision;
@@ -42,8 +41,8 @@ public class RestrictedMecValueIterator<M extends Model> {
     this.aperidocityConstant = 0.8;
   }
 
-  public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<State> rewardGenerator,
-                                    Int2ObjectFunction<State> stateIndexMap, Int2DoubleOpenHashMap values){
+  public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
+                                    Int2ObjectFunction<S> stateIndexMap, Int2DoubleOpenHashMap values){
     this.model = model;
     this.mec = mec;
     this.targetPrecision = targetPrecision;
@@ -53,11 +52,14 @@ public class RestrictedMecValueIterator<M extends Model> {
     this.iterCount = 0;
     this.aperidocityConstant = 0.8;
   }
-  //
+
+  /**
+   * Simulates VI.
+   */
   public void run(){
     int numStates = mec.size();
     NatBitSet states = mec.states;
-    double[] diff =new double[numStates];  // This array stores the difference of values for each state between two successive iterations.
+    double[] diff =new double[numStates];  // This array stores the difference of values for each state between two successive iterations. This is Delta_n in CAV'17.
 
     if(values.size()==0) { // no pre-computed values sent
       IntIterator stateIterator = states.iterator();
@@ -99,8 +101,8 @@ public class RestrictedMecValueIterator<M extends Model> {
       }
       iterCount++;
 
-      max=0.0;
-      min=Double.MAX_VALUE;
+      max=0.0; // max of diff (max of Delta_n)
+      min=Double.MAX_VALUE; // min of diff (min of Delta_n)
       // finding max and min can be done in log n time; we should have a better implementation
       for (double v : diff) {
         if (v > max) {
@@ -115,6 +117,12 @@ public class RestrictedMecValueIterator<M extends Model> {
   }
 
   // todo: vectorize operation
+
+  /**
+   * @param state: Integer value of the state from which the action originates.
+   * @param distribution: Distribution consisting of the probability of reaching successor states for the action.
+   * @return Returns the associated value of a single action.
+   */
   private double getActionVal(int state, Distribution distribution) {
     //int numSuccessors = distribution.size();
     double sum = 0.0;
@@ -137,11 +145,16 @@ public class RestrictedMecValueIterator<M extends Model> {
   }
 
 
+  /**
+   * @return Returns the calculated reward upper and lower bounds.
+   */
   public Bounds getBounds(){
     return bounds;
   }
 
-  // Return values such that in future, value iteration can be continued from current state.
+  /**
+   * @return Return values such that in future, value iteration can be continued from current values.
+   */
   public Int2DoubleOpenHashMap getValues(){
     return this.values;
   }
