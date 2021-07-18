@@ -16,7 +16,7 @@ public class RestrictedMecValueIterator<S, M extends Model> {
   public final M model; // Original Model
   public final Mec mec; // Mec with respect to original model
   public final double targetPrecision;
-  public final Int2DoubleOpenHashMap values;  // map of states and total values; the average value can be obtained by dividing by iterCount
+  public final Int2DoubleMap values;  // map of states and total values; the average value can be obtained by dividing by iterCount
   public final RewardGenerator<S> rewardGenerator;
   private int iterCount;  // number of iterations in value iteration
   private final Int2ObjectFunction<S> stateIndexMap; // map from original model state number to corresponding state object
@@ -42,7 +42,7 @@ public class RestrictedMecValueIterator<S, M extends Model> {
   }
 
   public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
-                                    Int2ObjectFunction<S> stateIndexMap, Int2DoubleOpenHashMap values){
+                                    Int2ObjectFunction<S> stateIndexMap, Int2DoubleMap values){
     this.model = model;
     this.mec = mec;
     this.targetPrecision = targetPrecision;
@@ -112,7 +112,7 @@ public class RestrictedMecValueIterator<S, M extends Model> {
           min = v;
         }
       }
-    } while ((max-min) >= targetPrecision && iterCount < 500);  // stopping criterion of value iteration
+    } while ((max-min) >= targetPrecision);  // stopping criterion of value iteration
     bounds = Bounds.of(min, max);
   }
 
@@ -155,7 +155,7 @@ public class RestrictedMecValueIterator<S, M extends Model> {
   /**
    * @return Return values such that in future, value iteration can be continued from current values.
    */
-  public Int2DoubleOpenHashMap getValues(){
+  public Int2DoubleMap getValues(){
     return this.values;
   }
 }

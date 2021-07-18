@@ -9,20 +9,18 @@ import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.SampleUtil;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.model.Distribution;
-import de.tum.in.probmodels.model.Distributions;
 import it.unimi.dsi.fastutil.ints.*;
 
 import java.util.List;
-import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
 import java.util.function.IntToDoubleFunction;
 import java.util.function.ToDoubleFunction;
 
 public class UnboundedReachValues implements UnboundedValues {
-  private final Int2ObjectMap<Bounds> bounds = new Int2ObjectOpenHashMap<>();
-  private final ValueUpdate update;
-  private final IntPredicate target; // Predicate to indicate if a given state is a target state
-  private final double precision;
+  protected final Int2ObjectMap<Bounds> bounds = new Int2ObjectOpenHashMap<>();
+  protected final ValueUpdate update;
+  protected final IntPredicate target; // Predicate to indicate if a given state is a target state
+  protected final double precision;
   private final SuccessorHeuristic heuristic;
 
   public UnboundedReachValues(ValueUpdate update, IntPredicate target, double precision,
@@ -80,12 +78,21 @@ public class UnboundedReachValues implements UnboundedValues {
   // Samples a successor from a state given a list of choices.
   public int sampleNextState(int state, List<Distribution> choices) {
     // Gives weights to action according the their respective support's upper bounds.
-    ToDoubleFunction<Distribution> actionScore = isSmallestFixPoint()
-        ? d -> 1.0d - d.sumWeighted(this::lowerBound)
-        : d -> d.sumWeighted(this::upperBound);
+    ToDoubleFunction<Integer> actionScore = isSmallestFixPoint()
+        ? i -> 1.0d - choices.get(i).sumWeighted(this::lowerBound)
+        : i -> choices.get(i).sumWeighted(this::upperBound);
     IntToDoubleFunction successorDifferences = s -> bounds(s).difference();
 
     return SampleUtil.sampleNextState(choices, heuristic, actionScore, successorDifferences);
+  }
+
+  @Override
+  public int sampleNextAction(int state, List<Distribution> choices){
+    ToDoubleFunction<Integer> actionScore = isSmallestFixPoint()
+            ? i -> 1.0d - choices.get(i).sumWeighted(this::lowerBound)
+            : i -> choices.get(i).sumWeighted(this::upperBound);
+
+    return SampleUtil.getOptimalChoice(choices, actionScore);
   }
 
   @Override
@@ -108,7 +115,7 @@ public class UnboundedReachValues implements UnboundedValues {
   }
 
   // Calculates new bounds according to an action. Lines 20, 21 in OnDemandVI in CAV'17 paper
-  private Bounds successorBounds(int state, Distribution distribution) {
+  protected Bounds successorBounds(int state, Distribution distribution) {
     double lower = 0.0d;
     double upper = 0.0d;
     double sum = 0.0d;
@@ -195,6 +202,11 @@ public class UnboundedReachValues implements UnboundedValues {
       oldBounds = bounds.put(state, newBounds);
     }
     assert oldBounds == null || oldBounds.contains(newBounds);
+  }
+
+  @Override
+  public void resetBounds(){
+    bounds.clear();
   }
 
   @Override

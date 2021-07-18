@@ -8,9 +8,8 @@ import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.SampleUtil;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.model.Distribution;
-import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
-import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.*;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -44,7 +43,7 @@ abstract class UnboundedCoreValues implements UnboundedValues {
 
   @Override
   public int sampleNextState(int state, List<Distribution> choices) {
-    ToDoubleFunction<Distribution> actionScore = d -> d.sumWeighted(this::upperBound);
+    ToDoubleFunction<Integer> actionScore = i -> choices.get(i).sumWeighted(this::upperBound);
     return SampleUtil.sampleNextState(choices, heuristic, actionScore, this::upperBound);
   }
 
@@ -88,6 +87,11 @@ abstract class UnboundedCoreValues implements UnboundedValues {
     }
 
     @Override
+    public int sampleNextAction(int state, List<Distribution> choices) {
+      return 0;
+    }
+
+    @Override
     public double upperBound(int state) {
       return state < bounds.length ? bounds[state] : 1.0d;
     }
@@ -95,6 +99,11 @@ abstract class UnboundedCoreValues implements UnboundedValues {
     @Override
     public void collapse(int representative, List<Distribution> choices, IntSet collapsed) {
       update(representative, choices);
+    }
+
+    @Override
+    public void resetBounds() {
+
     }
 
     @Override
@@ -137,12 +146,22 @@ abstract class UnboundedCoreValues implements UnboundedValues {
     }
 
     @Override
+    public void resetBounds() {
+
+    }
+
+    @Override
     void update(int state, double value) {
       if (isOne(value)) {
         return;
       }
       double oldValue = map.put(state, value);
       assert lessOrEqual(value, oldValue);
+    }
+
+    @Override
+    public int sampleNextAction(int state, List<Distribution> choices) {
+      return 0;
     }
 
     @Override

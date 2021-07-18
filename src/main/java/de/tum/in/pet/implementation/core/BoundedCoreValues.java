@@ -57,7 +57,7 @@ abstract class BoundedCoreValues implements BoundedValues {
     assert remaining > 0;
 
     IntToDoubleFunction nextStepFunction = s -> upperBound(s, remaining - 1);
-    ToDoubleFunction<Distribution> actionScore = d -> d.sumWeighted(nextStepFunction);
+    ToDoubleFunction<Integer> actionScore = i -> choices.get(i).sumWeighted(nextStepFunction);
     return SampleUtil.sampleNextState(choices, heuristic, actionScore, nextStepFunction);
   }
 

@@ -70,8 +70,8 @@ public class BoundedReachValues implements BoundedValues {
 
   @Override
   public int sampleNextState(int state, int remaining, List<Distribution> choices) {
-    ToDoubleFunction<Distribution> actionScore = d ->
-        d.sumWeighted(s -> bounds(s, remaining - 1).upperBound());
+    ToDoubleFunction<Integer> actionScore = i ->
+        choices.get(i).sumWeighted(s -> bounds(s, remaining - 1).upperBound());
     IntToDoubleFunction successorDifferences = s -> bounds(s, remaining - 1).difference();
 
     return SampleUtil.sampleNextState(choices, heuristic, actionScore, successorDifferences);

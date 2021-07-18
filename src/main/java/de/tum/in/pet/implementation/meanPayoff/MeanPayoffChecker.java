@@ -3,6 +3,7 @@ package de.tum.in.pet.implementation.meanPayoff;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.set.RoaringNatBitSetFactory;
 import de.tum.in.pet.Main;
+import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
 import de.tum.in.pet.implementation.reachability.UnboundedReachValues;
 import de.tum.in.pet.implementation.reachability.ValueUpdate;
 import de.tum.in.pet.sampler.Iterator;
@@ -10,7 +11,8 @@ import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.CliHelper;
 import de.tum.in.pet.values.Bounds;
-import de.tum.in.probmodels.explorer.DefaultExplorer;
+import de.tum.in.probmodels.explorer.Explorers;
+import de.tum.in.probmodels.explorer.InformationLevel;
 import de.tum.in.probmodels.generator.Generator;
 import de.tum.in.probmodels.generator.MdpGenerator;
 import de.tum.in.probmodels.generator.PrismRewardGenerator;
@@ -18,6 +20,7 @@ import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.model.MarkovDecisionProcess;
 import de.tum.in.probmodels.model.Model;
 import de.tum.in.probmodels.util.PrismHelper;
+import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -41,16 +44,22 @@ public final class MeanPayoffChecker {
   private static final Logger logger = Logger.getLogger(MeanPayoffChecker.class.getName());
   public static final int DEFAULT_THRESHOLD = 5;
   public static final double REWARD_UPPERBOUND = 10;
+  public static final double PMIN_LOWERBOUND = 1.0e-6;
+  public static final double DEFAULT_ERROR_TOLERANCE = 0.1;
 
   private MeanPayoffChecker(){
 
   }
 
-  public static double solve(ModelGenerator generator, int rewardIndex, SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward) throws PrismException {
+  public static double solve(ModelGenerator generator, InformationLevel informationLevel, int rewardIndex,
+                             SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward,
+                             double pMin, double errorTolerance)
+          throws PrismException {
     ModelType modelType = generator.getModelType();
     switch (modelType) {
       case MDP:
-        return solveMdp(generator, rewardIndex, heuristic, precision, revisitThreshold, maxReward);
+        return solveMdp(generator, informationLevel, rewardIndex, heuristic, precision, revisitThreshold, maxReward,
+                pMin, errorTolerance);
       case CTMC:
       case DTMC:
       case LTS:
@@ -63,32 +72,54 @@ public final class MeanPayoffChecker {
     }
   }
 
-  private static <S, M extends Model> double solve(M partialModel, Generator<S> generator, RewardGenerator<S> rewardGenerator,
-      SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward) throws PrismException {
+  private static <S, M extends Model> double solve(M partialModel, Generator<S> generator, InformationLevel informationLevel,
+      RewardGenerator<S> rewardGenerator, SuccessorHeuristic heuristic, double precision, int revisitThreshold,
+      double maxReward, double pMin, double errorTolerance) throws PrismException {
 
-    var explorer = DefaultExplorer.of(partialModel, generator, false);
+    var explorer = Explorers.getExplorer(partialModel, generator, informationLevel, false);
 
     IntPredicate target = (x) -> x==Integer.MAX_VALUE;
-    UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, 2*precision/maxReward, heuristic);
+    Iterator<S, M> valueIterator;
 
-    Iterator<S, M> valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward);
+    if (informationLevel==InformationLevel.WHITEBOX) {
+      UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, 2 * precision / maxReward, heuristic);
+
+      valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward, 2 * precision / maxReward);
+    }
+    else if (informationLevel==InformationLevel.BLACKBOX) {
+      Double2LongFunction nSampleFunction = s -> 10000;
+
+      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, target, 2 * precision / maxReward, heuristic);
+
+      valueIterator = new BlackOnDemandValueIterator<>(explorer, values, rewardGenerator,
+              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, 2 * precision / maxReward);
+    }
+    else{
+      throw new UnsupportedOperationException("Only WhiteBox and BlackBox models are supported at the moment.");
+    }
+
     valueIterator.run();
 
     int initState = explorer.initialStates().iterator().nextInt();
     Bounds bounds = valueIterator.bounds(initState);
 
+    logger.log(Level.INFO, "Explored states {0}", new Object[] {explorer.exploredStateCount()});
+
     return maxReward*bounds.average();
 
   }
 
-  private static double solveMdp(ModelGenerator prismGenerator, int rewardIndex, SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward) throws PrismException {
+  private static double solveMdp(ModelGenerator prismGenerator, InformationLevel informationLevel, int rewardIndex,
+                                 SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward,
+                                 double pMin, double errorTolerance)
+          throws PrismException {
 
     MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
     Generator<State> generator = new MdpGenerator(prismGenerator);
 
     RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(rewardIndex, prismGenerator);
 
-    return solve(partialModel, generator, rewardGenerator, heuristic, precision, revisitThreshold, maxReward);
+    return solve(partialModel, generator, informationLevel, rewardGenerator, heuristic, precision, revisitThreshold, maxReward, pMin, errorTolerance);
 
   }
 
@@ -109,6 +140,9 @@ public final class MeanPayoffChecker {
 //            "Use relative error estimate");
     Option rewardModuleOption = new Option(null, "rewardModule", true, "Name of the reward module in the model file.");
     Option maxRewardOption = new Option(null, "maxReward", true, "Estimated max reward value for a single transition in the model. (Default: 10)");
+    Option informationOption = CliHelper.getDefaultInformationLevelOption();
+    Option pMinOption = new Option(null, "pMin", true, "Estimated minimum probability of a transition in the model. (Only used for BlackBox models)");
+    Option errorToleranceOption = new Option(null, "errorTolerance", true, "Error tolerance for blackbox exploration.");
 
     modelOption.setRequired(true);
 
@@ -119,7 +153,10 @@ public final class MeanPayoffChecker {
             .addOption(constantsOption)
             .addOption(revisitThresholdOption)
             .addOption(rewardModuleOption)
-            .addOption(maxRewardOption);
+            .addOption(maxRewardOption)
+            .addOption(informationOption)
+            .addOption(pMinOption)
+            .addOption(errorToleranceOption);
 
     CommandLine commandLine = CliHelper.parse(options, args);
 
@@ -135,11 +172,23 @@ public final class MeanPayoffChecker {
             ? Double.parseDouble(commandLine.getOptionValue(maxRewardOption.getLongOpt()))
             : REWARD_UPPERBOUND;
 
+    double pMin = commandLine.hasOption(pMinOption.getLongOpt())
+            ? Double.parseDouble(commandLine.getOptionValue(pMinOption.getLongOpt()))
+            : PMIN_LOWERBOUND;
+
+    double errorTolerance = commandLine.hasOption(errorToleranceOption.getLongOpt())
+            ? Double.parseDouble(commandLine.getOptionValue(errorToleranceOption.getLongOpt()))
+            : DEFAULT_ERROR_TOLERANCE;
+
     SuccessorHeuristic heuristic = CliHelper.parseHeuristic(
             commandLine.getOptionValue(heuristicOption.getLongOpt()), SuccessorHeuristic.PROB);
 
+    InformationLevel informationLevel = CliHelper.parseInformationLevel(
+            commandLine.getOptionValue(informationOption.getLongOpt()), InformationLevel.WHITEBOX);
+
     NatBitSets.setFactory(new RoaringNatBitSetFactory());
 
+    double startTime1 = System.currentTimeMillis();
     PrismHelper.PrismParseResult parse =
             Main.parse(commandLine, modelOption, null, constantsOption);
     ModulesFile modulesFile = parse.modulesFile();
@@ -156,8 +205,12 @@ public final class MeanPayoffChecker {
       throw new NoSuchElementException("Reward module "+commandLine.getOptionValue(rewardModuleOption.getLongOpt())+" not found");
     }
 
-    double meanPayoff = solve(generator, rewardIndex, heuristic, precision, revisitThreshold, maxReward);
+    double startTime2 = System.currentTimeMillis();
+    double meanPayoff = solve(generator, informationLevel, rewardIndex, heuristic, precision, revisitThreshold, maxReward, pMin, errorTolerance);
+    double endTime = System.currentTimeMillis();
 
+    logger.log(Level.INFO, "Time taken {0}", new Object[] {endTime-startTime1});
+    logger.log(Level.INFO, "Time taken {0}", new Object[] {endTime-startTime2});
     logger.log(Level.INFO, "Result is {0}", new Object[] {meanPayoff});
   }
 

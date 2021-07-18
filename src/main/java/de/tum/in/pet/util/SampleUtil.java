@@ -8,17 +8,17 @@ import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.util.Sample;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
+
 import java.util.List;
 import java.util.function.IntToDoubleFunction;
 import java.util.function.ToDoubleFunction;
-import javax.annotation.Nullable;
 
 public final class SampleUtil {
   private SampleUtil() {
   }
 
   public static int sampleNextState(List<Distribution> choices, SuccessorHeuristic heuristic,
-      ToDoubleFunction<Distribution> actionScore, IntToDoubleFunction successorScore) {
+      ToDoubleFunction<Integer> actionScore, IntToDoubleFunction successorScore) {
     if (choices.isEmpty()) {
       return -1;
     }
@@ -44,8 +44,12 @@ public final class SampleUtil {
       return Sample.sample(map);
     }
 
-    Distribution distribution = getOptimalChoice(choices, actionScore);
-    if (distribution == null || distribution.isEmpty()) {
+    int distributionIndex = getOptimalChoice(choices, actionScore);
+    if (distributionIndex == -1) {
+      return -1;
+    }
+    Distribution distribution = choices.get(distributionIndex);
+    if (distribution.isEmpty()) {
       return -1;
     }
     if (distribution.size() == 1) {
@@ -65,23 +69,18 @@ public final class SampleUtil {
     }
   }
 
-  @Nullable
-  public static Distribution getOptimalChoice(List<Distribution> choices,
-      ToDoubleFunction<Distribution> score) {
+  public static int getOptimalChoice(List<Distribution> choices,
+      ToDoubleFunction<Integer> score) {
     int choiceCount = choices.size();
     if (choiceCount == 1) {
-      return choices.get(0);
+      return 0;
     }
 
     int maximalBestActions = 0;
     double bestValue = Double.NEGATIVE_INFINITY;
     double[] actionUpperBounds = new double[choiceCount];
     for (int choice = 0; choice < choiceCount; choice++) {
-      Distribution successors = choices.get(choice);
-      if (successors.isEmpty()) {
-        continue;
-      }
-      double upperBound = score.applyAsDouble(successors);
+      double upperBound = score.applyAsDouble(choice);
       actionUpperBounds[choice] = upperBound;
       if (upperBound > bestValue) {
         maximalBestActions = isEqual(upperBound, bestValue) ? maximalBestActions + 1 : 1;
@@ -93,7 +92,7 @@ public final class SampleUtil {
 
     if (isZero(bestValue)) {
       // All successors have an score == 0
-      return null;
+      return -1;
     }
 
     // maximalBestActions was an upper bound on the amount, compute precisely now
@@ -108,9 +107,9 @@ public final class SampleUtil {
 
     // There has to be a witness for the bestValue
     assert bestActionCount > 0;
-    Distribution distribution = choices.get(Sample.sampleUniform(bestActions, bestActionCount));
-    assert isEqual(bestValue, score.applyAsDouble(distribution));
+    int distributionIndex = Sample.sampleUniform(bestActions, bestActionCount);
+    assert isEqual(bestValue, score.applyAsDouble(distributionIndex));
 
-    return distribution;
+    return distributionIndex;
   }
 }

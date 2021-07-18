@@ -1104,3 +1104,6 @@ endmodule
 label "crash" = (xP = xG0 & yP = yG0) | (xP = xG1 & yP = yG1);
 //label "safe" = deactive0 & deactive1;
 
+rewards "default"
+    (xP = xG0 & yP = yG0) | (xP = xG1 & yP = yG1): 1;
+endrewards

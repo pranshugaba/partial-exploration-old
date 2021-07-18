@@ -2,6 +2,8 @@ package de.tum.in.pet.sampler;
 
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.model.Distribution;
+import it.unimi.dsi.fastutil.ints.Int2ObjectFunction;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.List;
 
@@ -14,6 +16,8 @@ public interface UnboundedValues {
 
   int sampleNextState(int state, List<Distribution> choices);
 
+  int sampleNextAction(int state, List<Distribution> choices);
+
   void update(int state, List<Distribution> choices);
 
   void explored(int state);
@@ -21,4 +25,6 @@ public interface UnboundedValues {
   boolean isSmallestFixPoint();
 
   void collapse(int representative, List<Distribution> choices, IntSet collapsed);
+
+  void resetBounds();
 }

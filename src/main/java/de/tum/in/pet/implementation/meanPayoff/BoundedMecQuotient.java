@@ -18,39 +18,34 @@ import java.util.function.Predicate;
 // is less than or equal to Integer.MAX_VALUE-3.
 public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
 
-  private final int plusState;
-  private final int minusState;
-  private final int uncertainState;
+  private static final int plusState = Integer.MAX_VALUE;
+  private static final int minusState = Integer.MAX_VALUE-1;
+  private static final int uncertainState = Integer.MAX_VALUE-2;
 
   private final Int2ObjectOpenHashMap<Distribution> stayActionMap = new Int2ObjectOpenHashMap<>();
 
   public BoundedMecQuotient(M model) {
     super(model);
-
-    this.plusState = Integer.MAX_VALUE;
-    this.minusState = Integer.MAX_VALUE-1;
-    this.uncertainState = Integer.MAX_VALUE-2;
-
   }
 
   /**
    * @return Returns the integer value of the plusState of Bounded MEC Quotient.
    */
-  public int getPlusState() {
+  public static int getPlusState() {
     return plusState;
   }
 
   /**
    * @return Returns the integer value of the minusState of Bounded MEC Quotient.
    */
-  public int getMinusState() {
+  public static int getMinusState() {
     return minusState;
   }
 
   /**
    * @return Returns the integer value of the uncertainState of Bounded MEC Quotient.
    */
-  public int getUncertainState() {
+  public static int getUncertainState() {
     return uncertainState;
   }
 
@@ -58,17 +53,17 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
    * @param state Integer value of state to be checked.
    * @return Returns whether the given state is a sink state in the Bounded MEC Quotient.
    */
-  public boolean isSinkState(int state){
-    return state==this.plusState||state==this.minusState
-            ||state==this.uncertainState;
+  public static boolean isSinkState(int state){
+    return state==plusState||state==minusState
+            ||state==uncertainState;
   }
 
   /**
    * @param state Integer value of state to be checked
    * @return Returns whether the given state is the uncertain state in the Bounded MEC Quotient.
    */
-  public boolean isUncertainState(int state){
-    return state==this.uncertainState;
+  public static boolean isUncertainState(int state){
+    return state==uncertainState;
   }
 
   /**
@@ -87,7 +82,7 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
    * @param bounds Bounds from which the stay distribution is to be calculated.
    * @return Returns the distribution of the stay action.
    */
-  public Distribution getStayDistribution(Bounds bounds){
+  public static Distribution getStayDistribution(Bounds bounds){
 
     assert bounds.lowerBound()<=1 && bounds.upperBound()<=1;
     assert bounds.lowerBound()>=0 && bounds.upperBound()>=0;
@@ -96,15 +91,15 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
     if(bounds.lowerBound()>0) {
       builder.add(plusState, bounds.lowerBound());
     }
-    if(1-bounds.upperBound()>0) {
-      builder.add(minusState, 1-bounds.upperBound());
+    if(bounds.upperBound()<1) {
+      builder.add(minusState, 1d-bounds.upperBound());
 
     }
     if(bounds.difference()>0) {
       builder.add(uncertainState, bounds.difference());
     }
 
-    return builder.build();
+    return builder.scaled();
 
   }
 
@@ -248,15 +243,11 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
    * @param stayAction: Distribution of the stay action.
    * @return Returns upper and lower bound for a state from it's stayAction distribution
    */
-  public Bounds getBoundsFromStayAction(Distribution stayAction){
-    double upperBound = 1-stayAction.get(minusState);
+  public static Bounds getBoundsFromStayAction(Distribution stayAction){
+    double upperBound = 1d-stayAction.get(minusState);
     double lowerBound = stayAction.get(plusState);
 
-    assert upperBound>=lowerBound;
-    assert upperBound<=1 && lowerBound<=1;
-    assert upperBound>=0 && lowerBound>=0;
-
-    return Bounds.of(lowerBound, upperBound);
+    return Bounds.reach(lowerBound, upperBound);
   }
 
   /**

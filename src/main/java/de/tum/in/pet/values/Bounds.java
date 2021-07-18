@@ -26,15 +26,15 @@ public abstract class Bounds {
 
 
   public static Bounds reach(double lower, double upper) {
+    if (isEqual(lower, upper)) {
+      return of(lower);
+    }
     assert lower <= upper;
     if (isOne(lower)) {
       return reachOne();
     }
     if (isZero(upper)) {
       return reachZero();
-    }
-    if (isEqual(lower, upper)) {
-      return of(lower);
     }
     if (isZero(lower) && isOne(upper)) {
       return reachUnknown();

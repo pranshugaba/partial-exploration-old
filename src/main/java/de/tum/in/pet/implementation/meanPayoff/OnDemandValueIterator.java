@@ -23,26 +23,28 @@ import static de.tum.in.probmodels.util.Util.isZero;
 
 // This class implements the OnDemand VI Algorithm from the CAV'17 paper.
 public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M> {
-  private static final Logger logger = Logger.getLogger(OnDemandValueIterator.class.getName());
+  protected static final Logger logger = Logger.getLogger(OnDemandValueIterator.class.getName());
 
-  private final Explorer<S, M> explorer;
-  private final UnboundedValues values;
+  protected final Explorer<S, M> explorer;
+  protected final UnboundedValues values;
   private final BoundedMecQuotient<M> boundedMecQuotient;
-  private final RewardGenerator<S> rewardGenerator;
+  protected final RewardGenerator<S> rewardGenerator;
 
-  private final int revisitThreshold;
-  private final double rMax;
+  protected final int revisitThreshold;
+  protected final double rMax;
 
   // variable keeps track if new states have been explored and if handleComponents() needs to be run again.
-  private boolean newStatesSinceCollapse = false;
+  protected boolean newStatesSinceCollapse = false;
 
   // stores most recent VI results for all states.
-  private final Int2ObjectOpenHashMap<Int2DoubleOpenHashMap> mecValueCache = new Int2ObjectOpenHashMap<>();
+  protected Int2ObjectMap<Int2DoubleMap> mecValueCache = new Int2ObjectOpenHashMap<>();
 
-  private final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
+  protected final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
+
+  protected final double precision;
 
   public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator, 
-                               int revisitThreshold, double rMax) {
+                               int revisitThreshold, double rMax, double precision) {
     this.explorer = explorer;
 
     this.values = values;
@@ -51,6 +53,8 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     this.revisitThreshold = revisitThreshold;
     this.boundedMecQuotient = new BoundedMecQuotient<>(explorer.model());
     this.rMax = rMax;
+
+    this.precision = precision;
 
   }
 
@@ -81,11 +85,11 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   /**
    * Initialize Sink State bounds.
    */
-  private void initSinkStates(){
+  protected void initSinkStates(){
 
-    int plusState = boundedMecQuotient.getPlusState();
-    int minusState = boundedMecQuotient.getMinusState();
-    int uncertainState = boundedMecQuotient.getUncertainState();
+    int plusState = BoundedMecQuotient.getPlusState();
+    int minusState = BoundedMecQuotient.getMinusState();
+    int uncertainState = BoundedMecQuotient.getUncertainState();
 
     assert values.bounds(plusState).lowerBound()==1;
 
@@ -120,6 +124,9 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
         representative = boundedMecQuotient.representative(initialState);
       }
       run++;  // count of episodic runs
+      if (run%1000==0){
+        logger.log(Level.INFO, "Bounds "+bounds(representative));
+      }
     }
 
   }
@@ -147,7 +154,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       stateVisitCounts.addTo(currentState, 1);
 
       // checks plus state,minus state and uncertain state
-      if(boundedMecQuotient.isSinkState(currentState)){
+      if(BoundedMecQuotient.isSinkState(currentState)){
         foundDesignatedSinkState = true;
         break;
       }
@@ -178,7 +185,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       // The last state can also be some normal sink state in the model
       if(foundDesignatedSinkState) {
         int sinkState = visitStack.popInt();
-        if (boundedMecQuotient.isUncertainState(sinkState)) {
+        if (BoundedMecQuotient.isUncertainState(sinkState)) {
           int mecRepresentative = visitStack.popInt();
           updateMec(mecRepresentative);
         }
@@ -190,7 +197,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       // In a path there can be at most one sink state at the end. If such a sink state appears in the path, then it would have already
       // been popped inside the else block above.
       int state = boundedMecQuotient.representative(visitStack.popInt());
-      assert !boundedMecQuotient.isSinkState(state);
+      assert !BoundedMecQuotient.isSinkState(state);
       values.update(state, choices(state));
     }
 
@@ -198,24 +205,47 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   }
 
+  protected Bounds getMecBounds(int mecRepresentative){
+    return BoundedMecQuotient.getBoundsFromStayAction(boundedMecQuotient.getStayAction(mecRepresentative));
+  }
+
+  protected Mec getMec(int mecRepresentative){
+    NatBitSet mecStates = NatBitSets.copyOf(explorer.exploredStates().stream()
+            .filter(s -> boundedMecQuotient.representative(s)==mecRepresentative)
+            .collect(Collectors.toList()));
+    return Mec.create(explorer().model(), mecStates);
+  }
+
+  protected void updateStayAction(int mecRepresentative, Bounds scaledBounds){
+    boundedMecQuotient.updateStayAction(mecRepresentative, scaledBounds);
+  }
+
   /**
    * Implements lines 11-15 in CAV'17 paper. Runs VI on mec.
    * @param mecRepresentative: Representative state of mec on which VI has to be run.
    */
-  public void updateMec(int mecRepresentative){
-    assert boundedMecQuotient.representative(mecRepresentative)==mecRepresentative;
+  protected void updateMec(int mecRepresentative){
+    assert this instanceof BlackOnDemandValueIterator || boundedMecQuotient.representative(mecRepresentative) == mecRepresentative;
+
+    // mecBounds now contain the scaled reward upper and lower bounds.
+    Bounds mecBounds = getMecBounds(mecRepresentative);
+
+    double currPrecision = mecBounds.difference()*this.rMax;
+
+    if(currPrecision<this.precision){
+      return;
+    }
+
+    double targetPrecision = currPrecision/2;
 
     logger.log(Level.INFO, "updating MEC");
 
-    // mecBounds now contain the scared reward upper and lower bounds.
-    Bounds mecBounds = boundedMecQuotient.getBoundsFromStayAction(boundedMecQuotient.getStayAction(mecRepresentative));
-    double targetPrecision = mecBounds.difference()*this.rMax/2;
-
     // get all the MEC states corresponding to mecRepresentative.
-    NatBitSet mecStates = NatBitSets.copyOf(explorer.exploredStates().stream()
-            .filter(s -> boundedMecQuotient.representative(s)==mecRepresentative)
-            .collect(Collectors.toList()));
-    Mec mec = Mec.create(explorer.model(), mecStates);
+    Mec mec = getMec(mecRepresentative);
+
+    if (mec.states.size()==0){
+      return;
+    }
 
     // It can be the case that the bounds are already very precise and running VI again can take a lot of time. We
     // essentially run VI from the start assuming that no progress has been made yet. There are 2 cases when this
@@ -226,15 +256,15 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     // VI more precise.
     // Note that in the second case, even though we don't need to run the VI at all, the cost of differentiating from
     // case 1 is more than the cost of simply running the VI for a few steps, so we run it anyway.
-    if(isZero(targetPrecision)){
-      targetPrecision = 0.5*this.rMax;
-    }
+//    if(isZero(targetPrecision)){
+//      targetPrecision = 0.5*this.rMax;
+//    }
 
     assert !isZero(targetPrecision);
 
     // Fetch the precomputed value map of the mec from the cache, and if there isn't any, then returns an empty map.
     // The key of the map is mecRepresentative.
-    Int2DoubleOpenHashMap valueCache = mecValueCache.computeIfAbsent(mecRepresentative, s -> new Int2DoubleOpenHashMap());
+    Int2DoubleMap valueCache = mecValueCache.computeIfAbsent(mecRepresentative, s -> new Int2DoubleOpenHashMap());
 
     // lambda function that returns a state object when given the state index. required for accessing reward generator function.
     Int2ObjectFunction<S> stateIndexMap = explorer::getState;
@@ -245,6 +275,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
     Bounds newBounds = valueIterator.getBounds();
     Bounds scaledBounds = Bounds.of(newBounds.lowerBound()/this.rMax, newBounds.upperBound()/this.rMax);
+    scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
 
     // In the case when we run VI from scratch, the new bounds may be worse than the previously computed bounds. In that
     // case we discard the new bounds. Specifically, we check if the new lower bound is worse than the previously
@@ -252,9 +283,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     // new lower bound is lower than the previous lower bound, we can discard it safely as we can simply assume that
     // the optimal strategy wouldn't include newly added states and the VI didn't achieve anything. 2. We already had a
     // precise value, so we didn't need to run VI anyway.
-    if (scaledBounds.lowerBound() >= mecBounds.lowerBound()){
-      boundedMecQuotient.updateStayAction(mecRepresentative, scaledBounds);
-    }
+    updateStayAction(mecRepresentative, scaledBounds);
 
     valueCache = valueIterator.getValues();
     mecValueCache.put(mecRepresentative, valueCache);
@@ -264,10 +293,10 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   /**
    * Implements OnTheFlyEC from CAV'17 paper.
    */
-  public void handleComponents(){
+  public boolean handleComponents(){
 
     if(!newStatesSinceCollapse){
-      return;
+      return false;
     }
 
     newStatesSinceCollapse = false;
@@ -280,7 +309,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     // This contains only newly found components. Since all previously found components are collapsed, they won't be recognized as MECs anymore.
 
     if(newComponents.isEmpty()){
-      return;
+      return false;
     }
 
     if (logger.isLoggable(Level.FINE)) {
@@ -301,6 +330,9 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       // Removing from cache as new states have been added to mec and all values need to computed again from start.
       mecValueCache.remove(representative);
 
+      // Reset stay action bounds as mec has been expanded
+      boundedMecQuotient.updateStayAction(representative, Bounds.of(BoundedMecQuotient.getBoundsFromStayAction(boundedMecQuotient.getStayAction(representative)).lowerBound(), 1));
+
       // We need to run VI on the MEC again to account for the following case. It can be that the bounds on the MEC are
       // already very precise. Thus, the probability of reaching the uncertain state would be very small and we may
       // never be able to run VI on the newly added states again. Thus, we need to run VI straight after adding new
@@ -311,15 +343,17 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       values.collapse(representative, choices(representative), collapseIterator.next());
     }
 
+    return true;
+
   }
 
   /**
    * Add state to partial model.
    * @param state: Integer value of state to be explored.
    */
-  private void explore(int state) throws PrismException {
+  protected void explore(int state) throws PrismException {
     assert !explorer.isExploredState(state);
-    assert !boundedMecQuotient.isSinkState(state);
+    assert !BoundedMecQuotient.isSinkState(state);
     newStatesSinceCollapse = true;
     explorer.exploreState(state);  //  state added to partial model, and explorer.isExploredState(state) is set to true.
   }
@@ -329,9 +363,9 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
    * @param state: Integer value of state from whom choices are required.
    * @return List of distributions of the choices from the state in the partial model.
    */
-  private List<Distribution> choices(int state) {
+  protected List<Distribution> choices(int state) {
     assert explorer.isExploredState(state);
-    assert !boundedMecQuotient.isSinkState(state);
+    assert !BoundedMecQuotient.isSinkState(state);
     return boundedMecQuotient.getChoices(state);
   }
 
