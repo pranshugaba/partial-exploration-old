@@ -185,7 +185,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       // The last state can also be some normal sink state in the model
       if(foundDesignatedSinkState) {
         int sinkState = visitStack.popInt();
-        if (BoundedMecQuotient.isUncertainState(sinkState)||BoundedMecQuotient.isPlusState(currentState)) { // plus change
+        if (BoundedMecQuotient.isUncertainState(sinkState) || BoundedMecQuotient.isPlusState(sinkState)) {
           int mecRepresentative = visitStack.popInt();
           updateMec(mecRepresentative);
         }

@@ -216,8 +216,8 @@ public final class MeanPayoffChecker {
     double meanPayoff = solve(generator, informationLevel, rewardIndex, heuristic, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples);
     double endTime = System.currentTimeMillis();
 
-    logger.log(Level.INFO, "Time taken {0}", new Object[] {endTime-startTime1});
-    logger.log(Level.INFO, "Time taken {0}", new Object[] {endTime-startTime2});
+    logger.log(Level.INFO, "Time to parse, construct model, and compute {0}", new Object[] {endTime-startTime1});
+    logger.log(Level.INFO, "Time to compute {0}", new Object[] {endTime-startTime2});
     logger.log(Level.INFO, "Result is {0}", new Object[] {meanPayoff});
   }
 
