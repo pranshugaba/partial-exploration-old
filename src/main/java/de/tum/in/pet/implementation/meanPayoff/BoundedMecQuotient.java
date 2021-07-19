@@ -66,6 +66,10 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
     return state==uncertainState;
   }
 
+  public static boolean isPlusState(int state) {
+    return state==plusState;
+  }
+
   /**
    * Updates the stay action originating from the representative state of an MEC.
    * @param representative Integer value of representative state of an MEC.

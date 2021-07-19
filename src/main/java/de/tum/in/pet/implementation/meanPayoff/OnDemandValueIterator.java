@@ -117,7 +117,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
     // isSolved() defined in UnboundedReachValues
     while(!values.isSolved(representative)) {  // The values between upper and lower bounds for the initial states should,be less than epsilon
-      logger.log(Level.INFO, "Run "+run);
+//      logger.log(Level.INFO, "Run "+run);
       if (sample(representative, run)) {
         // initialState may be part of an MEC and the MEC may be collapsed, and we may have a representative that is different
         // from initialState
@@ -125,7 +125,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       }
       run++;  // count of episodic runs
       if (run%1000==0){
-        logger.log(Level.INFO, "Bounds "+bounds(representative));
+//        logger.log(Level.INFO, "Bounds "+bounds(representative));
       }
     }
 
@@ -185,7 +185,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       // The last state can also be some normal sink state in the model
       if(foundDesignatedSinkState) {
         int sinkState = visitStack.popInt();
-        if (BoundedMecQuotient.isUncertainState(sinkState)) {
+        if (BoundedMecQuotient.isUncertainState(sinkState)||BoundedMecQuotient.isPlusState(currentState)) { // plus change
           int mecRepresentative = visitStack.popInt();
           updateMec(mecRepresentative);
         }

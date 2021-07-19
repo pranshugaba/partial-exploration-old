@@ -85,7 +85,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         // checks plus state,minus state and uncertain state
         if (BoundedMecQuotient.isSinkState(currentState)) {
           visitStack.removeInt(visitStack.size() - 1);
-          if (BoundedMecQuotient.isUncertainState(currentState)) {
+          if (BoundedMecQuotient.isUncertainState(currentState)||BoundedMecQuotient.isPlusState(currentState)) {
             int mecIndex = stateToMecMap.get(visitStack.removeInt(visitStack.size() - 1));
             updateMec(mecIndex);
           }
