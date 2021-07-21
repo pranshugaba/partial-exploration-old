@@ -182,7 +182,11 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       handleComponents();
     }
     else{
-      // The last state can also be some normal sink state in the model
+      // We update the MEC reward bounds through running VI if we reach the uncertain or the plus state. This is
+      // slightly different from the version in CAV'17 where VI is only run when the uncertain state is reached.
+      // However, this is also OK as reaching the plus state shows that probably the lower reward bound is high
+      // enough, meaning the EC is promising and it is worth getting a more precise value. We make sure in updateMEC
+      // that we don't get value that is more precise than what is required.
       if(foundDesignatedSinkState) {
         int sinkState = visitStack.popInt();
         if (BoundedMecQuotient.isUncertainState(sinkState) || BoundedMecQuotient.isPlusState(sinkState)) {
@@ -205,10 +209,19 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   }
 
+  /**
+   * @param mecRepresentative: mecRepresentative of MEC for which bounds reward bounds are desired.
+   * @return Reward bounds of the MEC in question.
+   */
   protected Bounds getMecBounds(int mecRepresentative){
     return BoundedMecQuotient.getBoundsFromStayAction(boundedMecQuotient.getStayAction(mecRepresentative));
   }
 
+  // todo cache
+  /**
+   * @param mecRepresentative: mecRepresentative of the desired MEC.
+   * @return MEC object for the desired mecRepresentative.
+   */
   protected Mec getMec(int mecRepresentative){
     NatBitSet mecStates = NatBitSets.copyOf(explorer.exploredStates().stream()
             .filter(s -> boundedMecQuotient.representative(s)==mecRepresentative)
@@ -216,6 +229,11 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     return Mec.create(explorer().model(), mecStates);
   }
 
+  /**
+   * Updates stay action of the MEC according to the given scaled bounds.
+   * @param mecRepresentative: mecRepresentative of the desired MEC.
+   * @param scaledBounds: scaled reward bounds for the MEC according to which the stay action is to be updated.
+   */
   protected void updateStayAction(int mecRepresentative, Bounds scaledBounds){
     boundedMecQuotient.updateStayAction(mecRepresentative, scaledBounds);
   }
@@ -247,19 +265,6 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       return;
     }
 
-    // It can be the case that the bounds are already very precise and running VI again can take a lot of time. We
-    // essentially run VI from the start assuming that no progress has been made yet. There are 2 cases when this
-    // happens. 1. There are new states in the MEC and VI needs to be run again. 2. The sampler reaches the uncertain
-    // state (The probability of this happening is infinitesimally small).
-    // In both these cases, it is fine to assume that no progress has been made. 1. Since, a new state has been added,
-    // the reward can increase. 2. Since, the bounds are already very precise, very little would be achieved by making
-    // VI more precise.
-    // Note that in the second case, even though we don't need to run the VI at all, the cost of differentiating from
-    // case 1 is more than the cost of simply running the VI for a few steps, so we run it anyway.
-//    if(isZero(targetPrecision)){
-//      targetPrecision = 0.5*this.rMax;
-//    }
-
     assert !isZero(targetPrecision);
 
     // Fetch the precomputed value map of the mec from the cache, and if there isn't any, then returns an empty map.
@@ -275,14 +280,12 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
     Bounds newBounds = valueIterator.getBounds();
     Bounds scaledBounds = Bounds.of(newBounds.lowerBound()/this.rMax, newBounds.upperBound()/this.rMax);
+
+    // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
+    // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
+    // lower bound value. Thus, we can use the previously computer lower bound value for slightly faster convergence.
     scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
 
-    // In the case when we run VI from scratch, the new bounds may be worse than the previously computed bounds. In that
-    // case we discard the new bounds. Specifically, we check if the new lower bound is worse than the previously
-    // computer lower bound. In both cases the cases where we run VI from scratch, this operation is valid. 1. If the
-    // new lower bound is lower than the previous lower bound, we can discard it safely as we can simply assume that
-    // the optimal strategy wouldn't include newly added states and the VI didn't achieve anything. 2. We already had a
-    // precise value, so we didn't need to run VI anyway.
     updateStayAction(mecRepresentative, scaledBounds);
 
     valueCache = valueIterator.getValues();
@@ -293,10 +296,10 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   /**
    * Implements OnTheFlyEC from CAV'17 paper.
    */
-  public boolean handleComponents(){
+  public void handleComponents(){
 
     if(!newStatesSinceCollapse){
-      return false;
+      return;
     }
 
     newStatesSinceCollapse = false;
@@ -309,7 +312,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     // This contains only newly found components. Since all previously found components are collapsed, they won't be recognized as MECs anymore.
 
     if(newComponents.isEmpty()){
-      return false;
+      return;
     }
 
     if (logger.isLoggable(Level.FINE)) {
@@ -342,8 +345,6 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       // updates the bounds of the representative according to all actions of mec members going out of the MEC.
       values.collapse(representative, choices(representative), collapseIterator.next());
     }
-
-    return true;
 
   }
 

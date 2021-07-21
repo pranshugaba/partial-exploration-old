@@ -53,6 +53,7 @@ public class RestrictedMecValueIterator<S, M extends Model> {
     this.aperidocityConstant = 0.8;
   }
 
+  // todo: confidence width
   /**
    * Simulates VI.
    */

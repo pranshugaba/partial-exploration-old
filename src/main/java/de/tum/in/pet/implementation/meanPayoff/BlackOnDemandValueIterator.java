@@ -18,25 +18,25 @@ import prism.PrismException;
 import java.util.*;
 import java.util.function.IntUnaryOperator;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
-import static de.tum.in.probmodels.util.Util.isZero;
-
+/**
+ * Class to facilitate OnDemandValueIteration for Black Box models. An amalgamation of CAV'17 and CAV'19 papers.
+ */
 public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValueIterator<S, M> {
 
-  private final double pMin;
-  private final double errorTolerance;
-  private final Double2LongFunction nSampleFunction;
+  private final double pMin; // as mentioned in CAV'19. It should be set to the lowest transition probability of the input model.
+  private final double errorTolerance; // as mentioned in CAV'19. Error tolerance for the learned distributions of the learned model.
+  private final Double2LongFunction nSampleFunction; // returns N_k for each k as in CAV'19. Returns the number of times paths should be sampled for each value of k.
 
-  private List<NatBitSet> mecs = new ArrayList<>();
-  private Double mecConfidence = 1d;
+  private List<NatBitSet> mecs = new ArrayList<>(); // Holds a list of mecs in the model.
+  private Double transDelta = 1d; // equal to delta_T as mentioned in CAV'19. Error tolerance for each transition of the learned model.
 
-  private final Int2IntMap stateToMecMap = new Int2IntOpenHashMap();
-  private Int2ObjectMap<Distribution> stayActionMap = new Int2ObjectOpenHashMap<>();
+  private final Int2IntMap stateToMecMap = new Int2IntOpenHashMap(); // Map that returns the mec Index the state is a part of.
+  private Int2ObjectMap<Distribution> stayActionMap = new Int2ObjectOpenHashMap<>(); // Map that holds the stay action for mecs, accessible using mecIndices.
 
-  private Int2IntMap stayActionCounts = new Int2IntOpenHashMap();
+  private Int2IntMap stayActionCounts = new Int2IntOpenHashMap(); // Map that holds the number of times each stay action for an mec has been sampled, accessible using mecIndices.
 
-  private boolean seenNewTransition = false;
+  private boolean seenNewTransitionSignificantly = false; // If a new transition has been sampled a significant number of times.
 
   public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                     int revisitThreshold, double rMax, double pMin, double errorTolerance,
@@ -59,15 +59,21 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
 
-    explorer.updateCountParams(mecConfidence, pMin);
+    explorer.updateCountParams(transDelta, pMin);
 
     double k = Math.pow(2, run);
     long nIterations = nSampleFunction.apply(k);
     double errorTolerance = this.errorTolerance;
 
+    // Updates the confidenceWidthFunction according to the latest counts and transDelta value. The confidenceWidthFunction
+    // returns the confidenceWidth for a state x and an action with index y. if y is greater than the number of choices
+    // the explorer holds, it must be the stay action. We set confidence width of stay action equal to zero as we
+    // know the probabilities of the action are accurate as they have been calculated and not learned.
     Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction = x -> (y -> y < explorer.getChoices(x).size()
-            ? Math.sqrt(-Math.log(mecConfidence)/(2*explorer.getActionCounts(x, y)))
+            ? Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))
             : 0);
+
+    // Updates the confidence width function in UnboundedReachValues.
     values.setConfidenceWidthFunction(confidenceWidthFunction);
 
     for (int i = 0; i < nIterations; i++) {
@@ -85,6 +91,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         // checks plus state,minus state and uncertain state
         if (BoundedMecQuotient.isSinkState(currentState)) {
           visitStack.removeInt(visitStack.size() - 1);
+          // We update the MEC reward bounds through running VI if we reach the uncertain or the plus state. This is
+          // slightly different from the version in CAV'17 where VI is only run when the uncertain state is reached.
+          // However, this is also OK as reaching the plus state shows that probably the lower reward bound is high
+          // enough, meaning the EC is promising and it is worth getting a more precise value. We make sure in updateMEC
+          // that we don't get value that is more precise than what is required.
           if (BoundedMecQuotient.isUncertainState(currentState)||BoundedMecQuotient.isPlusState(currentState)) {
             int mecIndex = stateToMecMap.get(visitStack.removeInt(visitStack.size() - 1));
             updateMec(mecIndex);
@@ -98,6 +109,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         List<Distribution> choices = choices(currentState);
 
+        // This condition is there as in the simulate function in CAV'19. It checks whether we have been returning to a
+        // state too many times during simulation indicating that we could be stuck inside an MEC.
         if (stateVisitCounts.get(currentState)>=revisitThreshold) {
           if (looping(visitStack)){
             break;
@@ -109,13 +122,18 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
           nextState = -1;
         }
         else {
-          int nextActionIndex = values.sampleNextAction(currentState, choices);
+          int nextActionIndex = values.sampleNextAction(currentState, choices); // index of the action from the state that is to be sampled next.
+          // this happens when none of the actions look promising at all, i.e. all actions have a upper bound of 0.
+          // To continue the simulation, we forcefully sample an action.
           if (nextActionIndex == -1) {
             nextActionIndex = explorer.sampleNextAction(currentState);
           }
 
           assert nextActionIndex != -1;
 
+          // If the sampled action's index is the last index and state is a part of an mec, then this index of a stay action.
+          // Here, we simply sample the next state. However, if we don't have a stay action, we have to call the explorer to
+          // sample the next state according to the real distributions.
           if (nextActionIndex == choices.size()-1 && stateToMecMap.containsKey(currentState)){
             nextState = choices.get(nextActionIndex).sample();
             stayActionCounts.put(stateToMecMap.get(currentState),
@@ -123,7 +141,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
           }
           else {
             nextState = explorer.sampleState(currentState, nextActionIndex);
-            seenNewTransition |= explorer.updateCounts(currentState, nextActionIndex, nextState, true);
+            // If this action has been sampled enough number of times, we know that it can now be considered as a part of an MEC.
+            // Hence, we know that there might be new MECs in the model and it could be worthwhile finding them again.
+            seenNewTransitionSignificantly |= explorer.updateCounts(currentState, nextActionIndex, nextState, true);
           }
         }
 
@@ -134,8 +154,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         currentState = nextState;
 
-        mecConfidence = errorTolerance*pMin/explorer.getNumTrans();
-        explorer.updateCountParams(mecConfidence, pMin);
+        transDelta = errorTolerance*pMin/explorer.getNumTrans();
+        explorer.updateCountParams(transDelta, pMin);
 
       }
 
@@ -161,10 +181,12 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 //            ? Math.sqrt(-Math.log(mecConfidence)/(2*explorer.getActionCounts(x, transformedChoices.get(x).get(y))))
 //            : 0));
     confidenceWidthFunction = x -> (y -> y < explorer.getChoices(x).size()
-            ? Math.sqrt(-Math.log(mecConfidence)/(2*explorer.getActionCounts(x, y)))
+            ? Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))
             : 0);
     values.setConfidenceWidthFunction(confidenceWidthFunction);
 
+    // the update function is ran until there has been some progress, i.e., the upper bounds of some state have been changed.
+    // if there has been change, this change needs to be propagated through the rest of the states.
     boolean ifProgress = true;
     while(ifProgress) {
       ifProgress = update();
@@ -174,9 +196,13 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
   }
 
+  /**
+   * Updates the bounds of the model according to the latest changes.
+   * @return true, if there have been any changes to the bounds of the states, else false.
+   */
   private boolean update(){
     BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
-    values.cacheCurrBounds();
+    values.cacheCurrBounds(); // cache the current bounds to check if we will make any progress in update.
 
     for (int state: explorer.exploredStates()){
       List<Distribution> realChoices = choices(state);
@@ -190,20 +216,32 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     return values.checkProgress();
   }
 
+  /**
+   * @param mecIndex: index of MEC for which bounds reward bounds are desired.
+   * @return Reward bounds of the MEC in question.
+   */
   @Override
   protected Bounds getMecBounds(int mecIndex) {
     return BoundedMecQuotient.getBoundsFromStayAction(stayActionMap.get(mecIndex));
   }
 
+  /**
+   * @param mecIndex: index of the desired MEC.
+   * @return MEC object for the desired mecRepresentative.
+   */
   @Override
   protected Mec getMec(int mecIndex) {
 
-    NatBitSet mecStates = NatBitSets.copyOf(stateToMecMap.keySet().stream()
-            .filter(key -> stateToMecMap.get((int) key)==mecIndex).collect(Collectors.toSet()));
+    NatBitSet mecStates = mecs.get(mecIndex);
 
     return Mec.create(explorer().model(), mecStates);
   }
 
+  /**
+   * Updates stay action of the MEC according to the given scaled bounds.
+   * @param mecIndex: index of the desired MEC.
+   * @param scaledBounds: scaled reward bounds for the MEC according to which the stay action is to be updated.
+   */
   @Override
   protected void updateStayAction(int mecIndex, Bounds scaledBounds) {
     Distribution stayAction = BoundedMecQuotient.getStayDistribution(scaledBounds);
@@ -211,13 +249,14 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   }
 
   @Override
-  public boolean handleComponents(){
+  public void handleComponents(){
 
-    if(!seenNewTransition){
-      return false;
+    // if no new transition has been seen significantly, don't compute mecs.
+    if(!seenNewTransitionSignificantly){
+      return;
     }
 
-    seenNewTransition = false;
+    seenNewTransitionSignificantly = false; // now we are computing mecs. no new transitions would have been seen after this computation.
 
     BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
     BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
@@ -226,18 +265,23 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
 
+    // activate the action count filter. Now explorer.model() only contains those actions that have been sampled
+    // requiredSamples number of times. (Refer to Algorithm 3 in CAV'19). Now we can get a delta-sure EC.
     explorer.activateActionCountFilter();
     List<NatBitSet> newComponents = mecAnalyser.findComponents(explorer.model(), states);  // find all MECs in the partial model.
 
+    // if no new components have been found, we clear all mec info that has been computed until now.
     if(newComponents.isEmpty()){
-      boolean boolRet = this.mecs.size() > 0;
       this.mecs.clear();
       this.stateToMecMap.clear();
       this.stayActionMap.clear();
+      this.mecValueCache.clear();
+      // deactivate action count filter so that the original actions are restored in the model.
       explorer.deactivateActionCountFilter();
-      return boolRet;
+      return;
     }
 
+    // udpates all the mec information variables according to the latest computations.
     NatBitSet changedMecs = updateMecInfo(newComponents);
 
     if (changedMecs.size()>0){
@@ -245,10 +289,10 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     }
     else {
       explorer.deactivateActionCountFilter();
-      return false;
+      return;
     }
 
-    // This collapses the sets of states into representatives. Further, the stay action is added here.
+    // This deflates the values of the states of the new mecs. Further, the stay action is added here.
 
     for(int i: changedMecs){
       NatBitSet newComponent = newComponents.get(i);
@@ -263,10 +307,14 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     }
 
     explorer.deactivateActionCountFilter();
-    return true;
 
   }
 
+  /**
+   * Updates mec information according to newComponents.
+   * @param newComponents: List of sets where each set represents an mec.
+   * @return the indices of new mecs.
+   */
   private NatBitSet updateMecInfo(List<NatBitSet> newComponents){
 
     newComponents.sort((t1, t2) -> {
@@ -286,14 +334,28 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     for(NatBitSet newComponent: newComponents){
       int mecIndex = stateToMecMap.getOrDefault(newComponent.firstInt(), -1);
+      boolean oldMec = true;
       for(int state: newComponent){
         int stateMecIndex = stateToMecMap.getOrDefault(state, -1);
+        // if the stateMecIndex is -1, it means that it didn't have an mec index previously. Thus, it must be a new mec.
+        if (stateMecIndex==-1) {
+          oldMec = false;
+        }
         if(stateMecIndex!=mecIndex){
+          // if this state's previous mec index is not equal to the previous mec index of the previous states, and if the current
+          // previous mecIndex is not -1 (if it were one, it could have meant that the current state was the first one),
+          // then we are looking at a new mec.
+          if (mecIndex!=-1){
+            oldMec = false;
+          }
           mecIndex = stateMecIndex;
         }
       }
-      if (mecIndex != -1 && mecs.get(mecIndex).size() == newComponent.size()){
+
+      // If all the below conditions are satisfied, this mec must be unchanged.
+      if (mecIndex != -1 && oldMec && mecs.get(mecIndex).size() == newComponent.size()){
         unchangedMecs.add(mecIndex);
+        // this holds the new index of this mec according to the new computation.
         newIndices.add(i);
       }
       i++;
@@ -303,6 +365,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     Int2IntMap newStayActionCounts = new Int2IntOpenHashMap();
     Int2ObjectMap<Int2DoubleMap> newMecValueCache = new Int2ObjectOpenHashMap<>();
 
+    // for unchanged mecs, we retain all mec info and put them at their new places.
     for(i=0; i<unchangedMecs.size(); i++){
       newStayActionMap.put(newIndices.getInt(i), stayActionMap.get(unchangedMecs.getInt(i)));
       newStayActionCounts.put(newIndices.getInt(i), stayActionCounts.get(unchangedMecs.getInt(i)));
@@ -322,12 +385,14 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
       }
     }
 
-
+    // All indices that aren't newIndices (new indices of old mecs) are new mecs.
     NatBitSet newMecs = NatBitSets.ensureModifiable(NatBitSets.boundedFullSet(newComponents.size()));
     newMecs.andNot(newIndices);
 
+    // stayActionMap.size() == oldMecs.size()
     assert stayActionMap.size() + newMecs.size() == mecs.size();
 
+    // initializing info for new mecs.
     for(int mecIndex: newMecs){
       stayActionCounts.put(mecIndex, 0);
       stayActionMap.put(mecIndex, BoundedMecQuotient.getStayDistribution(Bounds.reachUnknown()));
@@ -354,9 +419,17 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     return transformedChoices;
   }
 
+  /**
+   * The looping condition as found in algorithm 4 in CAV '19.
+   * @param visitStack the list of states visited until now.
+   * @return true if we are looping, else false
+   */
   private boolean looping(IntList visitStack){
 
+    // computes the set of mecs.
     handleComponents();
+    // if the stateToMecMap consists of the last visited state, it indicates that the state is part of an mec and we are
+    // probably looping.
     return stateToMecMap.containsKey(visitStack.getInt(visitStack.size()-1));
   }
 

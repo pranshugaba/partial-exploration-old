@@ -15,6 +15,7 @@ import static de.tum.in.probmodels.util.Util.isZero;
 
 public class BlackUnboundedReachValues extends UnboundedReachValues{
 
+  // Returns the confidence width for a state x and it's corresponding action index y
   private Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction = x -> (y -> (0));
 
   private Int2ObjectMap<Bounds> oldBounds;
@@ -23,6 +24,9 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
     super(update, target, precision, heuristic);
   }
 
+  /**
+   * Setter for confidenceWidthFunction.
+   */
   public void setConfidenceWidthFunction(Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction){
     this.confidenceWidthFunction = confidenceWidthFunction;
   }
@@ -31,20 +35,34 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
     this.confidenceWidthFunction = x -> (y -> (0));
   }
 
+  /**
+   * Creates a copy of the current bounds.
+   */
   public void cacheCurrBounds(){
     oldBounds = new Int2ObjectOpenHashMap<>(this.bounds);
   }
 
+  /**
+   * Checks whether there have been any significant changes in values compared to the last time the cacheCurrBounds()
+   * was called
+   * @return true if there are changes, else false
+   */
   public boolean checkProgress(){
     for(int state: bounds.keySet()){
-      if(!oldBounds.containsKey(state)||!((Math.abs(bounds.get(state).upperBound()-oldBounds.get(state).upperBound())<1e-6)||
-              (Math.abs(bounds.get(state).lowerBound()-oldBounds.get(state).lowerBound())<1e-6))){
+      if(!oldBounds.containsKey(state)||!((Math.abs(bounds.get(state).upperBound()-oldBounds.get(state).upperBound())<1e-8)&&
+              (Math.abs(bounds.get(state).lowerBound()-oldBounds.get(state).lowerBound())<1e-8))){
         return true;
       }
     }
     return false;
   }
 
+  /**
+   * Function to sample the index of the next action from choices from state.
+   * @param state: Current state from which the action originates.
+   * @param choices: Set of candidate choices.
+   * @return Index of the sampled action corresponding to choices.
+   */
   @Override
   public int sampleNextAction(int state, List<Distribution> choices){
 
@@ -56,6 +74,14 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
     return SampleUtil.getOptimalChoice(choices, actionScore);
   }
 
+  /**
+   * Returns the bounds of an action according to the modified Bellman Equations equations in the CAV'19 paper. They
+   * have been slightly modified according to Section 3.6.
+   * @param state: originating state. If the distribution is void, the bounds of state are returned.
+   * @param distribution: The probability distribution for sampling the next successor for an action.
+   * @param confidenceWidth: The confidence width for a state-action pair.
+   * @return Bounds of an action from a state with some confidence width.
+   */
   private Bounds successorBounds(int state, Distribution distribution, double confidenceWidth) {
     if (distribution.support().size()==0){
       return Bounds.reachUnknown();
@@ -82,6 +108,12 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
     return Bounds.reach(lower+remProb*minLower, upper+remProb*maxUpper);
   }
 
+  /**
+   * The deflate algorithm as mentioned in Algorithm 6 of the CAV'19 paper. For a set states (probably in an MEC), this
+   * sets the upper bound of all states to the upper bound of the best action leaving the set of states.
+   * @param states: set of states, whose values are to be deflated.
+   * @param choiceFunction: function that returns the choices for a given state.
+   */
   public void deflate(IntSet states, Int2ObjectFunction<List<Distribution>> choiceFunction){
     double newUpperBound;
 
@@ -91,6 +123,8 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
         List<Distribution> choices = choiceFunction.get(state);
         for(int i=0; i<choices.size(); i++){
           Distribution distribution = choices.get(i);
+          // checks if the action's support is contained within the set of states. This means this action doesn't leave
+          // the set of states.
           if(states.containsAll(distribution.support())){
             continue;
           }

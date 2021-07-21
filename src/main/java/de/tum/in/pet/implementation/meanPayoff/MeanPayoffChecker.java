@@ -83,17 +83,17 @@ public final class MeanPayoffChecker {
     Iterator<S, M> valueIterator;
 
     if (informationLevel==InformationLevel.WHITEBOX) {
-      UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, 2 * precision / maxReward, heuristic);
+      UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, precision / maxReward, heuristic);
 
-      valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward, 2 * precision / maxReward);
+      valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward, precision / maxReward);
     }
     else if (informationLevel==InformationLevel.BLACKBOX) {
       Double2LongFunction nSampleFunction = s -> iterSamples;
 
-      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, target, 2 * precision / maxReward, heuristic);
+      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, target, precision / maxReward, heuristic);
 
       valueIterator = new BlackOnDemandValueIterator<>(explorer, values, rewardGenerator,
-              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, 2 * precision / maxReward);
+              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward);
     }
     else{
       throw new UnsupportedOperationException("Only WhiteBox and BlackBox models are supported at the moment.");

@@ -66,6 +66,10 @@ public class BoundedMecQuotient<M extends Model> extends CollapseView<M> {
     return state==uncertainState;
   }
 
+  /**
+   * @param state Integer value of state to be checked
+   * @return Returns whether the given state is the plus state in the Bounded MEC Quotient.
+   */
   public static boolean isPlusState(int state) {
     return state==plusState;
   }
