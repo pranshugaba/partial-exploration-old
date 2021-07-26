@@ -49,8 +49,8 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
    */
   public boolean checkProgress(){
     for(int state: bounds.keySet()){
-      if(!oldBounds.containsKey(state)||!((Math.abs(bounds.get(state).upperBound()-oldBounds.get(state).upperBound())<1e-8)&&
-              (Math.abs(bounds.get(state).lowerBound()-oldBounds.get(state).lowerBound())<1e-8))){
+      if(!oldBounds.containsKey(state)||!((Math.abs(bounds.get(state).upperBound()-oldBounds.get(state).upperBound())<1e-6)&&
+              (Math.abs(bounds.get(state).lowerBound()-oldBounds.get(state).lowerBound())<1e-6))){
         return true;
       }
     }
@@ -105,6 +105,7 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
       bounds(state);
     }
     double remProb = 1-sum;
+    minLower = 0;
     return Bounds.reach(lower+remProb*minLower, upper+remProb*maxUpper);
   }
 

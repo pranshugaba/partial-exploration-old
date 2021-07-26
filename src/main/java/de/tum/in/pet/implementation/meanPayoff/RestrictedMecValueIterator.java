@@ -104,7 +104,6 @@ public class RestrictedMecValueIterator<S, M extends Model> {
 
       max=0.0; // max of diff (max of Delta_n)
       min=Double.MAX_VALUE; // min of diff (min of Delta_n)
-      // finding max and min can be done in log n time; we should have a better implementation
       for (double v : diff) {
         if (v > max) {
           max = v;

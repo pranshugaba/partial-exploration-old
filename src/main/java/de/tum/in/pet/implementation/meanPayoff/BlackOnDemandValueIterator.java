@@ -19,6 +19,9 @@ import java.util.*;
 import java.util.function.IntUnaryOperator;
 import java.util.logging.Level;
 
+import static de.tum.in.probmodels.util.Util.isZero;
+
+//todo mecvalue cache. better structure
 /**
  * Class to facilitate OnDemandValueIteration for Black Box models. An amalgamation of CAV'17 and CAV'19 papers.
  */
@@ -98,7 +101,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
           // that we don't get value that is more precise than what is required.
           if (BoundedMecQuotient.isUncertainState(currentState)||BoundedMecQuotient.isPlusState(currentState)) {
             int mecIndex = stateToMecMap.get(visitStack.removeInt(visitStack.size() - 1));
+            explorer.activateActionCountFilter();
             updateMec(mecIndex);
+            explorer.deactivateActionCountFilter();
           }
           break;
         }
@@ -140,7 +145,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
                     stayActionCounts.get(stateToMecMap.get(currentState))+1);
           }
           else {
-            nextState = explorer.sampleState(currentState, nextActionIndex);
+            nextState = explorer.simulateAction(currentState, nextActionIndex);
             // If this action has been sampled enough number of times, we know that it can now be considered as a part of an MEC.
             // Hence, we know that there might be new MECs in the model and it could be worthwhile finding them again.
             seenNewTransitionSignificantly |= explorer.updateCounts(currentState, nextActionIndex, nextState, true);
@@ -188,8 +193,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     // the update function is ran until there has been some progress, i.e., the upper bounds of some state have been changed.
     // if there has been change, this change needs to be propagated through the rest of the states.
     boolean ifProgress = true;
-    while(ifProgress) {
+    int nMaxUpdates = explorer.exploredStateCount();
+    int nUpdates = 0;
+    while(ifProgress && nUpdates < nMaxUpdates) {
       ifProgress = update();
+      nUpdates++;
     }
 
     return true;
@@ -246,6 +254,81 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   protected void updateStayAction(int mecIndex, Bounds scaledBounds) {
     Distribution stayAction = BoundedMecQuotient.getStayDistribution(scaledBounds);
     stayActionMap.put(mecIndex, stayAction);
+  }
+
+  /**
+   * Implements lines 11-15 in CAV'17 paper. Runs VI on mec.
+   * @param mecIndex: Index of mec on which VI has to be run.
+   */
+  @Override
+  protected void updateMec(int mecIndex){
+
+    BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
+
+    // mecBounds now contain the scaled reward upper and lower bounds.
+    Bounds mecBounds = getMecBounds(mecIndex);
+
+    double currPrecision = mecBounds.difference()*this.rMax;
+
+    if(currPrecision<this.precision){
+      return;
+    }
+
+    double targetPrecision = currPrecision/2;
+
+    logger.log(Level.INFO,  "updating MEC");
+
+    // get all the MEC states corresponding to mecRepresentative.
+    Mec mec = getMec(mecIndex);
+
+    if (mec.states.size()==0){
+      return;
+    }
+
+    double epsilon = targetPrecision/40;
+    int nTransitions = 0;
+    for(int state: mec.actions.keySet()) {
+      for(int actionInd: mec.actions.get(state)) {
+        if (explorer.model().getChoice(state, actionInd).size()<2) {
+          continue;
+        }
+        nTransitions += 1;
+      }
+    }
+
+    double requiredSamples = Math.min(1e8, (nTransitions/(2*Math.pow(epsilon, 2)))*Math.log(2*nTransitions/this.errorTolerance));
+//    double requiredSamples = -1e6*Math.log(targetPrecision);
+
+    for(int state: mec.actions.keySet()) {
+      for(int actionInd: mec.actions.get(state)) {
+        if (explorer.model().getChoice(state, actionInd).size()<2) {
+          continue;
+        }
+        explorer.simulateActionRepeatedly(state, actionInd, requiredSamples);
+      }
+    }
+
+    assert !isZero(targetPrecision);
+
+    // lambda function that returns a state object when given the state index. required for accessing reward generator function.
+    Int2ObjectFunction<S> stateIndexMap = explorer::getState;
+
+    RestrictedMecBoundedValueIterator<S, M> valueIterator = new RestrictedMecBoundedValueIterator<>(this.explorer.model(), mec, targetPrecision/2, rewardGenerator, stateIndexMap);
+    valueIterator.setConfidenceWidthFunction(x -> (y -> Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))));
+
+    valueIterator.run();
+
+    Bounds newBounds = valueIterator.getBounds();
+    Bounds scaledBounds = Bounds.of(newBounds.lowerBound()/this.rMax, newBounds.upperBound()/this.rMax);
+
+    // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
+    // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
+    // lower bound value. Thus, we can use the previously computer lower bound value for slightly faster convergence.
+    scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
+
+
+    updateStayAction(mecIndex, scaledBounds);
+
   }
 
   @Override

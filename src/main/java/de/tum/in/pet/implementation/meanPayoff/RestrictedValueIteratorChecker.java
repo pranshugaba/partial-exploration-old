@@ -114,7 +114,8 @@ public class RestrictedValueIteratorChecker {
 
     Mec mec = Mec.create(model, component);
 
-    RestrictedMecValueIterator<S, M> valueIterator = new RestrictedMecValueIterator<>(model, mec, precision, rewardGenerator, stateIndexMap);
+    RestrictedMecBoundedValueIterator<S, M> valueIterator = new RestrictedMecBoundedValueIterator<>(model, mec, precision, rewardGenerator, stateIndexMap);
+    valueIterator.setConfidenceWidthFunction(x -> (y -> 0.01));
     valueIterator.run();
     Bounds bounds = valueIterator.getBounds();
     if(bounds==null){
