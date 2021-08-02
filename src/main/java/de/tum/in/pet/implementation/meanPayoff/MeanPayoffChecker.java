@@ -5,8 +5,8 @@ import de.tum.in.naturals.set.RoaringNatBitSetFactory;
 import de.tum.in.pet.Main;
 import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
 import de.tum.in.pet.implementation.reachability.UnboundedReachValues;
+import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.implementation.reachability.ValueUpdate;
-import de.tum.in.pet.sampler.Iterator;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.CliHelper;
@@ -26,10 +26,15 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import parser.State;
 import parser.ast.ModulesFile;
+import parser.ast.Update;
 import prism.*;
 import simulator.ModulesFileModelGenerator;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.IntPredicate;
 import java.util.logging.Level;
@@ -47,20 +52,67 @@ public final class MeanPayoffChecker {
   public static final double PMIN_LOWERBOUND = 1.0e-6;
   public static final double DEFAULT_ERROR_TOLERANCE = 0.1;
   public static final int DEFAULT_ITERATION_SAMPLE = 10000;
+  public static final long TIMEOUT = 900000;
 
-  private MeanPayoffChecker(){
+  private static final List<Pair<Long, Bounds>> timeVBound = new ArrayList<>();
 
+  public static void writeResults(CommandLine commandLine) throws IOException {
+    String filename = "temp.txt";
+    BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
+
+    StringBuilder modelDetails = new StringBuilder();
+
+    Option[] options = commandLine.getOptions();
+
+    for (Option option : options) {
+      String shortOption = option.getOpt();
+      String longOption = option.getLongOpt();
+      if (shortOption!=null && commandLine.hasOption(shortOption)) {
+        modelDetails.append("-").append(shortOption).append(" ");
+        if (option.hasArg()) {
+          modelDetails.append(commandLine.getOptionValue(shortOption)).append(" ");
+        }
+      }
+      else if (longOption!=null && commandLine.hasOption(longOption)) {
+        modelDetails.append("--").append(longOption).append(" ");
+        if (option.hasArg()) {
+          modelDetails.append(commandLine.getOptionValue(longOption)).append(" ");
+        }
+      }
+    }
+
+    writer.write(modelDetails.toString());
+    writer.newLine();
+
+    StringBuilder times = new StringBuilder();
+    StringBuilder lowerBounds = new StringBuilder();
+    StringBuilder upperBounds = new StringBuilder();
+
+    for (Pair<Long, Bounds> timeBounds: timeVBound){
+      times.append(timeBounds.first).append(" ");
+      lowerBounds.append(timeBounds.second.lowerBound()).append(" ");
+      upperBounds.append(timeBounds.second.upperBound()).append(" ");
+    }
+
+    writer.write(times.toString());
+    writer.newLine();
+    writer.write(lowerBounds.toString());
+    writer.newLine();
+    writer.write(upperBounds.toString());
+    writer.newLine();
+
+    writer.close();
   }
 
   public static double solve(ModelGenerator generator, InformationLevel informationLevel, int rewardIndex,
-                             SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward,
-                             double pMin, double errorTolerance, int iterSamples)
+                             SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
+                             int revisitThreshold, double maxReward, double pMin, double errorTolerance, int iterSamples)
           throws PrismException {
     ModelType modelType = generator.getModelType();
     switch (modelType) {
       case MDP:
-        return solveMdp(generator, informationLevel, rewardIndex, heuristic, precision, revisitThreshold, maxReward,
-                pMin, errorTolerance, iterSamples);
+        return solveMdp(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold,
+                maxReward, pMin, errorTolerance, iterSamples);
       case CTMC:
       case DTMC:
       case LTS:
@@ -74,26 +126,26 @@ public final class MeanPayoffChecker {
   }
 
   private static <S, M extends Model> double solve(M partialModel, Generator<S> generator, InformationLevel informationLevel,
-      RewardGenerator<S> rewardGenerator, SuccessorHeuristic heuristic, double precision, int revisitThreshold,
-      double maxReward, double pMin, double errorTolerance, int iterSamples) throws PrismException {
+      RewardGenerator<S> rewardGenerator, SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
+      int revisitThreshold, double maxReward, double pMin, double errorTolerance, int iterSamples) throws PrismException {
 
     var explorer = Explorers.getExplorer(partialModel, generator, informationLevel, false);
 
     IntPredicate target = (x) -> x==Integer.MAX_VALUE;
-    Iterator<S, M> valueIterator;
+    OnDemandValueIterator<S, M> valueIterator;
 
     if (informationLevel==InformationLevel.WHITEBOX) {
       UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, precision / maxReward, heuristic);
 
-      valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward, precision / maxReward);
+      valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward, precision / maxReward, System.currentTimeMillis()+TIMEOUT);
     }
     else if (informationLevel==InformationLevel.BLACKBOX) {
       Double2LongFunction nSampleFunction = s -> iterSamples;
 
-      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, target, precision / maxReward, heuristic);
+      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
 
       valueIterator = new BlackOnDemandValueIterator<>(explorer, values, rewardGenerator,
-              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward);
+              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+TIMEOUT);
     }
     else{
       throw new UnsupportedOperationException("Only WhiteBox and BlackBox models are supported at the moment.");
@@ -106,13 +158,16 @@ public final class MeanPayoffChecker {
 
     logger.log(Level.INFO, "Explored states {0}", new Object[] {explorer.exploredStateCount()});
 
+    timeVBound.addAll(valueIterator.timeVBound);
+
     return maxReward*bounds.average();
 
   }
 
   private static double solveMdp(ModelGenerator prismGenerator, InformationLevel informationLevel, int rewardIndex,
-                                 SuccessorHeuristic heuristic, double precision, int revisitThreshold, double maxReward,
-                                 double pMin, double errorTolerance, int iterSamples)
+                                 SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
+                                 int revisitThreshold, double maxReward, double pMin, double errorTolerance,
+                                 int iterSamples)
           throws PrismException {
 
     MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
@@ -120,7 +175,7 @@ public final class MeanPayoffChecker {
 
     RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(rewardIndex, prismGenerator);
 
-    return solve(partialModel, generator, informationLevel, rewardGenerator, heuristic, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples);
+    return solve(partialModel, generator, informationLevel, rewardGenerator, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples);
 
   }
 
@@ -145,21 +200,23 @@ public final class MeanPayoffChecker {
     Option pMinOption = new Option(null, "pMin", true, "Estimated minimum probability of a transition in the model. (Only used for BlackBox models)");
     Option errorToleranceOption = new Option(null, "errorTolerance", true, "Error tolerance for blackbox exploration.");
     Option iterationSamplesOption =  new Option(null, "iterSamples", true, "Number of sample paths to be generated per episodic run.");
+    Option updateMethodOption = new Option(null, "updateMethod", true, "Update method to be used (greybox/blackbox)");
 
     modelOption.setRequired(true);
 
     Options options = new Options()
-            .addOption(precisionOption)
             .addOption(modelOption)
-            .addOption(heuristicOption)
             .addOption(constantsOption)
+            .addOption(precisionOption)
+            .addOption(heuristicOption)
             .addOption(revisitThresholdOption)
             .addOption(rewardModuleOption)
             .addOption(maxRewardOption)
             .addOption(informationOption)
             .addOption(pMinOption)
             .addOption(errorToleranceOption)
-            .addOption(iterationSamplesOption);
+            .addOption(iterationSamplesOption)
+            .addOption(updateMethodOption);
 
     CommandLine commandLine = CliHelper.parse(options, args);
 
@@ -193,6 +250,9 @@ public final class MeanPayoffChecker {
     InformationLevel informationLevel = CliHelper.parseInformationLevel(
             commandLine.getOptionValue(informationOption.getLongOpt()), InformationLevel.WHITEBOX);
 
+    UpdateMethod updateMethod = CliHelper.parseUpdateMethod(
+            commandLine.getOptionValue(updateMethodOption.getLongOpt()), UpdateMethod.GREYBOX);
+
     NatBitSets.setFactory(new RoaringNatBitSetFactory());
 
     double startTime1 = System.currentTimeMillis();
@@ -212,9 +272,12 @@ public final class MeanPayoffChecker {
       throw new NoSuchElementException("Reward module "+commandLine.getOptionValue(rewardModuleOption.getLongOpt())+" not found");
     }
 
-    double startTime2 = System.currentTimeMillis();
-    double meanPayoff = solve(generator, informationLevel, rewardIndex, heuristic, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples);
-    double endTime = System.currentTimeMillis();
+    long startTime2 = System.currentTimeMillis();
+    timeVBound.add(new Pair<>(startTime2, Bounds.reachUnknown()));
+    double meanPayoff = solve(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples);
+    long endTime = System.currentTimeMillis();
+
+    writeResults(commandLine);
 
     logger.log(Level.INFO, "Time to parse, construct model, and compute {0}", new Object[] {endTime-startTime1});
     logger.log(Level.INFO, "Time to compute {0}", new Object[] {endTime-startTime2});

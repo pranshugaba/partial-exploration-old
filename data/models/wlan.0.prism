@@ -245,3 +245,7 @@ rewards	"cost"
 	[time] c1=2 & c2=0 & (bc1>0 | bc2>0) : 50*1000;
 	[time] c1=2 & c2=2 & (bc1>0 | bc2>0) : 50*2000;
 endrewards
+
+rewards "default"
+    s1=12 & s2=12: 1;
+endrewards

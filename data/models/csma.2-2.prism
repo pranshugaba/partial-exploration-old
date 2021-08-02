@@ -126,3 +126,6 @@ formula min_backoff_after_success = min(s1=4?cd1:K+1,s2=4?cd2:K+1);
 formula min_collisions = min(cd1,cd2);
 formula max_collisions = max(cd1,cd2);
 
+rewards
+    min(s1=4?cd1:K+1,s2=4?cd2:K+1) < K: 1;
+endrewards

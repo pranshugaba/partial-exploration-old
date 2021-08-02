@@ -58,3 +58,7 @@ rewards "steps"
 	true : 1;
 endrewards
 
+rewards "custom"
+    !(coin1=coin2) : 1;
+endrewards
+

@@ -5,7 +5,9 @@ import de.tum.in.pet.util.SampleUtil;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.model.Distribution;
 import it.unimi.dsi.fastutil.ints.*;
+import prism.Pair;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntPredicate;
 import java.util.function.ToDoubleFunction;
@@ -15,13 +17,17 @@ import static de.tum.in.probmodels.util.Util.isZero;
 
 public class BlackUnboundedReachValues extends UnboundedReachValues{
 
+  private final UpdateMethod updateMethod;
+
   // Returns the confidence width for a state x and it's corresponding action index y
   private Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction = x -> (y -> (0));
 
   private Int2ObjectMap<Bounds> oldBounds;
 
-  public BlackUnboundedReachValues(ValueUpdate update, IntPredicate target, double precision, SuccessorHeuristic heuristic) {
+  public BlackUnboundedReachValues(ValueUpdate update, UpdateMethod updateMethod, IntPredicate target, double precision,
+                                   SuccessorHeuristic heuristic) {
     super(update, target, precision, heuristic);
+    this.updateMethod = updateMethod;
   }
 
   /**
@@ -105,21 +111,19 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
       bounds(state);
     }
     double remProb = 1-sum;
-    minLower = 0;
+    if(updateMethod==UpdateMethod.BLACKBOX) {
+      minLower = 0;
+      maxUpper = 1;
+    }
     return Bounds.reach(lower+remProb*minLower, upper+remProb*maxUpper);
   }
 
-  /**
-   * The deflate algorithm as mentioned in Algorithm 6 of the CAV'19 paper. For a set states (probably in an MEC), this
-   * sets the upper bound of all states to the upper bound of the best action leaving the set of states.
-   * @param states: set of states, whose values are to be deflated.
-   * @param choiceFunction: function that returns the choices for a given state.
-   */
-  public void deflate(IntSet states, Int2ObjectFunction<List<Distribution>> choiceFunction){
-    double newUpperBound;
+  public List<Pair<Integer, Integer>> getBestLeavingAction(IntSet states, Int2ObjectFunction<List<Distribution>> choiceFunction) {
+    double bestUpperBound;
+    List<Pair<Integer, Integer>> bestActionStatePairs = new ArrayList<>();
 
     if (update == ValueUpdate.MAX_VALUE) {
-      newUpperBound = 0.0d;
+      bestUpperBound = 0.0d;
       for (int state: states){
         List<Distribution> choices = choiceFunction.get(state);
         for(int i=0; i<choices.size(); i++){
@@ -129,14 +133,21 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
           if(states.containsAll(distribution.support())){
             continue;
           }
-          newUpperBound = Math.max(newUpperBound, successorBounds(state, distribution,
-                  confidenceWidthFunction.get(state).get(i)).upperBound());
+          double newUpperBound = successorBounds(state, distribution, confidenceWidthFunction.get(state).get(i)).upperBound();
+          if (newUpperBound > bestUpperBound) {
+            bestUpperBound = newUpperBound;
+            bestActionStatePairs = new ArrayList<>();
+            bestActionStatePairs.add(new Pair<>(state, i));
+          }
+          else if (newUpperBound == bestUpperBound) {
+            bestActionStatePairs.add(new Pair<>(state, i));
+          }
         }
       }
     } else {
       assert update == ValueUpdate.MIN_VALUE;
 
-      newUpperBound = 1.0d;
+      bestUpperBound = 1.0d;
       for (int state: states){
         List<Distribution> choices = choiceFunction.get(state);
         for(int i=0; i<choices.size(); i++){
@@ -144,11 +155,37 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
           if(distribution.support().containsAll(states)){
             continue;
           }
-          newUpperBound = Math.min(newUpperBound, successorBounds(state, distribution,
-                  confidenceWidthFunction.get(state).get(i)).upperBound());
+          double newUpperBound = successorBounds(state, distribution, confidenceWidthFunction.get(state).get(i)).upperBound();
+          if (newUpperBound < bestUpperBound){
+            bestUpperBound = newUpperBound;
+            bestActionStatePairs = new ArrayList<>();
+            bestActionStatePairs.add(new Pair<>(state, i));
+          }
+          else if (newUpperBound == bestUpperBound) {
+            bestActionStatePairs.add(new Pair<>(state, i));
+          }
         }
       }
     }
+
+    return bestActionStatePairs;
+  }
+
+  /**
+   * The deflate algorithm as mentioned in Algorithm 6 of the CAV'19 paper. For a set states (probably in an MEC), this
+   * sets the upper bound of all states to the upper bound of the best action leaving the set of states.
+   * @param states: set of states, whose values are to be deflated.
+   * @param choiceFunction: function that returns the choices for a given state.
+   */
+  public void deflate(IntSet states, Int2ObjectFunction<List<Distribution>> choiceFunction){
+
+    List<Pair<Integer, Integer>> bestLeavingActionStatePair = this.getBestLeavingAction(states, choiceFunction);
+
+    int actionState = bestLeavingActionStatePair.get(0).first;
+    int actionIndex = bestLeavingActionStatePair.get(0).second;
+    Distribution distribution = choiceFunction.get(actionState).get(actionIndex);
+    double newUpperBound = successorBounds(actionState, distribution,
+            confidenceWidthFunction.get(actionState).get(actionIndex)).upperBound();
 
     for (int state: states){
       if (upperBound(state)>newUpperBound) {

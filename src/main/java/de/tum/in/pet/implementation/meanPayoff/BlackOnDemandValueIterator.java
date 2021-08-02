@@ -13,15 +13,15 @@ import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
 import it.unimi.dsi.fastutil.ints.*;
+import prism.Pair;
 import prism.PrismException;
 
 import java.util.*;
-import java.util.function.IntUnaryOperator;
 import java.util.logging.Level;
 
 import static de.tum.in.probmodels.util.Util.isZero;
 
-//todo mecvalue cache. better structure
+// better structure
 /**
  * Class to facilitate OnDemandValueIteration for Black Box models. An amalgamation of CAV'17 and CAV'19 papers.
  */
@@ -43,8 +43,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
   public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                     int revisitThreshold, double rMax, double pMin, double errorTolerance,
-                                    Double2LongFunction nSampleFunction, double precision) {
-    super(explorer, values, rewardGenerator, revisitThreshold, rMax, precision);
+                                    Double2LongFunction nSampleFunction, double precision, long timeout) {
+    super(explorer, values, rewardGenerator, revisitThreshold, rMax, precision, timeout);
     this.pMin = pMin;
     this.errorTolerance = errorTolerance;
     this.nSampleFunction = nSampleFunction;
@@ -67,6 +67,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     double k = Math.pow(2, run);
     long nIterations = nSampleFunction.apply(k);
     double errorTolerance = this.errorTolerance;
+
+    Random randomIntegerSampler = new Random();
 
     // Updates the confidenceWidthFunction according to the latest counts and transDelta value. The confidenceWidthFunction
     // returns the confidenceWidth for a state x and an action with index y. if y is greater than the number of choices
@@ -113,43 +115,45 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         }
 
         List<Distribution> choices = choices(currentState);
+        if (choices.isEmpty()){
+          break;
+        }
 
+        int nextState, nextActionIndex;
         // This condition is there as in the simulate function in CAV'19. It checks whether we have been returning to a
         // state too many times during simulation indicating that we could be stuck inside an MEC.
-        if (stateVisitCounts.get(currentState)>=revisitThreshold) {
-          if (looping(visitStack)){
-            break;
-          }
-        }
-
-        int nextState;
-        if (choices.isEmpty()){
-          nextState = -1;
+        if (stateVisitCounts.get(currentState)>=revisitThreshold && looping(visitStack)) {
+          int mecIndex = stateToMecMap.get(currentState);
+          NatBitSet mecStates = this.mecs.get(mecIndex);
+          List<Pair<Integer, Integer>> bestActionStatePairs = values.getBestLeavingAction(mecStates, this::choices);
+          int sampledActionStatePair = randomIntegerSampler.nextInt(bestActionStatePairs.size());
+          currentState = bestActionStatePairs.get(sampledActionStatePair).first;
+          nextActionIndex = bestActionStatePairs.get(sampledActionStatePair).second;
+          choices = choices(currentState);
         }
         else {
-          int nextActionIndex = values.sampleNextAction(currentState, choices); // index of the action from the state that is to be sampled next.
+          nextActionIndex = values.sampleNextAction(currentState, choices); // index of the action from the state that is to be sampled next.
           // this happens when none of the actions look promising at all, i.e. all actions have a upper bound of 0.
           // To continue the simulation, we forcefully sample an action.
           if (nextActionIndex == -1) {
             nextActionIndex = explorer.sampleNextAction(currentState);
           }
+        }
 
-          assert nextActionIndex != -1;
+        assert nextActionIndex != -1;
 
-          // If the sampled action's index is the last index and state is a part of an mec, then this index of a stay action.
-          // Here, we simply sample the next state. However, if we don't have a stay action, we have to call the explorer to
-          // sample the next state according to the real distributions.
-          if (nextActionIndex == choices.size()-1 && stateToMecMap.containsKey(currentState)){
-            nextState = choices.get(nextActionIndex).sample();
-            stayActionCounts.put(stateToMecMap.get(currentState),
-                    stayActionCounts.get(stateToMecMap.get(currentState))+1);
-          }
-          else {
-            nextState = explorer.simulateAction(currentState, nextActionIndex);
-            // If this action has been sampled enough number of times, we know that it can now be considered as a part of an MEC.
-            // Hence, we know that there might be new MECs in the model and it could be worthwhile finding them again.
-            seenNewTransitionSignificantly |= explorer.updateCounts(currentState, nextActionIndex, nextState, true);
-          }
+        // If the sampled action's index is the last index and state is a part of an mec, then this index of a stay action.
+        // Here, we simply sample the next state. However, if we don't have a stay action, we have to call the explorer to
+        // sample the next state according to the real distributions.
+        if (nextActionIndex == choices.size()-1 && stateToMecMap.containsKey(currentState)){
+          nextState = choices.get(nextActionIndex).sample();
+          stayActionCounts.put(stateToMecMap.get(currentState), stayActionCounts.get(stateToMecMap.get(currentState))+1);
+        }
+        else {
+          nextState = explorer.simulateAction(currentState, nextActionIndex);
+          // If this action has been sampled enough number of times, we know that it can now be considered as a part of an MEC.
+          // Hence, we know that there might be new MECs in the model and it could be worthwhile finding them again.
+          seenNewTransitionSignificantly |= explorer.updateCounts(currentState, nextActionIndex, nextState, true);
         }
 
         // This is true when the currentState doesn't have any choices from it, i.e. it is a sink state.
@@ -172,19 +176,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     values.resetBounds();
     initSinkStates();
 
-//    Int2ObjectMap<List<Integer>> transformedChoices = new Int2ObjectOpenHashMap<>();
-//    for (int state: explorer.exploredStates()){
-//      NatBitSet mec = stateToMecMap.containsKey(state) ? mecs.get(stateToMecMap.get(state)) : NatBitSets.emptySet();
-//      // Function to remap distributions
-//      IntUnaryOperator map = successor -> mec.contains(successor) ? -1 : successor;
-//
-//      List<Integer> stateTransformedChoices = getTransformedChoices(state, map);
-//      transformedChoices.put(state, stateTransformedChoices);
-//    }
-
-//    confidenceWidthFunction = x -> (y -> (transformedChoices.get(x).get(y) < explorer.getChoices(x).size()
-//            ? Math.sqrt(-Math.log(mecConfidence)/(2*explorer.getActionCounts(x, transformedChoices.get(x).get(y))))
-//            : 0));
     confidenceWidthFunction = x -> (y -> y < explorer.getChoices(x).size()
             ? Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))
             : 0);
@@ -270,7 +261,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     double currPrecision = mecBounds.difference()*this.rMax;
 
-    if(currPrecision<this.precision){
+    if(currPrecision<this.precision/2){
       return;
     }
 
@@ -446,18 +437,15 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     Int2ObjectMap<Distribution> newStayActionMap = new Int2ObjectOpenHashMap<>();
     Int2IntMap newStayActionCounts = new Int2IntOpenHashMap();
-    Int2ObjectMap<Int2DoubleMap> newMecValueCache = new Int2ObjectOpenHashMap<>();
 
     // for unchanged mecs, we retain all mec info and put them at their new places.
     for(i=0; i<unchangedMecs.size(); i++){
       newStayActionMap.put(newIndices.getInt(i), stayActionMap.get(unchangedMecs.getInt(i)));
       newStayActionCounts.put(newIndices.getInt(i), stayActionCounts.get(unchangedMecs.getInt(i)));
-      newMecValueCache.put(newIndices.getInt(i), mecValueCache.get(unchangedMecs.getInt(i)));
     }
 
     stayActionMap = newStayActionMap;
     stayActionCounts = newStayActionCounts;
-    mecValueCache = newMecValueCache;
     this.mecs = newComponents;
 
     stateToMecMap.clear();
@@ -483,23 +471,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     return newMecs;
 
-  }
-
-  private List<Integer> getTransformedChoices(int state, IntUnaryOperator map){
-    List<Distribution> choices = choices(state);
-    List<Integer> transformedChoices = new ArrayList<>();
-
-    for (int i=0; i<choices.size(); i++) {
-      Distribution choice = choices.get(i);
-      if (choice.support().size()>0 &&
-              choice.support().stream().allMatch(successor -> map.applyAsInt(successor)==-1)){
-        continue;
-      }
-
-      transformedChoices.add(i);
-    }
-
-    return transformedChoices;
   }
 
   /**

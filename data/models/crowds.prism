@@ -176,3 +176,6 @@ module crowds
 	
 endmodule
 
+rewards
+    true : 1;
+endrewards

@@ -12,8 +12,10 @@ import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.graph.MecComponentAnalyser;
 import de.tum.in.probmodels.model.*;
 import it.unimi.dsi.fastutil.ints.*;
+import prism.Pair;
 import prism.PrismException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,6 +32,9 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   private final BoundedMecQuotient<M> boundedMecQuotient;
   protected final RewardGenerator<S> rewardGenerator;
 
+  protected final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
+
+  protected final double precision;
   protected final int revisitThreshold;
   protected final double rMax;
 
@@ -39,12 +44,12 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   // stores most recent VI results for all states.
   protected Int2ObjectMap<Int2DoubleMap> mecValueCache = new Int2ObjectOpenHashMap<>();
 
-  protected final MecComponentAnalyser mecAnalyser = new MecComponentAnalyser();
+  protected List<Pair<Long, Bounds>> timeVBound = new ArrayList<>();
 
-  protected final double precision;
+  private final long timeout;
 
   public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator, 
-                               int revisitThreshold, double rMax, double precision) {
+                               int revisitThreshold, double rMax, double precision, long timeout) {
     this.explorer = explorer;
 
     this.values = values;
@@ -56,6 +61,8 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
     this.precision = precision;
 
+    this.timeout = timeout;
+
   }
 
   /**
@@ -64,6 +71,10 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
   @Override
   public Explorer<S, M> explorer() {
     return explorer;
+  }
+
+  public List<Pair<Long, Bounds>> getTimeVBound() {
+    return timeVBound;
   }
 
   @Override
@@ -116,13 +127,14 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     int representative = boundedMecQuotient.representative(initialState);
 
     // isSolved() defined in UnboundedReachValues
-    while(!values.isSolved(representative)) {  // The values between upper and lower bounds for the initial states should,be less than epsilon
+    while(!(values.isSolved(representative)||System.currentTimeMillis()>timeout)) {  // The values between upper and lower bounds for the initial states should,be less than epsilon
 //      logger.log(Level.INFO, "Run "+run);
       if (sample(representative, run)) {
         // initialState may be part of an MEC and the MEC may be collapsed, and we may have a representative that is different
         // from initialState
         representative = boundedMecQuotient.representative(initialState);
       }
+      timeVBound.add(new Pair<>(System.currentTimeMillis(), bounds(initialState)));
       run++;  // count of episodic runs
       if (run%1000==0){
 //        logger.log(Level.INFO, "Bounds "+bounds(representative));

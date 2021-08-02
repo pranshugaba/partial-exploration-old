@@ -1,5 +1,6 @@
 package de.tum.in.pet.util;
 
+import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -55,6 +56,23 @@ public final class CliHelper {
     }
     try {
       return InformationLevel.valueOf(optionString);
+    } catch (IllegalArgumentException e) {
+      logger.log(Level.FINE, "Failed to parse information level", e);
+      String values = Arrays.stream(InformationLevel.values())
+              .map(Object::toString)
+              .collect(Collectors.joining(", "));
+      System.out.println("Unknown information level " + optionString + ". Possible values are: " + values);
+      System.exit(1);
+      throw new AssertionError(e);
+    }
+  }
+
+  public static UpdateMethod parseUpdateMethod(String optionString, UpdateMethod defaultValue) {
+    if (optionString == null) {
+      return defaultValue;
+    }
+    try {
+      return UpdateMethod.valueOf(optionString);
     } catch (IllegalArgumentException e) {
       logger.log(Level.FINE, "Failed to parse information level", e);
       String values = Arrays.stream(InformationLevel.values())

@@ -146,6 +146,8 @@ public class RestrictedMecBoundedValueIterator<S, M extends Model> {
       maxUpper = Math.max(maxUpper, succUpper);
     }
     double remProb = 1-probSum;
+//    minLower = 0;
+//    maxUpper = 1;
     lower += remProb*minLower*this.aperidocityConstant;
     upper += remProb*maxUpper*this.aperidocityConstant;
     lower += (1-this.aperidocityConstant)*this.aperidocityConstant*values.get(state).lowerBound();
