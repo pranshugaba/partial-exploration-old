@@ -48,7 +48,7 @@ for i in range(len(runConfigs)):
 
     runConfig = runConfigs[i]
 
-    cmdLine = exec + "meanPayoff --args='"+runConfig+"'"
+    cmdLine = exec + " --args='"+runConfig+"'"
 
     modelName = runConfig.split()[2].split("/")[-1].split(".")[0]
     print(cmdLine)
