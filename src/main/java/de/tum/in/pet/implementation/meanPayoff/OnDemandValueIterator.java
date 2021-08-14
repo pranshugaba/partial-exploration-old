@@ -134,7 +134,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
         // from initialState
         representative = boundedMecQuotient.representative(initialState);
       }
-      timeVBound.add(new Pair<>(System.currentTimeMillis(), bounds(initialState)));
+      timeVBound.add(new Pair<>(System.currentTimeMillis(), Bounds.of(this.rMax*bounds(initialState).lowerBound(), this.rMax*bounds(initialState).upperBound())));
       run++;  // count of episodic runs
       if (run%1000==0){
 //        logger.log(Level.INFO, "Bounds "+bounds(representative));

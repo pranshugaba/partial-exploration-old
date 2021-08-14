@@ -6,6 +6,7 @@ import de.tum.in.pet.implementation.core.CoreChecker;
 import de.tum.in.pet.implementation.meanPayoff.MeanPayoffChecker;
 import de.tum.in.pet.implementation.meanPayoff.RestrictedValueIteratorChecker;
 import de.tum.in.pet.implementation.reachability.ReachChecker;
+import de.tum.in.pet.util.MinProbabilityCalculator;
 import de.tum.in.probmodels.util.PrismHelper;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -67,6 +68,9 @@ public final class Main {
         break;
       case "meanPayoff":
         MeanPayoffChecker.main(subArgs);
+        break;
+      case "pMin":
+        MinProbabilityCalculator.main(subArgs);
         break;
       default:
         System.out.println("Unknown tool " + args[0]);
