@@ -281,7 +281,7 @@ public final class MeanPayoffChecker {
     }
 
     long startTime2 = System.currentTimeMillis();
-    timeVBound.add(new Pair<>(startTime2, Bounds.reachUnknown()));
+    timeVBound.add(new Pair<>(startTime2, Bounds.of(0, maxReward)));
     double meanPayoff = solve(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout);
     long endTime = System.currentTimeMillis();
 
