@@ -13,10 +13,7 @@ import de.tum.in.pet.util.CliHelper;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.explorer.Explorers;
 import de.tum.in.probmodels.explorer.InformationLevel;
-import de.tum.in.probmodels.generator.Generator;
-import de.tum.in.probmodels.generator.MdpGenerator;
-import de.tum.in.probmodels.generator.PrismRewardGenerator;
-import de.tum.in.probmodels.generator.RewardGenerator;
+import de.tum.in.probmodels.generator.*;
 import de.tum.in.probmodels.model.MarkovDecisionProcess;
 import de.tum.in.probmodels.model.Model;
 import de.tum.in.probmodels.util.PrismHelper;
@@ -150,7 +147,12 @@ public final class MeanPayoffChecker {
               revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout);
     }
     else{
-      throw new UnsupportedOperationException("Only WhiteBox and BlackBox models are supported at the moment.");
+      Double2LongFunction nSampleFunction = s -> iterSamples;
+
+      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
+
+      valueIterator = new GreyOnDemandValueIterator<>(explorer, values, rewardGenerator,
+              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout);
     }
 
     valueIterator.run();
