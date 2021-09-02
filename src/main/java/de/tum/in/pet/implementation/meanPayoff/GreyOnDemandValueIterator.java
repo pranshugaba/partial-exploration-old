@@ -110,11 +110,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
                     // that we don't get value that is more precise than what is required.
                     if (BoundedMecQuotient.isUncertainState(currentState)||BoundedMecQuotient.isPlusState(currentState)) {
                         int mecIndex = stateToMecMap.get(visitStack.removeInt(visitStack.size() - 1));
-
-                        //TODO check this
-//                        explorer.activateActionCountFilter();
                         updateMec(mecIndex);
-//                        explorer.deactivateActionCountFilter();
                     }
                     break;
                 }
@@ -346,7 +342,6 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
 
         NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
 
-        explorer.activateActionCountFilter();
         // find all MECs in the partial model.
         List<NatBitSet> newComponents = mecAnalyser.findComponents(explorer.model(), states);
 
