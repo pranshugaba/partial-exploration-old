@@ -5,8 +5,8 @@ import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.values.Bounds;
-import de.tum.in.probmodels.explorer.BlackExplorer;
 import de.tum.in.probmodels.explorer.Explorer;
+import de.tum.in.probmodels.explorer.GreyExplorer;
 import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.model.Action;
@@ -46,7 +46,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
 
     private Int2IntMap stayActionCounts = new Int2IntOpenHashMap(); // Map that holds the number of times each stay action for an mec has been sampled, accessible using mecIndices.
 
-    private boolean seenNewTransitionSignificantly = false; // If a new transition has been sampled a significant number of times.
+    // TODO add seenNewTransitions. If true we can find components.
 
     public GreyOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                      int revisitThreshold, double rMax, double pMin, double errorTolerance,
@@ -67,9 +67,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
 
         BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
 
-        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
-
-        explorer.updateCountParams(transDelta, pMin);
+        GreyExplorer<S, M> explorer = (GreyExplorer<S, M>) explorer();
 
         double k = Math.pow(2, run);
         long nIterations = nSampleFunction.apply(k);
@@ -89,27 +87,23 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         values.setConfidenceWidthFunction(confidenceWidthFunction);
 
         for (int i = 0; i < nIterations; i++) {
-
-            IntList visitStack = new IntArrayList();
             int currentState = initialState;
+            int prevState = initialState;
             Int2IntOpenHashMap stateVisitCounts = new Int2IntOpenHashMap();  // keeps counts of the number of times a state is visited
 
             while (true) {
-
-                visitStack.add(currentState);
                 stateVisitCounts.putIfAbsent(currentState, 0);
                 stateVisitCounts.addTo(currentState, 1);
 
                 // checks plus state,minus state and uncertain state
                 if (BoundedMecQuotient.isSinkState(currentState)) {
-                    visitStack.removeInt(visitStack.size() - 1);
                     // We update the MEC reward bounds through running VI if we reach the uncertain or the plus state. This is
                     // slightly different from the version in CAV'17 where VI is only run when the uncertain state is reached.
                     // However, this is also OK as reaching the plus state shows that probably the lower reward bound is high
                     // enough, meaning the EC is promising and it is worth getting a more precise value. We make sure in updateMEC
                     // that we don't get value that is more precise than what is required.
                     if (BoundedMecQuotient.isUncertainState(currentState)||BoundedMecQuotient.isPlusState(currentState)) {
-                        int mecIndex = stateToMecMap.get(visitStack.removeInt(visitStack.size() - 1));
+                        int mecIndex = stateToMecMap.get(prevState);
                         updateMec(mecIndex);
                     }
                     break;
@@ -127,7 +121,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
                 int nextState, nextActionIndex;
                 // This condition is there as in the simulate function in CAV'19. It checks whether we have been returning to a
                 // state too many times during simulation indicating that we could be stuck inside an MEC.
-                if (stateVisitCounts.get(currentState)>=revisitThreshold && looping(visitStack)) {
+                if (stateVisitCounts.get(currentState)>=revisitThreshold && looping(currentState)) {
                     int mecIndex = stateToMecMap.get(currentState);
                     NatBitSet mecStates = this.mecs.get(mecIndex);
                     List<Pair<Integer, Integer>> bestActionStatePairs = values.getBestLeavingAction(mecStates, this::choices);
@@ -158,7 +152,8 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
                     nextState = explorer.simulateAction(currentState, nextActionIndex);
                     // If this action has been sampled enough number of times, we know that it can now be considered as a part of an MEC.
                     // Hence, we know that there might be new MECs in the model and it could be worthwhile finding them again.
-                    seenNewTransitionSignificantly |= explorer.updateCounts(currentState, nextActionIndex, nextState, true);
+                    //TODO this has to be done in grey box?
+                    explorer.updateCounts(currentState, nextActionIndex, nextState, true);
                 }
 
                 // This is true when the currentState doesn't have any choices from it, i.e. it is a sink state.
@@ -166,10 +161,10 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
                     break;
                 }
 
+                prevState = currentState;
                 currentState = nextState;
 
                 transDelta = errorTolerance*pMin/explorer.getNumTrans();
-                explorer.updateCountParams(transDelta, pMin);
 
             }
         }
@@ -257,7 +252,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
     @Override
     protected void updateMec(int mecIndex){
 
-        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
+        GreyExplorer<S, M> explorer = (GreyExplorer<S, M>) this.explorer;
 
         // mecBounds now contain the scaled reward upper and lower bounds.
         Bounds mecBounds = getMecBounds(mecIndex);
@@ -328,17 +323,8 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
     @Override
     public void handleComponents(){
 
-        // if no new transition has been seen significantly, don't compute mecs.
-        if(!seenNewTransitionSignificantly){
-            return;
-        }
-
-        seenNewTransitionSignificantly = false; // now we are computing mecs. no new transitions would have been seen after this computation.
-
-        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
+        GreyExplorer<S, M> explorer = (GreyExplorer<S, M>) explorer();
         BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
-
-        logger.log(Level.INFO, "Searching components");
 
         NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
 
@@ -348,6 +334,10 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         //TODO Filter actions first
 
         //TODO Explore states first
+
+        // The new components is given as a set of states.
+        // We convert each component to a partial model.
+        // Then we check for each state, action pair in that model, the component has been fully explored.
 
         // We only take the components, that have been explored fully.
         newComponents = newComponents.stream()
@@ -366,10 +356,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         // udpates all the mec information variables according to the latest computations.
         NatBitSet changedMecs = updateMecInfo(newComponents);
 
-        if (changedMecs.size()>0){
-            logger.log(Level.INFO, "Found {0} new components", changedMecs.size());
-        }
-        else {
+        if (changedMecs.isEmpty()) {
             return;
         }
 
@@ -480,16 +467,15 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
 
     /**
      * The looping condition as found in algorithm 4 in CAV '19.
-     * @param visitStack the list of states visited until now.
      * @return true if we are looping, else false
      */
-    private boolean looping(IntList visitStack){
+    private boolean looping(int lastVisitedState){
 
         // computes the set of mecs.
         handleComponents();
         // if the stateToMecMap consists of the last visited state, it indicates that the state is part of an mec and we are
         // probably looping.
-        return stateToMecMap.containsKey(visitStack.getInt(visitStack.size()-1));
+        return stateToMecMap.containsKey(lastVisitedState);
     }
 
     @Override
@@ -505,24 +491,42 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
     }
 
     /**
+     * Converts the given set of states to a partial model.
+     * Then checks whether the components have been fully explored.
+     */
+    private boolean isComponentExplored(NatBitSet componentStates) {
+        // The set of states, needs to be converted to model. Because, the model in the explorer, might contain actions
+        // that may not be a part of Mec. We only check actions, that belong to Mec.
+        Mec componentModel = getModelForComponent(componentStates);
+        return isComponentExplored(componentModel);
+    }
+
+    /**
      * Checks whether there are any partially explored actions, in each state of the component.
      * Doesn't check every action of a state has been explored, but checks no action has been partially explored.
      *
-     * @param t1 The MEC component
+     * @param componentModel Model that represents the states and actions of the component
      * @return TRUE, if there are no partially explored states in the component.
      */
-    private boolean isComponentExplored(NatBitSet t1) {
-        return t1.stream().allMatch(this::isStateExplored);
+    private boolean isComponentExplored(Mec componentModel) {
+        return componentModel.states
+                .stream()
+                .allMatch(state -> isStateExplored(state, componentModel));
     }
 
-    private boolean isStateExplored(int stateId) {
+    private Mec getModelForComponent(NatBitSet componentStates) {
+        return Mec.create(explorer.model(), componentStates);
+    }
+
+    private boolean isStateExplored(int stateId, Mec componentModel) {
         // For every explored action of s, we check all of it's successors has been visited at-least once.
-        return explorer.getActions(stateId).stream()
-                .allMatch(action -> isStateActionExplored(stateId, action));
+        return componentModel.actions.get(stateId)
+                .stream()
+                .allMatch(actionIndex -> isStateActionExplored(stateId, explorer().getActions(stateId).get(actionIndex)));
     }
 
     private boolean isStateActionExplored(int stateId, Action exploredAction) {
-        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
+        GreyExplorer<S, M> explorer = (GreyExplorer<S, M>) explorer();
 
         int actualSuccessors = explorer.getActualSuccessorsOfStateAction(stateId, exploredAction);
         int exploredSuccessors = exploredAction.distribution().size();
