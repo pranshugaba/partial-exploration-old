@@ -6,14 +6,15 @@ import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.explorer.Explorer;
+import de.tum.in.pet.util.GreyBoxComponentsFilter;
 import de.tum.in.probmodels.explorer.GreyExplorer;
 import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
-import de.tum.in.probmodels.model.Action;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
 import it.unimi.dsi.fastutil.ints.*;
+import parser.State;
 import prism.Pair;
 import prism.PrismException;
 
@@ -21,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import static de.tum.in.probmodels.util.Util.isZero;
 
@@ -55,6 +55,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         this.pMin = pMin;
         this.errorTolerance = errorTolerance;
         this.nSampleFunction = nSampleFunction;
+        GreyBoxComponentsFilter.setGreyExplorer((GreyExplorer<State, Model>) explorer);
     }
 
     @Override
@@ -333,16 +334,8 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
 
         //TODO Filter actions first
 
-        //TODO Explore states first
-
-        // The new components is given as a set of states.
-        // We convert each component to a partial model.
-        // Then we check for each state, action pair in that model, the component has been fully explored.
-
-        // We only take the components, that have been explored fully.
-        newComponents = newComponents.stream()
-                .filter(this::isComponentExplored)
-                .collect(Collectors.toList());
+        // It removes the unexplored components
+        newComponents = GreyBoxComponentsFilter.filterOutUnExploredComponents(newComponents);
 
         // if no new components have been found, we clear all mec info that has been computed until now.
         if(newComponents.isEmpty()){
@@ -489,49 +482,4 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         }
         return choices;
     }
-
-    /**
-     * Converts the given set of states to a partial model.
-     * Then checks whether the components have been fully explored.
-     */
-    private boolean isComponentExplored(NatBitSet componentStates) {
-        // The set of states, needs to be converted to model. Because, the model in the explorer, might contain actions
-        // that may not be a part of Mec. We only check actions, that belong to Mec.
-        Mec componentModel = getModelForComponent(componentStates);
-        return isComponentExplored(componentModel);
-    }
-
-    /**
-     * Checks whether there are any partially explored actions, in each state of the component.
-     * Doesn't check every action of a state has been explored, but checks no action has been partially explored.
-     *
-     * @param componentModel Model that represents the states and actions of the component
-     * @return TRUE, if there are no partially explored states in the component.
-     */
-    private boolean isComponentExplored(Mec componentModel) {
-        return componentModel.states
-                .stream()
-                .allMatch(state -> isStateExplored(state, componentModel));
-    }
-
-    private Mec getModelForComponent(NatBitSet componentStates) {
-        return Mec.create(explorer.model(), componentStates);
-    }
-
-    private boolean isStateExplored(int stateId, Mec componentModel) {
-        // For every explored action of s, we check all of it's successors has been visited at-least once.
-        return componentModel.actions.get(stateId)
-                .stream()
-                .allMatch(actionIndex -> isStateActionExplored(stateId, explorer().getActions(stateId).get(actionIndex)));
-    }
-
-    private boolean isStateActionExplored(int stateId, Action exploredAction) {
-        GreyExplorer<S, M> explorer = (GreyExplorer<S, M>) explorer();
-
-        int actualSuccessors = explorer.getActualSuccessorsOfStateAction(stateId, exploredAction);
-        int exploredSuccessors = exploredAction.distribution().size();
-
-        return actualSuccessors == exploredSuccessors;
-    }
-
 }
