@@ -62,16 +62,6 @@ public class GreyBoxComponentsFilter {
         // For every explored action of s, we check all of it's successors has been visited at-least once.
         return componentModel.actions.get(stateId)
                 .stream()
-                .allMatch(actionIndex -> isStateActionExplored(stateId, greyExplorer.getActions(stateId).get(actionIndex)));
-    }
-
-    /**
-     * @return true if all the successors of the (stateId, exploredAction) has been visited.
-     */
-    private static boolean isStateActionExplored(int stateId, Action exploredAction) {
-        int actualSuccessors = greyExplorer.getActualSuccessorsOfStateAction(stateId, exploredAction);
-        int exploredSuccessors = exploredAction.distribution().size();
-
-        return actualSuccessors == exploredSuccessors;
+                .allMatch(actionIndex -> greyExplorer.isStateActionExplored(stateId, actionIndex));
     }
 }

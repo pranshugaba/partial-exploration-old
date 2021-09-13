@@ -21,7 +21,6 @@ import prism.PrismException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.logging.Level;
 
 import static de.tum.in.probmodels.util.Util.isZero;
 
@@ -153,8 +152,8 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
                     nextState = explorer.simulateAction(currentState, nextActionIndex);
                     // If this action has been sampled enough number of times, we know that it can now be considered as a part of an MEC.
                     // Hence, we know that there might be new MECs in the model and it could be worthwhile finding them again.
-                    //TODO this has to be done in grey box?
-                    explorer.updateCounts(currentState, nextActionIndex, nextState, true);
+
+                    explorer.updateCounts(currentState, nextActionIndex, nextState);
                 }
 
                 // This is true when the currentState doesn't have any choices from it, i.e. it is a sink state.
@@ -266,8 +265,6 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
 
         double targetPrecision = currPrecision/2;
 
-        logger.log(Level.INFO,  "updating MEC");
-
         // get all the MEC states corresponding to mecRepresentative.
         Mec mec = getMec(mecIndex);
 
@@ -323,8 +320,13 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
 
     @Override
     public void handleComponents(){
-
         GreyExplorer<S, M> explorer = (GreyExplorer<S, M>) explorer();
+
+        if (!explorer.isNewFullyExploredActionAvailable()) {
+            return;
+        }
+
+        explorer.resetFullyExploredActionFlag();
         BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
 
         NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
