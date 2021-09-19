@@ -1,5 +1,5 @@
 [submodule "lib/models"]
 	path = lib/models
 	url = ../../i7/probabilistic-models.git
-	branch = mean-payoff
+	branch = mean-payoff-ctmdp
 	update = merge
