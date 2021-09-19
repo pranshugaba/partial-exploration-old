@@ -13,13 +13,11 @@ import de.tum.in.pet.util.CliHelper;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.explorer.Explorers;
 import de.tum.in.probmodels.explorer.InformationLevel;
-import de.tum.in.probmodels.generator.Generator;
-import de.tum.in.probmodels.generator.MdpGenerator;
-import de.tum.in.probmodels.generator.PrismRewardGenerator;
-import de.tum.in.probmodels.generator.RewardGenerator;
+import de.tum.in.probmodels.generator.*;
 import de.tum.in.probmodels.model.MarkovDecisionProcess;
 import de.tum.in.probmodels.model.Model;
 import de.tum.in.probmodels.util.PrismHelper;
+import explicit.CTMDP;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -118,6 +116,8 @@ public final class MeanPayoffChecker {
       case DTMC:
       case LTS:
       case CTMDP:
+        return solveCtmdp(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold,
+            maxReward, pMin, errorTolerance, iterSamples, timeout);
       case PTA:
       case STPG:
       case SMG:
@@ -163,6 +163,21 @@ public final class MeanPayoffChecker {
     timeVBound.addAll(valueIterator.timeVBound);
 
     return maxReward*bounds.average();
+
+  }
+
+  private static double solveCtmdp(ModelGenerator prismGenerator, InformationLevel informationLevel, int rewardIndex,
+                                    SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
+                                    int revisitThreshold, double maxReward, double pMin, double errorTolerance,
+                                    int iterSamples, long timeout)
+          throws PrismException {
+
+    MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
+    Generator<State> generator = new CtmdpGenerator(prismGenerator);
+
+    RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(rewardIndex, prismGenerator);
+
+    return solve(partialModel, generator, informationLevel, rewardGenerator, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout);
 
   }
 
