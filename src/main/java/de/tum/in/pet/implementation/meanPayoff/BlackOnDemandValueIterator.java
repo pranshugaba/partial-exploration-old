@@ -121,7 +121,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         int nextState, nextActionIndex;
         // This condition is there as in the simulate function in CAV'19. It checks whether we have been returning to a
-        // state too many times during simulation indicating that we could be stuck inside an MEC.
+        // state too many times during simulation indicating that we could be stuck inside an MEC .
         if (stateVisitCounts.get(currentState)>=revisitThreshold && looping(visitStack)) {
           int mecIndex = stateToMecMap.get(currentState);
           NatBitSet mecStates = this.mecs.get(mecIndex);
