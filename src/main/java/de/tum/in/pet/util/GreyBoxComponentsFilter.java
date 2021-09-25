@@ -62,6 +62,12 @@ public class GreyBoxComponentsFilter {
         // For every explored action of s, we check all of it's successors has been visited at-least once.
         return componentModel.actions.get(stateId)
                 .stream()
+                .filter(actionIndex -> isNotEmptyDistribution(stateId, actionIndex, componentModel))
                 .allMatch(actionIndex -> greyExplorer.isStateActionExplored(stateId, actionIndex));
+    }
+
+    private static boolean isNotEmptyDistribution(int stateId, int actionIndex, Mec componentModel) {
+        Action action = greyExplorer.getActions(stateId).get(actionIndex);
+        return action.distribution().size() > 0;
     }
 }

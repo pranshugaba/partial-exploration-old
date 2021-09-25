@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Random;
 
 import static de.tum.in.probmodels.util.Util.isZero;
+import static de.tum.in.probmodels.util.Util.modelToDotFile;
 
 
 //TODO
@@ -44,8 +45,6 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
     private Int2ObjectMap<Distribution> stayActionMap = new Int2ObjectOpenHashMap<>(); // Map that holds the stay action for mecs, accessible using mecIndices.
 
     private Int2IntMap stayActionCounts = new Int2IntOpenHashMap(); // Map that holds the number of times each stay action for an mec has been sampled, accessible using mecIndices.
-
-    // TODO add seenNewTransitions. If true we can find components.
 
     public GreyOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                      int revisitThreshold, double rMax, double pMin, double errorTolerance,
@@ -104,7 +103,9 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
                     // that we don't get value that is more precise than what is required.
                     if (BoundedMecQuotient.isUncertainState(currentState)||BoundedMecQuotient.isPlusState(currentState)) {
                         int mecIndex = stateToMecMap.get(prevState);
+                        explorer.activateFullyExploredActionsModel();
                         updateMec(mecIndex);
+                        explorer.deactivateFullyExploredActionsModel();
                     }
                     break;
                 }
@@ -332,12 +333,8 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
 
         // find all MECs in the partial model.
+        explorer.activateFullyExploredActionsModel();
         List<NatBitSet> newComponents = mecAnalyser.findComponents(explorer.model(), states);
-
-        //TODO Filter actions first
-
-        // It removes the unexplored components
-        newComponents = GreyBoxComponentsFilter.filterOutUnExploredComponents(newComponents);
 
         // if no new components have been found, we clear all mec info that has been computed until now.
         if(newComponents.isEmpty()){
@@ -345,6 +342,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
             this.stateToMecMap.clear();
             this.stayActionMap.clear();
             this.mecValueCache.clear();
+            explorer.deactivateFullyExploredActionsModel();
             return;
         }
 
@@ -352,6 +350,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         NatBitSet changedMecs = updateMecInfo(newComponents);
 
         if (changedMecs.isEmpty()) {
+            explorer.deactivateFullyExploredActionsModel();
             return;
         }
 
@@ -368,6 +367,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
 
             values.deflate(newComponent, this::choices);
         }
+        explorer.deactivateFullyExploredActionsModel();
 
     }
 
