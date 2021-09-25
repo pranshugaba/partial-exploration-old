@@ -6,7 +6,6 @@ import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.explorer.Explorer;
-import de.tum.in.pet.util.GreyBoxComponentsFilter;
 import de.tum.in.probmodels.explorer.GreyExplorer;
 import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
@@ -53,7 +52,6 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         this.pMin = pMin;
         this.errorTolerance = errorTolerance;
         this.nSampleFunction = nSampleFunction;
-        GreyBoxComponentsFilter.setGreyExplorer((GreyExplorer<State, Model>) explorer);
     }
 
     @Override
