@@ -13,7 +13,6 @@ import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
 import it.unimi.dsi.fastutil.ints.*;
-import parser.State;
 import prism.Pair;
 import prism.PrismException;
 
@@ -22,14 +21,7 @@ import java.util.List;
 import java.util.Random;
 
 import static de.tum.in.probmodels.util.Util.isZero;
-import static de.tum.in.probmodels.util.Util.modelToDotFile;
 
-
-//TODO
-//1. BlackOn -> GreyOn
-//2. LimitedInformationOnDemandExplorer -> Black, Grey
-//3. LimitedInformationExplorer -> Black, Grey
-//4. LimitedInfoUnboundReachValues
 
 public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValueIterator<S, M>{
 

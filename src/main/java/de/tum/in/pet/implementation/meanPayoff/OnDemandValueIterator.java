@@ -141,6 +141,12 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       }
     }
 
+    computeErrorProbability();
+  }
+
+
+  protected void computeErrorProbability() {
+
   }
 
   /**

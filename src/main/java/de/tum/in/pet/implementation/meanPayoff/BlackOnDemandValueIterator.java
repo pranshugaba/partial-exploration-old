@@ -13,6 +13,7 @@ import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
 import it.unimi.dsi.fastutil.ints.*;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import prism.Pair;
 import prism.PrismException;
 
@@ -40,6 +41,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   private Int2IntMap stayActionCounts = new Int2IntOpenHashMap(); // Map that holds the number of times each stay action for an mec has been sampled, accessible using mecIndices.
 
   private boolean seenNewTransitionSignificantly = false; // If a new transition has been sampled a significant number of times.
+
+  Int2IntMap bestAction = new Int2IntOpenHashMap();
+  Int2ObjectMap<Pair<Integer, Integer>> bestMECAction = new Int2ObjectOpenHashMap<>();
 
   public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                     int revisitThreshold, double rMax, double pMin, double errorTolerance,
@@ -82,13 +86,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     values.setConfidenceWidthFunction(confidenceWidthFunction);
 
     for (int i = 0; i < nIterations; i++) {
-
       IntList visitStack = new IntArrayList();
       int currentState = initialState;
       Int2IntOpenHashMap stateVisitCounts = new Int2IntOpenHashMap();  // keeps counts of the number of times a state is visited
 
       while (true) {
-
         visitStack.add(currentState);
         stateVisitCounts.putIfAbsent(currentState, 0);
         stateVisitCounts.addTo(currentState, 1);
@@ -130,6 +132,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
           currentState = bestActionStatePairs.get(sampledActionStatePair).first;
           nextActionIndex = bestActionStatePairs.get(sampledActionStatePair).second;
           choices = choices(currentState);
+          bestMECAction.put(mecIndex, bestActionStatePairs.get(sampledActionStatePair));
         }
         else {
           nextActionIndex = values.sampleNextAction(currentState, choices); // index of the action from the state that is to be sampled next.
@@ -138,6 +141,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
           if (nextActionIndex == -1) {
             nextActionIndex = explorer.sampleNextAction(currentState);
           }
+
+          bestAction.put(currentState, nextActionIndex);
         }
 
         assert nextActionIndex != -1;
@@ -267,8 +272,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     double targetPrecision = currPrecision/2;
 
-    logger.log(Level.INFO,  "updating MEC");
-
     // get all the MEC states corresponding to mecRepresentative.
     Mec mec = getMec(mecIndex);
 
@@ -335,8 +338,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
     BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
 
-    logger.log(Level.INFO, "Searching components");
-
     NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
 
     // activate the action count filter. Now explorer.model() only contains those actions that have been sampled
@@ -358,10 +359,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     // udpates all the mec information variables according to the latest computations.
     NatBitSet changedMecs = updateMecInfo(newComponents);
 
-    if (changedMecs.size()>0){
-      logger.log(Level.INFO, "Found {0} new components", changedMecs.size());
-    }
-    else {
+    if (changedMecs.isEmpty()) {
       explorer.deactivateActionCountFilter();
       return;
     }
@@ -499,4 +497,114 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     return choices;
   }
 
+  @Override
+  protected void computeErrorProbability() {
+    super.computeErrorProbability();
+
+//    assert updateMethod == Greybox
+
+    double result = computeMissingProbability(explorer.initialStates().stream().findFirst().orElseThrow());
+    logger.log(Level.INFO, "Error Probability is " + result);
+  }
+
+  Int2BooleanMap computedStates = new Int2BooleanOpenHashMap();
+
+  private double computeMissingProbability(int state) {
+
+    if (computedStates.containsKey(state)) {
+      return 0;
+    }
+    computedStates.put(state, true);
+
+
+    if (BoundedMecQuotient.isSinkState(state)) {
+      return 0;
+    }
+
+    boolean isInMEC = stateToMecMap.containsKey(state);
+
+    double errorProb;
+    if (isInMEC) {
+      errorProb = computeMissingProbabilityForMECState(state);
+    }
+    else {
+      errorProb = computeMissingProbabilityForNonMECState(state);
+    }
+
+    return errorProb;
+  }
+
+  private double computeMissingProbabilityForMECState(int state) {
+    double errorProb = 0;
+
+    // getBestLeavingAction and proceed
+    int mecIndex = stateToMecMap.get(state);
+
+    Pair<Integer, Integer> bestLeavingStateActionPair = bestMECAction.get(mecIndex);
+    int bestLeavingState = bestLeavingStateActionPair.first;
+    int bestLeavingAction = bestLeavingStateActionPair.second;
+
+    Distribution bestLeavingDistribution = choices(bestLeavingState).get(bestLeavingAction);
+
+    for (Int2DoubleMap.Entry entry : bestLeavingDistribution) {
+      int actionSuccessor = entry.getIntKey();
+
+      if (stateToMecMap.containsKey(actionSuccessor) && (stateToMecMap.get(actionSuccessor) == mecIndex)) {
+        continue;
+      }
+
+      errorProb += computeMissingProbability(actionSuccessor);
+    }
+
+    return errorProb;
+  }
+
+
+  private double computeMissingProbabilityForNonMECState(int state) {
+    if (choices(state).isEmpty()){
+      return 0;
+    }
+
+    double errorProb = 0;
+
+    int bestActionIndex = bestAction.get(state);
+    errorProb = getErrorProb(state, bestActionIndex);
+
+    Distribution bestActionDistribution = explorer.getActions(state).get(bestActionIndex).distribution();
+    for (Int2DoubleMap.Entry entry : bestActionDistribution) {
+      int actionSuccessor = entry.getIntKey();
+      errorProb += computeMissingProbability(actionSuccessor);
+    }
+
+    return errorProb;
+  }
+
+  // Given a state and an action, this function returns the probability that one of the successors has not been
+  // visited.
+  private double getErrorProb(int state, int actionIndex) {
+    BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
+
+    double stateErrorProb = 0;
+    Distribution actionDistribution = explorer.getStateActions().get(state).get(actionIndex).distribution();
+
+    int stateActionVisitCount = 0;
+    Int2ObjectMap<ObjectArrayList<Int2IntMap>> stateTransitionCounts = explorer.getStateTransitionCounts();
+    Int2IntMap actionSuccessorsVisitCounts = stateTransitionCounts.get(state).get(actionIndex);
+
+
+    IntCollection successorVisitCounts = actionSuccessorsVisitCounts.values();
+    for (Integer successorVisitCount : successorVisitCounts) {
+      stateActionVisitCount += successorVisitCount;
+    }
+
+    // for each successor of that action, find the error probability
+    for (Int2DoubleMap.Entry entry : actionDistribution) {
+      double probability = entry.getDoubleValue();
+      double errorProb = 1 - probability;
+
+      stateErrorProb += Math.pow(errorProb, stateActionVisitCount);
+    }
+
+    return stateErrorProb;
+  }
 }
