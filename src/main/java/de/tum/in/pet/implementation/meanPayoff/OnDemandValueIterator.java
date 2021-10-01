@@ -48,6 +48,9 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
 
   private final long timeout;
 
+  // Each string will be added to the temp.txt file.
+  protected final List<String> additionalWriteInfo = new ArrayList<>();
+
   public OnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator, 
                                int revisitThreshold, double rMax, double precision, long timeout) {
     this.explorer = explorer;
@@ -141,11 +144,17 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       }
     }
 
-    computeErrorProbability();
+    onSamplingFinished(initialState);
   }
 
 
-  protected void computeErrorProbability() {
+  /**
+   * This function will be called once the sampling is done. Either the bounds converged or time limit exceeded.
+   *
+   * @param initialState There can be multiple initial states in the model. But we pick one and check reachability.
+   *                     This variable corresponds to the initial state we used to get reachability.
+   */
+  protected void onSamplingFinished(int initialState) {
 
   }
 

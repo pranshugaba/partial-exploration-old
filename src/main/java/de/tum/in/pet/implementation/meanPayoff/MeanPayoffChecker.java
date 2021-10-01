@@ -53,6 +53,8 @@ public final class MeanPayoffChecker {
 
   private static final List<Pair<Long, Bounds>> timeVBound = new ArrayList<>();
 
+  private static final List<String> additionalWriteInfo = new ArrayList<>();
+
   public static void writeResults(CommandLine commandLine) throws IOException {
     String filename = "temp.txt";
     BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
@@ -97,6 +99,11 @@ public final class MeanPayoffChecker {
     writer.newLine();
     writer.write(upperBounds.toString());
     writer.newLine();
+
+    for (String info : additionalWriteInfo) {
+      writer.write(info);
+      writer.newLine();
+    }
 
     writer.close();
   }
@@ -163,6 +170,7 @@ public final class MeanPayoffChecker {
     logger.log(Level.INFO, "Explored states {0}", new Object[] {explorer.exploredStateCount()});
 
     timeVBound.addAll(valueIterator.timeVBound);
+    additionalWriteInfo.addAll(valueIterator.additionalWriteInfo);
 
     return maxReward*bounds.average();
 
