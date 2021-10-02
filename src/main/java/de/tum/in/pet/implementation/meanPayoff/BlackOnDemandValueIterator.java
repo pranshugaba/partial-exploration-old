@@ -565,6 +565,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     List<Double> successorProbabilities = getOriginalSuccessorProbabilities(state, bestAction.get(state));
     int numVisits = getStateActionVisitCount(state, bestAction.get(state));
+
+    if (numVisits == 0) {
+      return 0;
+    }
+
     return successorProbabilities.stream()
             .mapToDouble(prob -> successorNotVisited(prob, numVisits))
             .sum();
