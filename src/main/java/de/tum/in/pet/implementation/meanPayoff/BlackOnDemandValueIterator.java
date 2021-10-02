@@ -48,15 +48,17 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   Int2ObjectMap<Pair<Integer, Integer>> bestMECAction = new Int2ObjectOpenHashMap<>();
 
   // Enable this boolean only when the updateMethod is greyBox.
-  private final boolean calculateMissingProb = true;
+  private final boolean calculateErrorProbability;
 
   public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                     int revisitThreshold, double rMax, double pMin, double errorTolerance,
-                                    Double2LongFunction nSampleFunction, double precision, long timeout) {
+                                    Double2LongFunction nSampleFunction, double precision, long timeout,
+                                    boolean getErrorProbability) {
     super(explorer, values, rewardGenerator, revisitThreshold, rMax, precision, timeout);
     this.pMin = pMin;
     this.errorTolerance = errorTolerance;
     this.nSampleFunction = nSampleFunction;
+    this.calculateErrorProbability = getErrorProbability;
   }
 
   @Override
@@ -138,7 +140,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
           nextActionIndex = bestActionStatePairs.get(sampledActionStatePair).second;
           choices = choices(currentState);
 
-          if (calculateMissingProb) {
+          if (calculateErrorProbability) {
             bestMECAction.put(mecIndex, bestActionStatePairs.get(sampledActionStatePair));
           }
         }
@@ -150,7 +152,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
             nextActionIndex = explorer.sampleNextAction(currentState);
           }
 
-          if (calculateMissingProb) {
+          if (calculateErrorProbability) {
             bestAction.put(currentState, nextActionIndex);
           }
         }
@@ -511,25 +513,25 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   protected void onSamplingFinished(int initialState) {
     super.onSamplingFinished(initialState);
 
-    if (calculateMissingProb) {
-      double result = computeMissingProbability(initialState);
+    if (calculateErrorProbability) {
+      double result = computeErrorProbability(initialState);
       additionalWriteInfo.add(String.valueOf(result));
     }
   }
 
-  // Once the missing probability is calculated for a state, we update the state as computed.
+  // Once the error probability is calculated for a state, we update the state as computed.
   // This is because the same state might recursively get called, if there is an action that goes to itself.
   // So to avoid infinite looping, we only once do the calculation for each state.
   Int2BooleanMap computedStates = new Int2BooleanOpenHashMap();
 
-  private double computeMissingProbability(int state) {
+  private double computeErrorProbability(int state) {
     // Mark this state as computed. So It won't be again computed next time.
     computedStates.put(state, true);
 
-    // We don't compute the missing probability, for a mec state. But we compute them for it's successors.
+    // We don't compute the error probability, for a mec state. But we compute them for it's successors.
     double errorProb = isInMEC(state) ? 0 : oneOfTheSuccessorIsNotVisited(state);
 
-    // We recursively compute the missing probabilities for the successors of state
+    // We recursively compute the error probabilities for the successors of state
     List<Integer> successorsToCompute;
 
     //We filter the successors that goes back into the same MEC
@@ -551,7 +553,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     errorProb += successorsToCompute.stream()
             .filter(this::notAlreadyComputed)
             .filter(this::notASinkState)
-            .mapToDouble(this::computeMissingProbability)
+            .mapToDouble(this::computeErrorProbability)
             .sum();
 
     return errorProb;

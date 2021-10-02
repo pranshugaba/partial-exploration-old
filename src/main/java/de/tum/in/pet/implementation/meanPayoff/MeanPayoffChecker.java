@@ -111,13 +111,13 @@ public final class MeanPayoffChecker {
   public static double solve(ModelGenerator generator, InformationLevel informationLevel, int rewardIndex,
                              SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
                              int revisitThreshold, double maxReward, double pMin, double errorTolerance, int iterSamples,
-                             long timeout)
+                             long timeout, boolean getErrorProbability)
           throws PrismException {
     ModelType modelType = generator.getModelType();
     switch (modelType) {
       case MDP:
         return solveMdp(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold,
-                maxReward, pMin, errorTolerance, iterSamples, timeout);
+                maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
       case CTMC:
       case DTMC:
       case LTS:
@@ -132,7 +132,7 @@ public final class MeanPayoffChecker {
 
   private static <S, M extends Model> double solve(M partialModel, Generator<S> generator, InformationLevel informationLevel,
       RewardGenerator<S> rewardGenerator, SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
-      int revisitThreshold, double maxReward, double pMin, double errorTolerance, int iterSamples, long timeout)
+      int revisitThreshold, double maxReward, double pMin, double errorTolerance, int iterSamples, long timeout, boolean getErrorProbability)
           throws PrismException {
 
     var explorer = Explorers.getExplorer(partialModel, generator, informationLevel, false);
@@ -151,7 +151,7 @@ public final class MeanPayoffChecker {
       UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
 
       valueIterator = new BlackOnDemandValueIterator<>(explorer, values, rewardGenerator,
-              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout);
+              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout, getErrorProbability);
     }
     else{
       Double2LongFunction nSampleFunction = s -> iterSamples;
@@ -179,7 +179,7 @@ public final class MeanPayoffChecker {
   private static double solveMdp(ModelGenerator prismGenerator, InformationLevel informationLevel, int rewardIndex,
                                  SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
                                  int revisitThreshold, double maxReward, double pMin, double errorTolerance,
-                                 int iterSamples, long timeout)
+                                 int iterSamples, long timeout, boolean getErrorProbability)
           throws PrismException {
 
     MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
@@ -187,7 +187,7 @@ public final class MeanPayoffChecker {
 
     RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(rewardIndex, prismGenerator);
 
-    return solve(partialModel, generator, informationLevel, rewardGenerator, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout);
+    return solve(partialModel, generator, informationLevel, rewardGenerator, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
 
   }
 
@@ -214,6 +214,7 @@ public final class MeanPayoffChecker {
     Option iterationSamplesOption =  new Option(null, "iterSamples", true, "Number of sample paths to be generated per episodic run.");
     Option updateMethodOption = new Option(null, "updateMethod", true, "Update method to be used (greybox/blackbox)");
     Option timeoutOption = new Option(null, "timeout", true, "Time before experiment forcefully terminates");
+    Option getErrorProbabilityOption = new Option(null, "getErrorProbability", false, "Computes the error probability for blackbox with greybox equations");
 
     modelOption.setRequired(true);
 
@@ -230,7 +231,8 @@ public final class MeanPayoffChecker {
             .addOption(errorToleranceOption)
             .addOption(iterationSamplesOption)
             .addOption(updateMethodOption)
-            .addOption(timeoutOption);
+            .addOption(timeoutOption)
+            .addOption(getErrorProbabilityOption);
 
     CommandLine commandLine = CliHelper.parse(options, args);
 
@@ -262,6 +264,8 @@ public final class MeanPayoffChecker {
             ? Long.parseLong(commandLine.getOptionValue(timeoutOption.getLongOpt()))
             : DEFAULT_TIMEOUT;
 
+    boolean getErrorProbability = commandLine.hasOption(getErrorProbabilityOption.getLongOpt());
+
     SuccessorHeuristic heuristic = CliHelper.parseHeuristic(
             commandLine.getOptionValue(heuristicOption.getLongOpt()), SuccessorHeuristic.PROB);
 
@@ -292,7 +296,7 @@ public final class MeanPayoffChecker {
 
     long startTime2 = System.currentTimeMillis();
     timeVBound.add(new Pair<>(startTime2, Bounds.of(0, maxReward)));
-    double meanPayoff = solve(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout);
+    double meanPayoff = solve(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
     long endTime = System.currentTimeMillis();
 
     writeResults(commandLine);

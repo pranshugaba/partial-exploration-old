@@ -40,12 +40,17 @@ runConfigs = ["meanPayoff -m data/models/zeroconf_rewards.prism --precision 0.01
               ]
 
 if len(sys.argv) > 1:
-    if "black" in sys.argv[1].lower():
-        for i in range(len(runConfigs)):
-            runConfigs[i] += " --updateMethod BLACKBOX"
-    elif "both" in sys.argv[1].lower():
-        for i in range(len(runConfigs)):
-            runConfigs.append(runConfigs[i]+" --updateMethod BLACKBOX")
+    for arg in sys.argv:
+        if "black" in arg.lower():
+            for i in range(len(runConfigs)):
+                runConfigs[i] += " --updateMethod BLACKBOX"
+        elif "both" in arg.lower():
+            for i in range(len(runConfigs)):
+                runConfigs.append(runConfigs[i]+" --updateMethod BLACKBOX")
+
+        if "geterrorprobability" in arg.lower():
+            for i in range(len(runConfigs)):
+                runConfigs[i] += " --getErrorProbability"
 
 resultDir = "results/"
 

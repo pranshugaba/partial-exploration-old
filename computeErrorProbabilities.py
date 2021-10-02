@@ -6,7 +6,7 @@ resultDirectory = 'probabilityResults/'
 
 # Run benchmarks for n times as in runExperiments.py
 for i in range(n):
-    os.system('python3 runExperiments.py')
+    os.system('python3 runExperiments.py -getErrorProbability')
     shutil.move('results', f'probabilityResults/iteration{i}')
     os.mkdir('results')
 
