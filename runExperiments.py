@@ -26,7 +26,7 @@ def findCurrMaxDir():
 #               ]
 
 
-runConfigs = ["meanPayoff -m data/models/zeroconf_rewards.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --informationLevel BLACKBOX --errorTolerance 0.1 --pMin 0.002 --iterSample 10000 --const N=40,K=10,reset=false --rewardModule reach",
+runConfigs = ["meanPayoff -m data/models/zeroconf_rewards.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --informationLevel BLACKBOX --errorTolerance 0.1 --pMin 0.0002 --iterSample 10000 --const N=40,K=10,reset=false --rewardModule reach",
               "meanPayoff -m data/models/sensors.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --informationLevel BLACKBOX --errorTolerance 0.1 --pMin 0.05 --iterSample 10000 --const K=3",
               "meanPayoff -m data/models/investor.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --informationLevel BLACKBOX --errorTolerance 0.1 --pMin 0.016 --iterSample 10000",
               "meanPayoff -m data/models/cs_nfail3.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --informationLevel BLACKBOX --errorTolerance 0.1 --pMin 0.1 --iterSample 10000",
