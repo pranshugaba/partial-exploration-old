@@ -45,6 +45,12 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   // Enable this boolean only when the updateMethod is greyBox.
   private final boolean calculateErrorProbability;
 
+  // maps mec index to the best leaving action
+  Int2ObjectMap<Pair<Integer, Integer>> bestLeavingAction = new Int2ObjectOpenHashMap<>();
+
+  // maps a state to the best action. Boolean denotes whether the action is a stay action or not.
+  Int2ObjectMap<Pair<Integer, Boolean>> bestAction = new Int2ObjectOpenHashMap<>();
+
   public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                     int revisitThreshold, double rMax, double pMin, double errorTolerance,
                                     Double2LongFunction nSampleFunction, double precision, long timeout,
@@ -129,9 +135,19 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
           currentState = bestStateActionPairs.first;
           nextActionIndex = bestStateActionPairs.second;
           choices = choices(currentState);
+
+          if (calculateErrorProbability) {
+            bestLeavingAction.put(getMECIndex(currentState), bestStateActionPairs);
+          }
         }
         else {
           nextActionIndex = sampleNextAction(currentState);
+
+          if (calculateErrorProbability) {
+            boolean isStayAction = isInMEC(currentState) && (nextActionIndex == choices.size() - 1);
+            Pair<Integer, Boolean> pair = new Pair<>(nextActionIndex, isStayAction);
+            bestAction.put(currentState, pair);
+          }
         }
 
         assert nextActionIndex != -1;
@@ -516,7 +532,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     if (calculateErrorProbability) {
       logger.log(Level.INFO, "Computing error probability");
-      double result = computeErrorProbability(initialState);
+      double result = computeErrorProbability(initialState, 1);
       additionalWriteInfo.add(String.valueOf(result));
     }
   }
@@ -526,40 +542,53 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   // So to avoid infinite looping, we only once do the calculation for each state.
   Int2BooleanMap computedStates = new Int2BooleanOpenHashMap();
 
-  private double computeErrorProbability(int state) {
+  private double computeErrorProbability(int state, double reachProbability) {
     // Mark this state as computed. So It won't be again computed next time.
     computedStates.put(state, true);
 
     double errorProb;
 
     // We recursively compute the error probabilities for the successors of state
-    List<Integer> successorsToCompute;
+    // each pair contains the successor and it's probability from state
+    List<Pair<Integer, Double>> successorsToCompute;
 
     if (isInMEC(state)) {
-      Pair<Integer, Integer> bestLeavingStateAction = getSampledBestLeavingAction(state);
-      int bestLeavingState = bestLeavingStateAction.first;
-      int bestLeavingAction = bestLeavingStateAction.second;
+
+      if (!bestLeavingAction.containsKey(state)) {
+        // Some MEC's might not have bestLeavingAction.
+        return 0;
+      }
+
+      Pair<Integer, Integer> bestLeavingStateAction = bestLeavingAction.get(state);
+      int bestState = bestLeavingStateAction.first;
+      int bestAction = bestLeavingStateAction.second;
 
       // We don't compute the error probability, for a mec state. But we compute them for it's successors.
       errorProb = 0;
 
       // In case of a MEC state, we take the successors of the bestLeavingAction
       //We filter the successors that goes back into the same MEC
-
-      successorsToCompute = getSuccessors(bestLeavingState, bestLeavingAction).stream()
-              .filter(successor -> notInSameMEC(state, successor))
+      successorsToCompute = getSuccessors(bestState, bestAction).stream()
+              .filter(successor -> notInSameMEC(state, successor.first))
               .collect(Collectors.toList());
     }
     else {
-      int bestActionIndex = sampleNextAction(state);
+
+      if (hasNoActions(state) || bestAction.get(state).second) {
+        // We have got bestAction as a stay action
+        return 0;
+      }
+
+      int bestActionIndex = bestAction.get(state).first;
       errorProb = oneOfTheSuccessorIsNotVisited(state, bestActionIndex);
       successorsToCompute = getSuccessors(state, bestActionIndex);
     }
 
+    errorProb *= reachProbability;
     errorProb += successorsToCompute.stream()
-            .filter(this::notAlreadyComputed)
-            .filter(this::notASinkState)
-            .mapToDouble(this::computeErrorProbability)
+            .filter(successor -> notAlreadyComputed(successor.first))
+            .filter(successor -> notASinkState(successor.first))
+            .mapToDouble(successor -> computeErrorProbability(successor.first, reachProbability * successor.second))
             .sum();
 
     return errorProb;
@@ -618,17 +647,18 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     return Math.pow(1-successorProbability, numVisits);
   }
 
-  private List<Integer> getSuccessors(int state, int actionIndex) {
+  private List<Pair<Integer, Double>> getSuccessors(int state, int actionIndex) {
     if (choices(state).isEmpty()) {
       return Collections.emptyList();
     }
 
     Distribution actionDistribution = choices(state).get(actionIndex);
 
-    List<Integer> successors = new ArrayList<>();
+    List<Pair<Integer, Double>> successors = new ArrayList<>();
 
     for (Int2DoubleMap.Entry entry : actionDistribution) {
-      successors.add(entry.getIntKey());
+      Pair<Integer, Double> pair = new Pair<>(entry.getIntKey(), entry.getDoubleValue());
+      successors.add(pair);
     }
 
     return successors;
