@@ -17,6 +17,7 @@ import prism.Pair;
 import prism.PrismException;
 
 import java.util.*;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import static de.tum.in.probmodels.util.Util.isZero;
@@ -40,12 +41,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   private Int2IntMap stayActionCounts = new Int2IntOpenHashMap(); // Map that holds the number of times each stay action for an mec has been sampled, accessible using mecIndices.
 
   private boolean seenNewTransitionSignificantly = false; // If a new transition has been sampled a significant number of times.
-
-  // Stores the latest action sampled for a state
-  Int2IntMap bestAction = new Int2IntOpenHashMap();
-
-  // stores the latest action sampled for a MEC
-  Int2ObjectMap<Pair<Integer, Integer>> bestMECAction = new Int2ObjectOpenHashMap<>();
 
   // Enable this boolean only when the updateMethod is greyBox.
   private final boolean calculateErrorProbability;
@@ -78,8 +73,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     double k = Math.pow(2, run);
     long nIterations = nSampleFunction.apply(k);
     double errorTolerance = this.errorTolerance;
-
-    Random randomIntegerSampler = new Random();
 
     // Updates the confidenceWidthFunction according to the latest counts and transDelta value. The confidenceWidthFunction
     // returns the confidenceWidth for a state x and an action with index y. if y is greater than the number of choices
@@ -132,29 +125,13 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
         // This condition is there as in the simulate function in CAV'19. It checks whether we have been returning to a
         // state too many times during simulation indicating that we could be stuck inside an MEC.
         if (stateVisitCounts.get(currentState)>=revisitThreshold && looping(visitStack)) {
-          int mecIndex = stateToMecMap.get(currentState);
-          NatBitSet mecStates = this.mecs.get(mecIndex);
-          List<Pair<Integer, Integer>> bestActionStatePairs = values.getBestLeavingAction(mecStates, this::choices);
-          int sampledActionStatePair = randomIntegerSampler.nextInt(bestActionStatePairs.size());
-          currentState = bestActionStatePairs.get(sampledActionStatePair).first;
-          nextActionIndex = bestActionStatePairs.get(sampledActionStatePair).second;
+          Pair<Integer, Integer> bestStateActionPairs = getSampledBestLeavingAction(currentState);
+          currentState = bestStateActionPairs.first;
+          nextActionIndex = bestStateActionPairs.second;
           choices = choices(currentState);
-
-          if (calculateErrorProbability) {
-            bestMECAction.put(mecIndex, bestActionStatePairs.get(sampledActionStatePair));
-          }
         }
         else {
-          nextActionIndex = values.sampleNextAction(currentState, choices); // index of the action from the state that is to be sampled next.
-          // this happens when none of the actions look promising at all, i.e. all actions have a upper bound of 0.
-          // To continue the simulation, we forcefully sample an action.
-          if (nextActionIndex == -1) {
-            nextActionIndex = explorer.sampleNextAction(currentState);
-          }
-
-          if (calculateErrorProbability) {
-            bestAction.put(currentState, nextActionIndex);
-          }
+          nextActionIndex = sampleNextAction(currentState);
         }
 
         assert nextActionIndex != -1;
@@ -210,6 +187,30 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     return true;
 
+  }
+
+  private Pair<Integer, Integer> getSampledBestLeavingAction(int currentState) {
+    BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
+    Random randomIntegerSampler = new Random();
+
+    int mecIndex = stateToMecMap.get(currentState);
+    NatBitSet mecStates = this.mecs.get(mecIndex);
+    List<Pair<Integer, Integer>> bestActionStatePairs = values.getBestLeavingAction(mecStates, this::choices);
+    int sampledActionIndex = randomIntegerSampler.nextInt(bestActionStatePairs.size());
+    return bestActionStatePairs.get(sampledActionIndex);
+  }
+
+  private int sampleNextAction(int currentState) {
+    BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
+
+    int nextActionIndex = values.sampleNextAction(currentState, choices(currentState)); // index of the action from the state that is to be sampled next.
+    // this happens when none of the actions look promising at all, i.e. all actions have a upper bound of 0.
+    // To continue the simulation, we forcefully sample an action.
+    if (nextActionIndex == -1) {
+      nextActionIndex = explorer.sampleNextAction(currentState);
+    }
+
+    return nextActionIndex;
   }
 
   /**
@@ -514,6 +515,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     super.onSamplingFinished(initialState);
 
     if (calculateErrorProbability) {
+      logger.log(Level.INFO, "Computing error probability");
       double result = computeErrorProbability(initialState);
       additionalWriteInfo.add(String.valueOf(result));
     }
@@ -528,26 +530,30 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     // Mark this state as computed. So It won't be again computed next time.
     computedStates.put(state, true);
 
-    // We don't compute the error probability, for a mec state. But we compute them for it's successors.
-    double errorProb = isInMEC(state) ? 0 : oneOfTheSuccessorIsNotVisited(state);
+    double errorProb;
 
     // We recursively compute the error probabilities for the successors of state
     List<Integer> successorsToCompute;
 
-    //We filter the successors that goes back into the same MEC
     if (isInMEC(state)) {
-      // In case of a MEC state, we take the successors of the bestLeavingAction
-      Pair<Integer, Integer> bestTransition = bestMECAction.get(getMECIndex(state));
-      int bestLeavingState = bestTransition.first;
-      int bestLeavingActionIndex = bestTransition.second;
+      Pair<Integer, Integer> bestLeavingStateAction = getSampledBestLeavingAction(state);
+      int bestLeavingState = bestLeavingStateAction.first;
+      int bestLeavingAction = bestLeavingStateAction.second;
 
+      // We don't compute the error probability, for a mec state. But we compute them for it's successors.
+      errorProb = 0;
+
+      // In case of a MEC state, we take the successors of the bestLeavingAction
       //We filter the successors that goes back into the same MEC
-      successorsToCompute = getSuccessors(bestLeavingState, bestLeavingActionIndex).stream()
+
+      successorsToCompute = getSuccessors(bestLeavingState, bestLeavingAction).stream()
               .filter(successor -> notInSameMEC(state, successor))
               .collect(Collectors.toList());
     }
     else {
-      successorsToCompute = getSuccessors(state, bestAction.get(state));
+      int bestActionIndex = sampleNextAction(state);
+      errorProb = oneOfTheSuccessorIsNotVisited(state, bestActionIndex);
+      successorsToCompute = getSuccessors(state, bestActionIndex);
     }
 
     errorProb += successorsToCompute.stream()
@@ -560,13 +566,15 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   }
 
   // Computes the probability that one of the successor is not visited for this state, and it's best action
-  private double oneOfTheSuccessorIsNotVisited(int state) {
+  private double oneOfTheSuccessorIsNotVisited(int state, int bestActionIndex) {
     if (hasNoActions(state)) {
       return 0;
     }
 
-    List<Double> successorProbabilities = getOriginalSuccessorProbabilities(state, bestAction.get(state));
-    int numVisits = getStateActionVisitCount(state, bestAction.get(state));
+    assert bestActionIndex != -1;
+
+    List<Double> successorProbabilities = getOriginalSuccessorProbabilities(state, bestActionIndex);
+    int numVisits = getStateActionVisitCount(state, bestActionIndex);
 
     if (numVisits == 0) {
       return 0;
