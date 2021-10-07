@@ -45,12 +45,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   // Enable this boolean only when the updateMethod is greyBox.
   private final boolean calculateErrorProbability;
 
-  // maps mec index to the best leaving action
-  Int2ObjectMap<Pair<Integer, Integer>> bestLeavingAction = new Int2ObjectOpenHashMap<>();
-
-  // maps a state to the best action. Boolean denotes whether the action is a stay action or not.
-  Int2ObjectMap<Pair<Integer, Boolean>> bestAction = new Int2ObjectOpenHashMap<>();
-
   public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                     int revisitThreshold, double rMax, double pMin, double errorTolerance,
                                     Double2LongFunction nSampleFunction, double precision, long timeout,
@@ -135,19 +129,9 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
           currentState = bestStateActionPairs.first;
           nextActionIndex = bestStateActionPairs.second;
           choices = choices(currentState);
-
-          if (calculateErrorProbability) {
-            bestLeavingAction.put(getMECIndex(currentState), bestStateActionPairs);
-          }
         }
         else {
           nextActionIndex = sampleNextAction(currentState);
-
-          if (calculateErrorProbability) {
-            boolean isStayAction = isInMEC(currentState) && (nextActionIndex == choices.size() - 1);
-            Pair<Integer, Boolean> pair = new Pair<>(nextActionIndex, isStayAction);
-            bestAction.put(currentState, pair);
-          }
         }
 
         assert nextActionIndex != -1;
