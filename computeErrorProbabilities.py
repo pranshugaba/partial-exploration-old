@@ -4,6 +4,12 @@ import shutil
 n = 5
 resultDirectory = 'probabilityResults/'
 
+# It removes the result directory, to remove old values
+isDirExists = os.path.isdir(resultDirectory)
+if isDirExists:
+    shutil.rmtree(resultDirectory)
+
+
 # Run benchmarks for n times as in runExperiments.py
 for i in range(n):
     os.system('python3 runExperiments.py -getErrorProbability')

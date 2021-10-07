@@ -9,6 +9,7 @@ import de.tum.in.probmodels.explorer.BlackExplorer;
 import de.tum.in.probmodels.explorer.Explorer;
 import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
+import de.tum.in.probmodels.model.Action;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
@@ -18,7 +19,6 @@ import prism.PrismException;
 
 import java.util.*;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 import static de.tum.in.probmodels.util.Util.isZero;
 
@@ -532,66 +532,61 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     if (calculateErrorProbability) {
       logger.log(Level.INFO, "Computing error probability");
-      double result = computeErrorProbability(initialState, 1);
+      computeErrorProbability(initialState, 1);
+      double result = computeResult();
       additionalWriteInfo.add(String.valueOf(result));
     }
   }
 
   // Once the error probability is calculated for a state, we update the state as computed.
-  // This is because the same state might recursively get called, if there is an action that goes to itself.
+  // This is because the same state might recursively get called.
   // So to avoid infinite looping, we only once do the calculation for each state.
   Int2BooleanMap computedStates = new Int2BooleanOpenHashMap();
 
-  private double computeErrorProbability(int state, double reachProbability) {
+  List<Pair<Pair<Integer, Integer>, Double>> stateActionProbabilities = new ArrayList<>();
+
+  private void computeErrorProbability(int state, double reachProbability) {
     // Mark this state as computed. So It won't be again computed next time.
+    // Even though we filter this out at last, it still needs to be here, because same state might appear twice in state
+    // successors
+    if (computedStates.containsKey(state)) {
+      return;
+    }
+
     computedStates.put(state, true);
 
-    double errorProb;
+    List<Pair<Integer, Double>> stateSuccessors = new ArrayList<>();
 
-    // We recursively compute the error probabilities for the successors of state
-    // each pair contains the successor and it's probability from state
-    List<Pair<Integer, Double>> successorsToCompute;
+    //explorer.getActions will not contain the sink state
+    List<Action> actions = explorer.getActions(state);
 
-    if (isInMEC(state)) {
+    for (int i = 0; i < actions.size(); i++) {
+      Action action = actions.get(i);
 
-      if (!bestLeavingAction.containsKey(state)) {
-        // Some MEC's might not have bestLeavingAction.
-        return 0;
+      // If not in MEC, we compute the error probability
+      if (!isInMEC(state, action)) {
+        double prob = oneOfTheSuccessorIsNotVisited(state, i) * reachProbability;
+        stateActionProbabilities.add(new Pair<>(new Pair<>(state, i), prob));
       }
 
-      Pair<Integer, Integer> bestLeavingStateAction = bestLeavingAction.get(state);
-      int bestState = bestLeavingStateAction.first;
-      int bestAction = bestLeavingStateAction.second;
-
-      // We don't compute the error probability, for a mec state. But we compute them for it's successors.
-      errorProb = 0;
-
-      // In case of a MEC state, we take the successors of the bestLeavingAction
-      //We filter the successors that goes back into the same MEC
-      successorsToCompute = getSuccessors(bestState, bestAction).stream()
-              .filter(successor -> notInSameMEC(state, successor.first))
-              .collect(Collectors.toList());
-    }
-    else {
-
-      if (hasNoActions(state) || bestAction.get(state).second) {
-        // We have got bestAction as a stay action
-        return 0;
-      }
-
-      int bestActionIndex = bestAction.get(state).first;
-      errorProb = oneOfTheSuccessorIsNotVisited(state, bestActionIndex);
-      successorsToCompute = getSuccessors(state, bestActionIndex);
+      stateSuccessors.addAll(getSuccessors(state, i));
     }
 
-    errorProb *= reachProbability;
-    errorProb += successorsToCompute.stream()
-            .filter(successor -> notAlreadyComputed(successor.first))
-            .filter(successor -> notASinkState(successor.first))
-            .mapToDouble(successor -> computeErrorProbability(successor.first, reachProbability * successor.second))
-            .sum();
+    // We recursively compute the error probabilities for the successors of the state
+    // Before that we filter out already computed state and sink states
+    stateSuccessors.stream()
+            .filter(successorProbPair -> notAlreadyComputed(successorProbPair.first) && notASinkState(successorProbPair.first))
+            .forEach(successorProbPair -> {
+              computeErrorProbability(successorProbPair.first, reachProbability * successorProbPair.second);
+            });
+  }
 
-    return errorProb;
+  private double computeResult() {
+    double result = stateActionProbabilities.stream()
+            .mapToDouble(elem -> 1 - elem.second)
+            .reduce(1, (a, b) -> a*b);
+
+    return 1 - result;
   }
 
   // Computes the probability that one of the successor is not visited for this state, and it's best action
@@ -666,6 +661,19 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
   private boolean isInMEC(int state) {
     return stateToMecMap.containsKey(state);
+  }
+
+  // Checks whether the state action pair is in a MEC
+  private boolean isInMEC(int state, Action action) {
+    int mecIndex = getMECIndex(state);
+
+    if (mecIndex == -1) {
+      return false;
+    }
+
+    NatBitSet mecStates = mecs.get(mecIndex);
+    NatBitSet actionSuccessors = action.distribution().support();
+    return mecStates.containsAll(actionSuccessors);
   }
 
   private int getMECIndex(int state) {
