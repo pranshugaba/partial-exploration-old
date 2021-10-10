@@ -107,8 +107,16 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
       minLower = Math.min(minLower, successorBounds.lowerBound());
       maxUpper = Math.max(maxUpper, successorBounds.upperBound());
     }
+
+//  If the confidence width is very high, then all the successor probabilities (T_HAT) of state, Distribution will be 0.
+//  Hence, sum will be 0. In that case, we don't return the successor bounds. We just return the bounds of the state
+//  itself. This is because, bounds of the incoming state will anyways be larger than the successorBounds, since it is
+//  a predecessor.
     if (sum == 0.0d) {
-      bounds(state);
+      // If there is no return statement here, and the sum is 0, then minLower, maxUpper will be returned.
+      // Sum is 0, because we have visited this transition very few times. So returning the minLower, maxUpper
+      // of successor might be bad, since it may be wrong. Some actions of successor, might not even be explored.
+      return bounds(state);
     }
     double remProb = 1-sum;
     if(updateMethod==UpdateMethod.BLACKBOX) {
@@ -224,6 +232,9 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
         newLowerBound = 0.0d;
         newUpperBound = 0.0d;
         for (int distributionIndex=0; distributionIndex<choices.size(); distributionIndex++) {
+          if (choices.get(distributionIndex).support().isEmpty()) {
+            continue;
+          }
           Bounds bounds = successorBounds(state, choices.get(distributionIndex),
                   confidenceWidthFunction.get(state).get(distributionIndex));
           double upperBound = bounds.upperBound();

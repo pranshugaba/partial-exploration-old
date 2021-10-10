@@ -127,6 +127,21 @@ public class RestrictedMecBoundedValueIterator<S, M extends Model> {
   }
 
   // todo: vectorize operation
+  /**
+   * Suppose for a state s, Distribution d, there is one successor s'. Here we introduce self loop to state s, by taking
+   * action d, with probability (1 - aperiodicity), and then calculate the bounds of this state. This is done to avoid
+   * periodic MDP's which may not converge at all. Refer CAV'17.
+   *
+   * So in this case,
+   * value(s) = ((1 - aperiodicity) * value(s')) + (aperiodicity * value(s'))
+   *
+   * But here we do the same in a slightly different manner.
+   * value(s) = (((1 - aperiodicity) * aperiodicity * value(s')) + (aperiodicity * aperiodicity * value(s'))) / aperiodicity
+   *
+   * Both the value functions will return the same value. We use the second one.
+   * If there are multiple successors, we multiply each of their value with (aperiodicity * aperiodicity).
+   * We also use greybox equations to update our bounds, which has high confidence width.
+   */
   private Bounds getActionBounds(int state, Distribution distribution, double confidenceWidth) {
     double lower = 0.0d;
     double upper = 0.0d;
@@ -145,9 +160,8 @@ public class RestrictedMecBoundedValueIterator<S, M extends Model> {
       minLower = Math.min(minLower, succLower);
       maxUpper = Math.max(maxUpper, succUpper);
     }
+    
     double remProb = 1-probSum;
-//    minLower = 0;
-//    maxUpper = 1;
     lower += remProb*minLower*this.aperidocityConstant;
     upper += remProb*maxUpper*this.aperidocityConstant;
     lower += (1-this.aperidocityConstant)*this.aperidocityConstant*values.get(state).lowerBound();
