@@ -232,9 +232,6 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
         newLowerBound = 0.0d;
         newUpperBound = 0.0d;
         for (int distributionIndex=0; distributionIndex<choices.size(); distributionIndex++) {
-//          if (choices.get(distributionIndex).support().isEmpty()) {
-//            continue;
-//          }
           Bounds bounds = successorBounds(state, choices.get(distributionIndex),
                   confidenceWidthFunction.get(state).get(distributionIndex));
           double upperBound = bounds.upperBound();
