@@ -12,7 +12,7 @@ if isDirExists:
 
 # Run benchmarks for n times as in runExperiments.py
 for i in range(n):
-    os.system('python3 runExperiments.py -getErrorProbability')
+    os.system('python3 runExperiments.py --informationLevel BLACKBOX --getErrorProbability')
     shutil.move('results', f'probabilityResults/iteration{i}')
     os.mkdir('results')
 
