@@ -347,18 +347,21 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         // This deflates the values of the states of the new mecs. Further, the stay action is added here.
 
         for(int i: changedMecs){
-            NatBitSet newComponent = newComponents.get(i);
 
             // We need to run VI on the MEC again to account for the following case. It can be that the bounds on the MEC are
             // already very precise. Thus, the probability of reaching the uncertain state would be very small and we may
             // never be able to run VI on the newly added states again. Thus, we need to run VI straight after adding new
             // states.
             updateMec(i);
+        }
+
+        explorer.deactivateFullyExploredActionsModel();
+
+        for(int i: changedMecs){
+            NatBitSet newComponent = newComponents.get(i);
 
             values.deflate(newComponent, this::choices);
         }
-        explorer.deactivateFullyExploredActionsModel();
-
     }
 
     /**
