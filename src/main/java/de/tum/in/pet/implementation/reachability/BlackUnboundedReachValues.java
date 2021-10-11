@@ -138,7 +138,7 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
           Distribution distribution = choices.get(i);
           // checks if the action's support is contained within the set of states. This means this action doesn't leave
           // the set of states.
-          if(states.containsAll(distribution.support())){
+          if(states.containsAll(distribution.support()) && !distribution.isEmpty()){
             continue;
           }
           double newUpperBound = successorBounds(state, distribution, confidenceWidthFunction.get(state).get(i)).upperBound();
@@ -232,9 +232,9 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
         newLowerBound = 0.0d;
         newUpperBound = 0.0d;
         for (int distributionIndex=0; distributionIndex<choices.size(); distributionIndex++) {
-          if (choices.get(distributionIndex).support().isEmpty()) {
-            continue;
-          }
+//          if (choices.get(distributionIndex).support().isEmpty()) {
+//            continue;
+//          }
           Bounds bounds = successorBounds(state, choices.get(distributionIndex),
                   confidenceWidthFunction.get(state).get(distributionIndex));
           double upperBound = bounds.upperBound();
