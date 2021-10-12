@@ -10,7 +10,7 @@ plotsDir = "results/plots"
 models = ["zeroconf_rewards", "sensors", "investor", "cs_nfail3", "consensus.2", "ij.10", "ij.3", "pacman", "pnueli-zuck.3", "wlan.0", "virus", "phil-nofair3"]
 
 values = {"zeroconf_rewards": 1, "sensors": 0.333, "investor": 0.95, "cs_nfail3": 0.333, "consensus.2": 0.1083, "ij.10": 1, "ij.3": 1,
-          "pacman": 0.5511, "pnueli-zuck.3": 1, "wlan.0": 1, "virus": 0, "phil-nofair3": 2.429}
+          "pacman": 0.5511, "pnueli-zuck.3": 1, "wlan.0": 1, "virus": 0, "phil-nofair3": 2.4286}
 
 modelResults = {model: ["", ""] for model in models}
 
