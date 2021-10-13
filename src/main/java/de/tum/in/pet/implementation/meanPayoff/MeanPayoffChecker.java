@@ -3,10 +3,7 @@ package de.tum.in.pet.implementation.meanPayoff;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.set.RoaringNatBitSetFactory;
 import de.tum.in.pet.Main;
-import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
-import de.tum.in.pet.implementation.reachability.UnboundedReachValues;
-import de.tum.in.pet.implementation.reachability.UpdateMethod;
-import de.tum.in.pet.implementation.reachability.ValueUpdate;
+import de.tum.in.pet.implementation.reachability.*;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.CliHelper;
@@ -156,7 +153,7 @@ public final class MeanPayoffChecker {
     else{
       Double2LongFunction nSampleFunction = s -> iterSamples;
 
-      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
+      UnboundedValues values = new GreyUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
 
       valueIterator = new GreyOnDemandValueIterator<>(explorer, values, rewardGenerator,
               revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout);

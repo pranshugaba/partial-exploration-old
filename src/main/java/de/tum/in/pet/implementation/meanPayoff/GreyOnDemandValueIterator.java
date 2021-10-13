@@ -2,7 +2,7 @@ package de.tum.in.pet.implementation.meanPayoff;
 
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
-import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
+import de.tum.in.pet.implementation.reachability.GreyUnboundedReachValues;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.explorer.Explorer;
@@ -44,6 +44,19 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         this.pMin = pMin;
         this.errorTolerance = errorTolerance;
         this.nSampleFunction = nSampleFunction;
+
+        initGreyUnboundedReachValues();
+    }
+
+    private void initGreyUnboundedReachValues() {
+        GreyUnboundedReachValues greyUnboundedReachValues = (GreyUnboundedReachValues) this.values;
+
+        GreyExplorer<S, M> greyExplorer = (GreyExplorer<S, M>) this.explorer;
+
+        greyUnboundedReachValues.setChoiceFunction(this::choices);
+        Int2ObjectFunction<Int2IntFunction> getNumSuccessors = x -> (y -> greyExplorer.getOriginalNumOfSuccessors(x, y));
+        greyUnboundedReachValues.setGetNumSuccessors(getNumSuccessors);
+        greyUnboundedReachValues.setIsInMEC(stateToMecMap::containsKey);
     }
 
     @Override
@@ -54,7 +67,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
     @Override
     protected boolean sample(int initialState, int run) throws PrismException {
 
-        BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
+        GreyUnboundedReachValues values = (GreyUnboundedReachValues) this.values;
 
         GreyExplorer<S, M> explorer = (GreyExplorer<S, M>) explorer();
 
@@ -189,7 +202,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
      * @return true, if there have been any changes to the bounds of the states, else false.
      */
     private boolean update(){
-        BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
+        GreyUnboundedReachValues values = (GreyUnboundedReachValues) this.values;
         values.cacheCurrBounds(); // cache the current bounds to check if we will make any progress in update.
 
         for (int state: explorer.exploredStates()){
@@ -318,7 +331,7 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         }
 
         explorer.resetFullyExploredActionFlag();
-        BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
+        GreyUnboundedReachValues values = (GreyUnboundedReachValues) this.values;
 
         NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
 

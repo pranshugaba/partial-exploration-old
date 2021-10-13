@@ -119,11 +119,18 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
       return bounds(state);
     }
     double remProb = 1-sum;
-    if(updateMethod==UpdateMethod.BLACKBOX) {
+    if(doMostConservativeGuess(state, distribution)) {
       minLower = 0;
       maxUpper = 1;
     }
     return Bounds.reach(lower+remProb*minLower, upper+remProb*maxUpper);
+  }
+
+  /**
+   * @return true, if we have to update using most conservative bounds. i.e minLower to be zero and maxUpper to be 1
+   */
+  protected boolean doMostConservativeGuess(int state, Distribution distribution) {
+    return updateMethod == UpdateMethod.BLACKBOX;
   }
 
   public List<Pair<Integer, Integer>> getBestLeavingAction(IntSet states, Int2ObjectFunction<List<Distribution>> choiceFunction) {
