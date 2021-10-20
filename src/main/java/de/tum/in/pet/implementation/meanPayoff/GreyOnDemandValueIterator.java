@@ -312,6 +312,12 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         Bounds newBounds = valueIterator.getBounds();
         Bounds scaledBounds = Bounds.of(newBounds.lowerBound()/this.rMax, newBounds.upperBound()/this.rMax);
 
+        // Sometimes the scaled upper bound may be greater than 1
+        // Assume all the transitions in the MEC has rMax reward. Then the upper bound can be greater than rMax.
+        if (scaledBounds.upperBound() > 1) {
+            scaledBounds = scaledBounds.withUpper(1);
+        }
+
         // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
         // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
         // lower bound value. Thus, we can use the previously computer lower bound value for slightly faster convergence.

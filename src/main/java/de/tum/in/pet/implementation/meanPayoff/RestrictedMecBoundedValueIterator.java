@@ -8,7 +8,9 @@ import de.tum.in.probmodels.model.Action;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.ints.*;
+import prism.Pair;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class RestrictedMecBoundedValueIterator<S, M extends Model> {
@@ -66,7 +68,15 @@ public class RestrictedMecBoundedValueIterator<S, M extends Model> {
   public void run(){
     int numStates = mec.size();
     NatBitSet states = mec.states;
-    Bounds[] diff =new Bounds[numStates];  // This array stores the difference of values for each state between two successive iterations. This is Delta_n in CAV'17.
+
+    // This array stores the difference of values for each state between two successive iterations. This is Delta_n in CAV'17.
+    List<Pair<Double, Double>> diff = new ArrayList<>();
+
+    // This is to make the size of diff to be num states.
+    // During each iteration we use set method to change the values of diff. It will throw error if index is greater than size.
+    for (int i = 0; i < numStates; i++) {
+      diff.add(new Pair<>(0d, 0d));
+    }
 
     if(values.size()==0) { // no pre-computed values sent
       IntIterator stateIterator = states.iterator();
@@ -103,8 +113,8 @@ public class RestrictedMecBoundedValueIterator<S, M extends Model> {
           maxUpperBound = Math.max(actionBounds.upperBound()+val, maxUpperBound);
         }
         tempValues.put(state, Bounds.of(maxLowerBound, maxUpperBound));
-        diff[count++] = Bounds.of(maxLowerBound-oldValues.get(state).lowerBound(),
-                maxUpperBound-oldValues.get(state).upperBound());
+        diff.set(count, new Pair<>(maxLowerBound-oldValues.get(state).lowerBound(),
+                maxUpperBound-oldValues.get(state).upperBound()));
       }
       for(int state: values.keySet()) {
         values.put(state, tempValues.get(state));
@@ -115,11 +125,11 @@ public class RestrictedMecBoundedValueIterator<S, M extends Model> {
       minLower=Double.MAX_VALUE; // min of diff (min of Delta_n)
       maxUpper=0.0; // max of diff (max of Delta_n)
       minUpper=Double.MAX_VALUE; // min of diff (min of Delta_n)
-      for (Bounds b : diff) {
-        maxLower = Math.max(maxLower, b.lowerBound());
-        minLower = Math.min(minLower, b.lowerBound());
-        maxUpper = Math.max(maxUpper, b.upperBound());
-        minUpper = Math.min(minUpper, b.upperBound());
+      for (Pair<Double, Double> b : diff) {
+        maxLower = Math.max(maxLower, b.first);
+        minLower = Math.min(minLower, b.first);
+        maxUpper = Math.max(maxUpper, b.second);
+        minUpper = Math.min(minUpper, b.second);
       }
       int a = 0;
     } while ((maxLower-minLower) >= targetPrecision && (maxUpper-minUpper) >= targetPrecision);  // stopping criterion of value iteration

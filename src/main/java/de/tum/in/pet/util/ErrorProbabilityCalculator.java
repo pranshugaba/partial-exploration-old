@@ -23,13 +23,13 @@ public class ErrorProbabilityCalculator {
 
     private final Int2ObjectMap<ObjectArrayList<Action>> originalStateActions;
     private final Int2ObjectFunction<List<Action>> getStateActions;
-    private final Int2ObjectMap<ObjectArrayList<Int2IntMap>> stateTransitionCounts;
+    private final Int2ObjectMap<ObjectArrayList<Int2LongMap>> stateTransitionCounts;
     private final Int2IntMap stateToMecMap;
     private final List<NatBitSet> mecs;
 
     public ErrorProbabilityCalculator(Int2ObjectFunction<List<Action>> getStateActions,
                                       Int2ObjectMap<ObjectArrayList<Action>> originalStateActions,
-                                      Int2ObjectMap<ObjectArrayList<Int2IntMap>> stateTransitionCounts,
+                                      Int2ObjectMap<ObjectArrayList<Int2LongMap>> stateTransitionCounts,
                                       Int2IntMap stateToMecMap,
                                       List<NatBitSet> mecs) {
         this.getStateActions = getStateActions;
@@ -97,7 +97,7 @@ public class ErrorProbabilityCalculator {
         assert bestActionIndex != -1;
 
         List<Double> successorProbabilities = getOriginalSuccessorProbabilities(state, bestActionIndex);
-        int numVisits = getStateActionVisitCount(state, bestActionIndex);
+        long numVisits = getStateActionVisitCount(state, bestActionIndex);
 
         if (numVisits == 0) {
             return 0;
@@ -121,19 +121,19 @@ public class ErrorProbabilityCalculator {
     }
 
     // Returns the number of times, this state, action has been visited.
-    private int getStateActionVisitCount(int state, int actionIndex) {
+    private long getStateActionVisitCount(int state, int actionIndex) {
         // This map contains the number of visits for each successor of the action. We sum them up to find how many number
         // times this state action has been visited.
-        Int2IntMap actionSuccessorsVisitCounts = stateTransitionCounts.get(state).get(actionIndex);
+        Int2LongMap actionSuccessorsVisitCounts = stateTransitionCounts.get(state).get(actionIndex);
 
 
         return actionSuccessorsVisitCounts.values()
                 .stream()
-                .mapToInt(Integer::intValue)
+                .mapToLong(Long::longValue)
                 .sum();
     }
 
-    private double successorNotVisited(double successorProbability, int numVisits) {
+    private double successorNotVisited(double successorProbability, long numVisits) {
         return Math.pow(1-successorProbability, numVisits);
     }
 
