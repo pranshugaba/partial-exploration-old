@@ -8,6 +8,7 @@ import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.CliHelper;
 import de.tum.in.pet.values.Bounds;
+import de.tum.in.probmodels.explorer.CTMDPBlackExplorer;
 import de.tum.in.probmodels.explorer.Explorers;
 import de.tum.in.probmodels.explorer.InformationLevel;
 import de.tum.in.probmodels.generator.*;
@@ -130,6 +131,54 @@ public final class MeanPayoffChecker {
     }
   }
 
+  private static <S, M extends Model> double solveCtmdp(M partialModel, Generator<S> generator, InformationLevel informationLevel,
+                                                   RewardGenerator<S> rewardGenerator, SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
+                                                   int revisitThreshold, double maxReward, double pMin, double errorTolerance, int iterSamples, long timeout, boolean getErrorProbability)
+          throws PrismException {
+
+    var explorer = CTMDPBlackExplorer.of(partialModel, generator, false);
+
+    IntPredicate target = (x) -> x==Integer.MAX_VALUE;
+    OnDemandValueIterator<S, M> valueIterator;
+
+    if (informationLevel==InformationLevel.WHITEBOX) {
+      throw new UnsupportedOperationException("Whitebox not implemented for CTMDP");
+//      UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, precision / maxReward, heuristic);
+//
+//      valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward, precision / maxReward, System.currentTimeMillis()+timeout);
+    }
+    else if (informationLevel==InformationLevel.BLACKBOX) {
+      Double2LongFunction nSampleFunction = s -> iterSamples;
+
+      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
+
+      valueIterator = new CTMDPBlackOnDemandValueIterator<>(explorer, values, rewardGenerator,
+              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout, getErrorProbability);
+    }
+    else{
+      throw new UnsupportedOperationException("Greybox not implemented for CTMDP");
+//      Double2LongFunction nSampleFunction = s -> iterSamples;
+//
+//      UnboundedValues values = new GreyUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
+//
+//      valueIterator = new GreyOnDemandValueIterator<>(explorer, values, rewardGenerator,
+//              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout);
+    }
+
+    valueIterator.run();
+
+    int initState = explorer.initialStates().iterator().nextInt();
+    Bounds bounds = valueIterator.bounds(initState);
+
+    logger.log(Level.INFO, "Explored states {0}", new Object[] {explorer.exploredStateCount()});
+
+    timeVBound.addAll(valueIterator.timeVBound);
+    additionalWriteInfo.addAll(valueIterator.additionalWriteInfo);
+
+    return maxReward*bounds.average();
+
+  }
+
   private static <S, M extends Model> double solve(M partialModel, Generator<S> generator, InformationLevel informationLevel,
       RewardGenerator<S> rewardGenerator, SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
       int revisitThreshold, double maxReward, double pMin, double errorTolerance, int iterSamples, long timeout, boolean getErrorProbability)
@@ -187,7 +236,7 @@ public final class MeanPayoffChecker {
 
     RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(rewardIndex, prismGenerator);
 
-    return solve(partialModel, generator, informationLevel, rewardGenerator, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
+    return solveCtmdp(partialModel, generator, informationLevel, rewardGenerator, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
 
   }
 
