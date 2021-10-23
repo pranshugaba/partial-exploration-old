@@ -4,6 +4,7 @@ import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
 import de.tum.in.pet.sampler.UnboundedValues;
+import de.tum.in.pet.util.ErrorProbabilityCalculator;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.explorer.BlackExplorer;
 import de.tum.in.probmodels.explorer.Explorer;
@@ -41,13 +42,18 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
   private boolean seenNewTransitionSignificantly = false; // If a new transition has been sampled a significant number of times.
 
+  // Enable this boolean only when the updateMethod is greyBox.
+  private final boolean calculateErrorProbability;
+
   public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                     int revisitThreshold, double rMax, double pMin, double errorTolerance,
-                                    Double2LongFunction nSampleFunction, double precision, long timeout) {
+                                    Double2LongFunction nSampleFunction, double precision, long timeout,
+                                    boolean getErrorProbability) {
     super(explorer, values, rewardGenerator, revisitThreshold, rMax, precision, timeout);
     this.pMin = pMin;
     this.errorTolerance = errorTolerance;
     this.nSampleFunction = nSampleFunction;
+    this.calculateErrorProbability = getErrorProbability;
   }
 
   @Override
@@ -68,8 +74,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     long nIterations = nSampleFunction.apply(k);
     double errorTolerance = this.errorTolerance;
 
-    Random randomIntegerSampler = new Random();
-
     // Updates the confidenceWidthFunction according to the latest counts and transDelta value. The confidenceWidthFunction
     // returns the confidenceWidth for a state x and an action with index y. if y is greater than the number of choices
     // the explorer holds, it must be the stay action. We set confidence width of stay action equal to zero as we
@@ -82,13 +86,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     values.setConfidenceWidthFunction(confidenceWidthFunction);
 
     for (int i = 0; i < nIterations; i++) {
-
       IntList visitStack = new IntArrayList();
       int currentState = initialState;
       Int2IntOpenHashMap stateVisitCounts = new Int2IntOpenHashMap();  // keeps counts of the number of times a state is visited
 
       while (true) {
-
         visitStack.add(currentState);
         stateVisitCounts.putIfAbsent(currentState, 0);
         stateVisitCounts.addTo(currentState, 1);
@@ -121,23 +123,15 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         int nextState, nextActionIndex;
         // This condition is there as in the simulate function in CAV'19. It checks whether we have been returning to a
-        // state too many times during simulation indicating that we could be stuck inside an MEC .
+        // state too many times during simulation indicating that we could be stuck inside an MEC.
         if (stateVisitCounts.get(currentState)>=revisitThreshold && looping(visitStack)) {
-          int mecIndex = stateToMecMap.get(currentState);
-          NatBitSet mecStates = this.mecs.get(mecIndex);
-          List<Pair<Integer, Integer>> bestActionStatePairs = values.getBestLeavingAction(mecStates, this::choices);
-          int sampledActionStatePair = randomIntegerSampler.nextInt(bestActionStatePairs.size());
-          currentState = bestActionStatePairs.get(sampledActionStatePair).first;
-          nextActionIndex = bestActionStatePairs.get(sampledActionStatePair).second;
+          Pair<Integer, Integer> bestStateActionPairs = getSampledBestLeavingAction(currentState);
+          currentState = bestStateActionPairs.first;
+          nextActionIndex = bestStateActionPairs.second;
           choices = choices(currentState);
         }
         else {
-          nextActionIndex = values.sampleNextAction(currentState, choices); // index of the action from the state that is to be sampled next.
-          // this happens when none of the actions look promising at all, i.e. all actions have a upper bound of 0.
-          // To continue the simulation, we forcefully sample an action.
-          if (nextActionIndex == -1) {
-            nextActionIndex = explorer.sampleNextAction(currentState);
-          }
+          nextActionIndex = sampleNextAction(currentState);
         }
 
         assert nextActionIndex != -1;
@@ -193,6 +187,30 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     return true;
 
+  }
+
+  private Pair<Integer, Integer> getSampledBestLeavingAction(int currentState) {
+    BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
+    Random randomIntegerSampler = new Random();
+
+    int mecIndex = stateToMecMap.get(currentState);
+    NatBitSet mecStates = this.mecs.get(mecIndex);
+    List<Pair<Integer, Integer>> bestActionStatePairs = values.getBestLeavingAction(mecStates, this::choices);
+    int sampledActionIndex = randomIntegerSampler.nextInt(bestActionStatePairs.size());
+    return bestActionStatePairs.get(sampledActionIndex);
+  }
+
+  private int sampleNextAction(int currentState) {
+    BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
+
+    int nextActionIndex = values.sampleNextAction(currentState, choices(currentState)); // index of the action from the state that is to be sampled next.
+    // this happens when none of the actions look promising at all, i.e. all actions have a upper bound of 0.
+    // To continue the simulation, we forcefully sample an action.
+    if (nextActionIndex == -1) {
+      nextActionIndex = explorer.sampleNextAction(currentState);
+    }
+
+    return nextActionIndex;
   }
 
   /**
@@ -267,8 +285,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     double targetPrecision = currPrecision/2;
 
-    logger.log(Level.INFO,  "updating MEC");
-
     // get all the MEC states corresponding to mecRepresentative.
     Mec mec = getMec(mecIndex);
 
@@ -312,6 +328,12 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     Bounds newBounds = valueIterator.getBounds();
     Bounds scaledBounds = Bounds.of(newBounds.lowerBound()/this.rMax, newBounds.upperBound()/this.rMax);
 
+    // Sometimes the scaled upper bound may be greater than 1
+    // Assume all the transitions in the MEC has rMax reward. Then the upper bound can be greater than rMax.
+    if (scaledBounds.upperBound() > 1) {
+      scaledBounds = scaledBounds.withUpper(1);
+    }
+
     // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
     // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
     // lower bound value. Thus, we can use the previously computer lower bound value for slightly faster convergence.
@@ -335,8 +357,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
     BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
 
-    logger.log(Level.INFO, "Searching components");
-
     NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
 
     // activate the action count filter. Now explorer.model() only contains those actions that have been sampled
@@ -358,10 +378,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     // udpates all the mec information variables according to the latest computations.
     NatBitSet changedMecs = updateMecInfo(newComponents);
 
-    if (changedMecs.size()>0){
-      logger.log(Level.INFO, "Found {0} new components", changedMecs.size());
-    }
-    else {
+    if (changedMecs.isEmpty()) {
       explorer.deactivateActionCountFilter();
       return;
     }
@@ -384,7 +401,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
       values.deflate(newComponent, this::choices);
     }
-
   }
 
   /**
@@ -502,4 +518,21 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     return choices;
   }
 
+  @Override
+  protected void onSamplingFinished(int initialState) {
+    super.onSamplingFinished(initialState);
+
+    if (calculateErrorProbability) {
+      logger.log(Level.INFO, "Computing error probability");
+
+      BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
+      ErrorProbabilityCalculator errorProbabilityCalculator = new ErrorProbabilityCalculator(explorer::getActions,
+              explorer.getOriginalStateActions(),
+              explorer.getStateTransitionCounts(),
+              stateToMecMap,
+              mecs);
+      double result = errorProbabilityCalculator.getErrorProbability(initialState);
+      additionalWriteInfo.add(String.valueOf(result));
+    }
+  }
 }

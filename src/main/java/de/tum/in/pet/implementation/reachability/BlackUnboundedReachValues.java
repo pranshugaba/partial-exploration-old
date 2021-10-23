@@ -107,15 +107,30 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
       minLower = Math.min(minLower, successorBounds.lowerBound());
       maxUpper = Math.max(maxUpper, successorBounds.upperBound());
     }
+
+//  If the confidence width is very high, then all the successor probabilities (T_HAT) of state, Distribution will be 0.
+//  Hence, sum will be 0. In that case, we don't return the successor bounds. We just return the bounds of the state
+//  itself. This is because, bounds of the incoming state will anyways be larger than the successorBounds, since it is
+//  a predecessor.
     if (sum == 0.0d) {
-      bounds(state);
+      // If there is no return statement here, and the sum is 0, then minLower, maxUpper will be returned.
+      // Sum is 0, because we have visited this transition very few times. So returning the minLower, maxUpper
+      // of successor might be bad, since it may be wrong. Some actions of successor, might not even be explored.
+      return bounds(state);
     }
     double remProb = 1-sum;
-    if(updateMethod==UpdateMethod.BLACKBOX) {
+    if(doMostConservativeGuess(state, distribution)) {
       minLower = 0;
       maxUpper = 1;
     }
     return Bounds.reach(lower+remProb*minLower, upper+remProb*maxUpper);
+  }
+
+  /**
+   * @return true, if we have to update using most conservative bounds. i.e minLower to be zero and maxUpper to be 1
+   */
+  protected boolean doMostConservativeGuess(int state, Distribution distribution) {
+    return updateMethod == UpdateMethod.BLACKBOX;
   }
 
   public List<Pair<Integer, Integer>> getBestLeavingAction(IntSet states, Int2ObjectFunction<List<Distribution>> choiceFunction) {
@@ -130,7 +145,7 @@ public class BlackUnboundedReachValues extends UnboundedReachValues{
           Distribution distribution = choices.get(i);
           // checks if the action's support is contained within the set of states. This means this action doesn't leave
           // the set of states.
-          if(states.containsAll(distribution.support())){
+          if(states.containsAll(distribution.support()) && !distribution.isEmpty()){
             continue;
           }
           double newUpperBound = successorBounds(state, distribution, confidenceWidthFunction.get(state).get(i)).upperBound();

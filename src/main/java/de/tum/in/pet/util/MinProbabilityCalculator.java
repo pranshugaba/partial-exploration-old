@@ -30,6 +30,8 @@ import java.util.logging.Logger;
 public class MinProbabilityCalculator {
   private static final Logger logger = Logger.getLogger(MeanPayoffChecker.class.getName());
 
+
+
   private static double findPMinMDP(Explorer<?, ?> explorer) {
 
     IntSet exploredStates = new IntOpenHashSet(explorer.exploredStates());
@@ -37,7 +39,16 @@ public class MinProbabilityCalculator {
 
     final double[] pMin = {1};
 
+    int numStates = 1000000;
+    int printCount = 1;
+
     while (newExploredStates.size()!=0) {
+
+      if (explorer.exploredStateCount() >= (printCount * numStates)) {
+        logger.log(Level.INFO, "PMin is " + pMin[0]);
+        printCount += 1;
+      }
+
       exploredStates.forEach((IntConsumer) s -> {
         List<Distribution> choices = explorer.getChoices(s);
         IntSet neighbours = new IntArraySet();
@@ -65,6 +76,8 @@ public class MinProbabilityCalculator {
       newExploredStates.removeAll(exploredStates);
       exploredStates = new IntOpenHashSet(explorer.exploredStates());
     }
+
+    logger.log(Level.INFO, "Execution finished with pMin " + pMin[0]);
 
     return pMin[0];
 
