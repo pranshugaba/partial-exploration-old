@@ -121,7 +121,7 @@ public final class MeanPayoffChecker {
       case LTS:
       case CTMDP:
         return solveCtmdp(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold,
-            maxReward, pMin, errorTolerance, iterSamples, timeout);
+            maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
       case PTA:
       case STPG:
       case SMG:
@@ -179,7 +179,7 @@ public final class MeanPayoffChecker {
   private static double solveCtmdp(ModelGenerator prismGenerator, InformationLevel informationLevel, int rewardIndex,
                                     SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
                                     int revisitThreshold, double maxReward, double pMin, double errorTolerance,
-                                    int iterSamples, long timeout)
+                                    int iterSamples, long timeout, boolean getErrorProbability)
           throws PrismException {
 
     MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
@@ -187,7 +187,7 @@ public final class MeanPayoffChecker {
 
     RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(rewardIndex, prismGenerator);
 
-    return solve(partialModel, generator, informationLevel, rewardGenerator, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout);
+    return solve(partialModel, generator, informationLevel, rewardGenerator, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
 
   }
 
