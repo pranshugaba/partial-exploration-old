@@ -4,18 +4,16 @@ import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
-import de.tum.in.probmodels.model.Action;
 import de.tum.in.probmodels.model.Distribution;
-import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.ints.*;
 import prism.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class RestrictedMecBoundedValueIterator<S, M extends Model> {
+public class RestrictedMecBoundedValueIterator<S> {
 
-  public final M model; // Original Model
+//  public final M model; // Original Model
   public final Mec mec; // Mec with respect to original model
   public final double targetPrecision;
   public final Int2ObjectMap<Bounds> values;  // map of states and total values; the average value can be obtained by dividing by iterCount
@@ -28,11 +26,17 @@ public class RestrictedMecBoundedValueIterator<S, M extends Model> {
   // Returns the confidence width for a state x and it's corresponding action index y
   private Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction = x -> (y -> (0));
 
+  // Returns the distribution for a state x and it's corresponding action index y
+  private Int2ObjectFunction<Int2ObjectFunction<Distribution>> distributionFunction = x -> (y -> null);
+
+  // Returns the label of the action y
+  private Int2ObjectFunction<Int2ObjectFunction<Object>> labelFunction = x -> (y -> null);
+
   private final double aperidocityConstant;
 
-  public RestrictedMecBoundedValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
+  public RestrictedMecBoundedValueIterator(Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
                                     Int2ObjectFunction<S> stateIndexMap){
-    this.model = model;
+//    this.model = model;
     this.mec = mec;
     this.targetPrecision = targetPrecision;
     this.values = new Int2ObjectOpenHashMap<>();
@@ -42,9 +46,9 @@ public class RestrictedMecBoundedValueIterator<S, M extends Model> {
     this.aperidocityConstant = 0.8;
   }
 
-  public RestrictedMecBoundedValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
+  public RestrictedMecBoundedValueIterator(Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
                                     Int2ObjectFunction<S> stateIndexMap, Int2ObjectMap<Bounds> values){
-    this.model = model;
+//    this.model = model;
     this.mec = mec;
     this.targetPrecision = targetPrecision;
     this.values = values;
@@ -63,6 +67,14 @@ public class RestrictedMecBoundedValueIterator<S, M extends Model> {
 
   public void resetConfidenceWidthFunction(){
     this.confidenceWidthFunction = x -> (y -> (0));
+  }
+
+  public void setDistributionFunction(Int2ObjectFunction<Int2ObjectFunction<Distribution>> distributionFunction) {
+    this.distributionFunction = distributionFunction;
+  }
+
+  public void setLabelFunction(Int2ObjectFunction<Int2ObjectFunction<Object>> labelFunction) {
+    this.labelFunction = labelFunction;
   }
 
   public void run(){
@@ -99,15 +111,15 @@ public class RestrictedMecBoundedValueIterator<S, M extends Model> {
         double maxLowerBound = 0.0;
         IntSet allowedActions = mec.actions.get(state);  // allowedActions numbered as in original model
         assert allowedActions != null;
-        List<Action> choices = model.getActions(state);  // get all actions (not distributions)
+//        List<Action> choices = model.getActions(state);  // get all actions (not distributions)
         // Get Actions from original model, filter according to mec actions
         for (int action : allowedActions) {  // find the value of the state over all actions
           // Send action label instead of action object. State object needs to be fetched from stateIndexMap.
           // val_transformed = const*rewards + actionVal. Instead, we have found val = rewards + actionVal/const (This division is done by actionVal itself). We do this to store the original value.
-          double val = rewardGenerator.transitionReward(stateIndexMap.get(state), choices.get(action).label()) // Action.label() returns label
+          double val = rewardGenerator.transitionReward(stateIndexMap.get(state), labelFunction.apply(state).apply(action)) // Action.label() returns label
                   + rewardGenerator.stateReward(stateIndexMap.get(state));
 
-          Bounds actionBounds = getActionBounds(state, choices.get(action).distribution(), // Action.distribution returns distribution
+          Bounds actionBounds = getActionBounds(state, distributionFunction.apply(state).apply(action), // Action.distribution returns distribution
                   confidenceWidthFunction.get(state).get(action));
           maxLowerBound = Math.max(actionBounds.lowerBound()+val, maxLowerBound);
           maxUpperBound = Math.max(actionBounds.upperBound()+val, maxUpperBound);

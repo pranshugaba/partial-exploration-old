@@ -304,8 +304,10 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends OnDemandValue
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
-        RestrictedMecBoundedValueIterator<S, M> valueIterator = new RestrictedMecBoundedValueIterator<>(this.explorer.model(), mec, targetPrecision/2, rewardGenerator, stateIndexMap);
+        RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision/2, rewardGenerator, stateIndexMap);
         valueIterator.setConfidenceWidthFunction(x -> (y -> Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))));
+        valueIterator.setDistributionFunction(x -> y -> this.explorer.model().getChoice(x, y));
+        valueIterator.setLabelFunction(x -> y -> this.explorer.model().getActions(x).get(y).label());
 
         valueIterator.run();
 
