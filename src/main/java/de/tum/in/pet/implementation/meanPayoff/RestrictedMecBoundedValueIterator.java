@@ -20,6 +20,7 @@ public class RestrictedMecBoundedValueIterator<S> {
   public final RewardGenerator<S> rewardGenerator;
   private int iterCount;  // number of iterations in value iteration
   private final Int2ObjectFunction<S> stateIndexMap; // map from original model state number to corresponding state object
+  private final double rMax;
 
   private Bounds bounds;
 
@@ -35,8 +36,7 @@ public class RestrictedMecBoundedValueIterator<S> {
   private final double aperidocityConstant;
 
   public RestrictedMecBoundedValueIterator(Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
-                                    Int2ObjectFunction<S> stateIndexMap){
-//    this.model = model;
+                                    Int2ObjectFunction<S> stateIndexMap, double rMax){
     this.mec = mec;
     this.targetPrecision = targetPrecision;
     this.values = new Int2ObjectOpenHashMap<>();
@@ -44,11 +44,11 @@ public class RestrictedMecBoundedValueIterator<S> {
     this.stateIndexMap = stateIndexMap;
     this.iterCount = 0;
     this.aperidocityConstant = 0.8;
+    this.rMax = rMax;
   }
 
   public RestrictedMecBoundedValueIterator(Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
-                                    Int2ObjectFunction<S> stateIndexMap, Int2ObjectMap<Bounds> values){
-//    this.model = model;
+                                    Int2ObjectFunction<S> stateIndexMap, Int2ObjectMap<Bounds> values, double rMax){
     this.mec = mec;
     this.targetPrecision = targetPrecision;
     this.values = values;
@@ -56,6 +56,7 @@ public class RestrictedMecBoundedValueIterator<S> {
     this.stateIndexMap = stateIndexMap;
     this.iterCount = 0;
     this.aperidocityConstant = 0.8;
+    this.rMax = rMax;
   }
 
   /**
@@ -145,6 +146,12 @@ public class RestrictedMecBoundedValueIterator<S> {
       }
       int a = 0;
     } while ((maxLower-minLower) >= targetPrecision && (maxUpper-minUpper) >= targetPrecision);  // stopping criterion of value iteration
+
+    // Sometimes the scaled upper bound may be greater than 1
+    // Assume all the transitions in the MEC has rMax reward. Then the upper bound can be greater than rMax.
+    if (maxUpper >= rMax) {
+      maxUpper = rMax;
+    }
     bounds = Bounds.of(minLower, maxUpper);
   }
 

@@ -320,7 +320,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     // lambda function that returns a state object when given the state index. required for accessing reward generator function.
     Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
-    RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision/2, rewardGenerator, stateIndexMap);
+    RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision/2, rewardGenerator, stateIndexMap, rMax);
     valueIterator.setConfidenceWidthFunction(x -> (y -> Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))));
     valueIterator.setDistributionFunction(x -> y -> this.explorer.model().getChoice(x, y));
     valueIterator.setLabelFunction(x -> y -> this.explorer.model().getActions(x).get(y).label());
@@ -329,12 +329,6 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     Bounds newBounds = valueIterator.getBounds();
     Bounds scaledBounds = Bounds.of(newBounds.lowerBound()/this.rMax, newBounds.upperBound()/this.rMax);
-
-    // Sometimes the scaled upper bound may be greater than 1
-    // Assume all the transitions in the MEC has rMax reward. Then the upper bound can be greater than rMax.
-    if (scaledBounds.upperBound() > 1) {
-      scaledBounds = scaledBounds.withUpper(1);
-    }
 
     // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
     // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
