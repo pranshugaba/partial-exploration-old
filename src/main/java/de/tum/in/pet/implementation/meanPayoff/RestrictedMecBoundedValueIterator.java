@@ -147,8 +147,9 @@ public class RestrictedMecBoundedValueIterator<S> {
       int a = 0;
     } while ((maxLower-minLower) >= targetPrecision && (maxUpper-minUpper) >= targetPrecision);  // stopping criterion of value iteration
 
-    // Sometimes the scaled upper bound may be greater than 1
-    // Assume all the transitions in the MEC has rMax reward. Then the upper bound can be greater than rMax.
+    // Sometimes the upper bound is slightly greater than rMax, because of floating point error.
+    // This was observed when running the pnueli-zuck3 model.
+    // We change the upper bound to be rMax itself, when it goes beyond rMax.
     if (maxUpper >= rMax) {
       maxUpper = rMax;
     }
