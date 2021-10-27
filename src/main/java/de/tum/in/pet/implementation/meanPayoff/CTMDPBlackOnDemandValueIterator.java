@@ -16,8 +16,8 @@ import de.tum.in.probmodels.graph.UniformizedMEC;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.ints.*;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import prism.Pair;
 import prism.PrismException;
 
@@ -331,14 +331,13 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
         assert !isZero(targetPrecision);
 
-        // TODO CHANGE MAX RATE
-        UniformizedMEC uniformizedMEC = mecUniformizer.uniformize(mec, 100);
+        UniformizedMEC uniformizedMEC = mecUniformizer.uniformize(mec, computeMaxRate(mec));
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
         RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision/2, rewardGenerator, stateIndexMap, rMax);
         valueIterator.setConfidenceWidthFunction(x -> (y -> Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))));
-        valueIterator.setDistributionFunction(distributionFunction);
+        valueIterator.setDistributionFunction(x -> y -> uniformizedMEC.getUniformizedDistribution(x, y));
         valueIterator.setLabelFunction(labelFunction);
 
         valueIterator.run();
@@ -348,7 +347,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
         // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
         // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
-        // lower bound value. Thus, we can use the previously computer lower bound value for slightly faster convergence.
+        // lower bound value. Thus, we can use the previously computed lower bound value for slightly faster convergence.
         scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
 
 
@@ -548,11 +547,24 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         }
     }
 
-    private double computeRate(int state, int action) {
-//        CTMDPBlackExplorer<S, M> ctmdpExplorer = (CTMDPBlackExplorer<S, M>) this.explorer;
-//        ctmdpExplorer.stateTransitionTimes.get(state).get(action);
+    private double computeMaxRate(Mec mec) {
+        double maxRate = 0;
 
-        return 1d;
+        for (int state : mec.states) {
+            for (int action : mec.actions.get(state)) {
+                maxRate = Math.max(computeRate(state, action), maxRate);
+            }
+        }
+
+        return maxRate;
+    }
+
+    private double computeRate(int state, int action) {
+        CTMDPBlackExplorer<S, M> ctmdpBlackExplorer = (CTMDPBlackExplorer<S, M>) this.explorer;
+        DoubleArrayList transitionTimes = ctmdpBlackExplorer.transitionTimes.get(state).get(action);
+        double stayTimeSum = transitionTimes.stream().reduce(0d, Double::sum);
+        double stayTimeAverage = stayTimeSum / transitionTimes.size();
+        return 1 / stayTimeAverage;
     }
 }
 

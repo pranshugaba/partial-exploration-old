@@ -126,7 +126,7 @@ public class RestrictedMecBoundedValueIterator<S> {
           maxUpperBound = Math.max(actionBounds.upperBound()+val, maxUpperBound);
         }
         tempValues.put(state, Bounds.of(maxLowerBound, maxUpperBound));
-        diff.set(count, new Pair<>(maxLowerBound-oldValues.get(state).lowerBound(),
+        diff.set(count++, new Pair<>(maxLowerBound-oldValues.get(state).lowerBound(),
                 maxUpperBound-oldValues.get(state).upperBound()));
       }
       for(int state: values.keySet()) {
