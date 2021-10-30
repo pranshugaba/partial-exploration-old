@@ -48,9 +48,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     private final MecUniformizer mecUniformizer;
 
-    private final Int2ObjectFunction<Int2ObjectFunction<Distribution>> distributionFunction;
     private final Int2ObjectFunction<Int2ObjectFunction<Object>> labelFunction;
-    private final Int2ObjectFunction<Int2DoubleFunction> rateFunction;
 
     public CTMDPBlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                       int revisitThreshold, double rMax, double pMin, double errorTolerance,
@@ -62,9 +60,9 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         this.nSampleFunction = nSampleFunction;
         this.calculateErrorProbability = getErrorProbability;
         this.mecUniformizer = new MecUniformizer();
-        this.distributionFunction = x -> y -> this.explorer.model().getChoice(x, y);
+        Int2ObjectFunction<Int2ObjectFunction<Distribution>> distributionFunction = x -> y -> this.explorer.model().getChoice(x, y);
         this.labelFunction = x -> y -> this.explorer.model().getActions(x).get(y).label();
-        this.rateFunction = x -> y -> computeRate(x, y);
+        Int2ObjectFunction<Int2DoubleFunction> rateFunction = x -> y -> computeRate(x, y);
 
         mecUniformizer.setDistributionFunction(distributionFunction);
         mecUniformizer.setRateFunction(rateFunction);
