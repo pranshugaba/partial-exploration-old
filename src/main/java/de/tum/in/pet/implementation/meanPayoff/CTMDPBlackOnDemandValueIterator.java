@@ -6,7 +6,6 @@ import de.tum.in.pet.implementation.reachability.BlackUnboundedReachValues;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.ErrorProbabilityCalculator;
 import de.tum.in.pet.values.Bounds;
-import de.tum.in.probmodels.explorer.BlackExplorer;
 import de.tum.in.probmodels.explorer.CTMDPBlackExplorer;
 import de.tum.in.probmodels.explorer.Explorer;
 import de.tum.in.probmodels.generator.RewardGenerator;
@@ -78,7 +77,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
         BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
 
-        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) explorer();
 
         explorer.updateCountParams(transDelta, pMin);
 
@@ -98,25 +97,23 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         values.setConfidenceWidthFunction(confidenceWidthFunction);
 
         for (int i = 0; i < nIterations; i++) {
-            IntList visitStack = new IntArrayList();
             int currentState = initialState;
+            int prevState = initialState;
             Int2IntOpenHashMap stateVisitCounts = new Int2IntOpenHashMap();  // keeps counts of the number of times a state is visited
 
             while (true) {
-                visitStack.add(currentState);
                 stateVisitCounts.putIfAbsent(currentState, 0);
                 stateVisitCounts.addTo(currentState, 1);
 
                 // checks plus state,minus state and uncertain state
                 if (BoundedMecQuotient.isSinkState(currentState)) {
-                    visitStack.removeInt(visitStack.size() - 1);
                     // We update the MEC reward bounds through running VI if we reach the uncertain or the plus state. This is
                     // slightly different from the version in CAV'17 where VI is only run when the uncertain state is reached.
                     // However, this is also OK as reaching the plus state shows that probably the lower reward bound is high
                     // enough, meaning the EC is promising and it is worth getting a more precise value. We make sure in updateMEC
                     // that we don't get value that is more precise than what is required.
                     if (BoundedMecQuotient.isUncertainState(currentState)||BoundedMecQuotient.isPlusState(currentState)) {
-                        int mecIndex = stateToMecMap.get(visitStack.removeInt(visitStack.size() - 1));
+                        int mecIndex = stateToMecMap.get(prevState);
                         explorer.activateActionCountFilter();
                         updateMec(mecIndex);
                         explorer.deactivateActionCountFilter();
@@ -136,7 +133,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
                 int nextState, nextActionIndex;
                 // This condition is there as in the simulate function in CAV'19. It checks whether we have been returning to a
                 // state too many times during simulation indicating that we could be stuck inside an MEC.
-                if (stateVisitCounts.get(currentState)>=revisitThreshold && looping(visitStack)) {
+                if (stateVisitCounts.get(currentState)>=revisitThreshold && looping(currentState)) {
                     Pair<Integer, Integer> bestStateActionPairs = getSampledBestLeavingAction(currentState);
                     currentState = bestStateActionPairs.first;
                     nextActionIndex = bestStateActionPairs.second;
@@ -167,6 +164,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
                     break;
                 }
 
+                prevState = currentState;
                 currentState = nextState;
 
                 transDelta = errorTolerance*pMin/explorer.getNumTrans();
@@ -213,7 +211,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
     }
 
     private int sampleNextAction(int currentState) {
-        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
 
         int nextActionIndex = values.sampleNextAction(currentState, choices(currentState)); // index of the action from the state that is to be sampled next.
         // this happens when none of the actions look promising at all, i.e. all actions have a upper bound of 0.
@@ -284,7 +282,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
     @Override
     protected void updateMec(int mecIndex){
 
-        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
 
         // mecBounds now contain the scaled reward upper and lower bounds.
         Bounds mecBounds = getMecBounds(mecIndex);
@@ -305,7 +303,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         }
 
         double epsilon = targetPrecision/40;
-        int nTransitions = 0;
+        int nTransitions = 1;
         for(int state: mec.actions.keySet()) {
             for(int actionInd: mec.actions.get(state)) {
                 if (explorer.model().getChoice(state, actionInd).size()<2) {
@@ -363,7 +361,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
         seenNewTransitionSignificantly = false; // now we are computing mecs. no new transitions would have been seen after this computation.
 
-        BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) explorer();
         BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
 
         NatBitSet states = NatBitSets.copyOf(explorer.exploredStates());
@@ -503,16 +501,15 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     /**
      * The looping condition as found in algorithm 4 in CAV '19.
-     * @param visitStack the list of states visited until now.
      * @return true if we are looping, else false
      */
-    private boolean looping(IntList visitStack){
+    private boolean looping(int lastVisitedState){
 
         // computes the set of mecs.
         handleComponents();
         // if the stateToMecMap consists of the last visited state, it indicates that the state is part of an mec and we are
         // probably looping.
-        return stateToMecMap.containsKey(visitStack.getInt(visitStack.size()-1));
+        return stateToMecMap.containsKey(lastVisitedState);
     }
 
     @Override
@@ -534,7 +531,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         if (calculateErrorProbability) {
             logger.log(Level.INFO, "Computing error probability");
 
-            BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
+            CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
             ErrorProbabilityCalculator errorProbabilityCalculator = new ErrorProbabilityCalculator(explorer::getActions,
                     explorer.getOriginalStateActions(),
                     explorer.getStateTransitionCounts(),
@@ -559,10 +556,12 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     private double computeRate(int state, int action) {
         CTMDPBlackExplorer<S, M> ctmdpBlackExplorer = (CTMDPBlackExplorer<S, M>) this.explorer;
-        DoubleArrayList transitionTimes = ctmdpBlackExplorer.transitionTimes.get(state).get(action);
-        double stayTimeSum = transitionTimes.stream().reduce(0d, Double::sum);
-        double stayTimeAverage = stayTimeSum / transitionTimes.size();
-        return 1 / stayTimeAverage;
+
+        Pair<Double, Integer> transitionTimesPair = ctmdpBlackExplorer.transitionTimes.get(state).get(action);
+        int numStayTimes = transitionTimesPair.second;
+        double accumulatedStayTimes = transitionTimesPair.first;
+
+        return numStayTimes/accumulatedStayTimes;
     }
 }
 
