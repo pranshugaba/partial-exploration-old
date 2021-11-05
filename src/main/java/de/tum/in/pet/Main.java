@@ -2,6 +2,7 @@ package de.tum.in.pet;
 
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.set.RoaringNatBitSetFactory;
+import de.tum.in.pet.Converter.PETConverter;
 import de.tum.in.pet.implementation.core.CoreChecker;
 import de.tum.in.pet.implementation.meanPayoff.MeanPayoffChecker;
 import de.tum.in.pet.implementation.meanPayoff.RestrictedValueIteratorChecker;
@@ -72,6 +73,8 @@ public final class Main {
       case "pMin":
         MinProbabilityCalculator.main(subArgs);
         break;
+      case "pet-convert":
+        PETConverter.main(subArgs);
       default:
         System.out.println("Unknown tool " + args[0]);
         System.exit(1);
