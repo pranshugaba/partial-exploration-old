@@ -1,16 +1,10 @@
 package de.tum.in.pet.Converter;
 
 import de.tum.in.pet.util.CliHelper;
-import de.tum.in.probmodels.util.PrismHelper;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import parser.ast.ModulesFile;
-import prism.ModelGenerator;
-import prism.Prism;
-import prism.PrismDevNullLog;
 import prism.PrismException;
-import simulator.ModulesFileModelGenerator;
 
 import java.io.IOException;
 
@@ -23,7 +17,7 @@ public class InputParser {
 
     private String modelPath = null;
     private String constantsString = null;
-    private int rewardIndex = 0;
+    private String rewardStructure = null;
     private String outputFilePath = null;
 
     InputParser() {
@@ -35,7 +29,7 @@ public class InputParser {
     public InputValues parseUserInput(String[] args) throws PrismException, IOException {
         CommandLine commandLine = parseArgs(args);
         extractOptionValues(commandLine);
-        return new InputValues(modelPath, constantsString, rewardIndex, outputFilePath);
+        return new InputValues(modelPath, constantsString, rewardStructure, outputFilePath);
     }
 
     private CommandLine parseArgs(String[] args) {
@@ -46,9 +40,7 @@ public class InputParser {
     private void extractOptionValues(CommandLine commandLine) throws PrismException, IOException {
         modelPath = extractModulesPath(commandLine);
         constantsString = extractConstantsString(commandLine);
-
-        ModelGenerator modelGenerator = getGenerator(modelPath, constantsString);
-        rewardIndex = extractRewardIndex(modelGenerator, commandLine);
+        rewardStructure = extractRewardStructure(commandLine);
         outputFilePath = extractOutputFilePath(commandLine);
     }
 
@@ -56,16 +48,8 @@ public class InputParser {
         return new Options()
                 .addOption(modelOption)
                 .addOption(constantsOption)
-                .addOption(rewardModuleOption);
-    }
-
-    private ModelGenerator getGenerator(String modelPath, String constantsString) throws PrismException, IOException {
-        PrismHelper.PrismParseResult prismParseResult = PrismHelper.parse(modelPath, null, constantsString);
-        ModulesFile modulesFile = prismParseResult.modulesFile();
-
-        Prism prism = new Prism(new PrismDevNullLog());
-
-        return new ModulesFileModelGenerator(modulesFile, prism);
+                .addOption(rewardModuleOption)
+                .addOption(outputFilePathOption);
     }
 
     private String extractConstantsString(CommandLine commandLine) {
@@ -78,10 +62,10 @@ public class InputParser {
         return commandLine.getOptionValue(modelOption.getLongOpt());
     }
 
-    private int extractRewardIndex(ModelGenerator modelGenerator, CommandLine commandLine) {
+    private String extractRewardStructure(CommandLine commandLine) {
         return commandLine.hasOption(rewardModuleOption.getLongOpt())
-                ? modelGenerator.getRewardStructIndex(commandLine.getOptionValue(rewardModuleOption.getLongOpt()))
-                : 0;
+                ? commandLine.getOptionValue(rewardModuleOption.getLongOpt())
+                : null;
     }
 
     private String extractOutputFilePath(CommandLine commandLine) {

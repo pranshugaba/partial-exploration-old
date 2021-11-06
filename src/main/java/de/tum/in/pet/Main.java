@@ -75,6 +75,7 @@ public final class Main {
         break;
       case "pet-convert":
         PETConverter.main(subArgs);
+        break;
       default:
         System.out.println("Unknown tool " + args[0]);
         System.exit(1);

@@ -81,13 +81,16 @@ public class CTMDPUniformizer {
             stateActionRate += transition.getValue();
         }
 
-        checkRate(stateActionRate);
+        if (ctmdp.getNumTransitions(state, choice) > 0) {
+            checkRate(stateActionRate);
+        }
         return stateActionRate;
     }
 
     private static void checkRate(int rate) {
         if (rate <= 0) {
-            throw new IllegalStateException("Rate should be greater than 0");
+            //TODO CHANGE THIS
+//            throw new IllegalStateException("Rate should be greater than 0");
         }
     }
 }
