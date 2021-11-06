@@ -139,7 +139,7 @@ public class MDPModelToPrismFileConverter {
     }
 
     private void openRewardStructure() throws IOException {
-        writeToBuffer("default_reward");
+        writeToBuffer("rewards \"default_reward\"");
     }
 
     private void writeRewards() throws IOException {
@@ -147,14 +147,12 @@ public class MDPModelToPrismFileConverter {
         for (int state = 0; state < numStates; state++) {
             for (int choice = 0; choice < mdpModel.getNumChoices(state); choice++) {
                 writeReward(state, choice);
-                newLines(1);
             }
         }
     }
 
     private void writeReward(int state, int choice) throws IOException {
         writeStateReward(state);
-        newLines(1);
         writeTransitionReward(state, choice);
     }
 
@@ -162,14 +160,21 @@ public class MDPModelToPrismFileConverter {
         //TODO CHECK MAPPING STATES IS CORRECT
         double stateReward = rewardGenerator.stateReward(stateList.get(state));
 
+        if (stateReward == 0d)
+            return;
+
         String stateFormula = "s=" + state;
         writeToBuffer(stateFormula + " : " + stateReward + ";");
+        newLines(1);
     }
 
     private void writeTransitionReward(int state, int choice) throws IOException {
         State s = stateList.get(state);
         Object actionLabel = mdpModel.getAction(state, choice);
         double transitionReward = rewardGenerator.transitionReward(s, actionLabel);
+
+        if (transitionReward == 0d)
+            return;
 
         String stateFormula = "s=" + state;
         String actionLabelString = actionLabel == null ? "" : actionLabel.toString();
@@ -183,6 +188,7 @@ public class MDPModelToPrismFileConverter {
                 ";";
 
         writeToBuffer(transitionRewardString);
+        newLines(1);
     }
 
     private void closeRewardStructure() throws IOException {

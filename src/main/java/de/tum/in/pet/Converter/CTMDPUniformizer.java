@@ -41,7 +41,7 @@ public class CTMDPUniformizer {
     private Distribution getUniformizedStateAction(int state, int choice) {
         Distribution distribution = new Distribution();
 
-        int stateActionRate = getStateActionRate(state, choice);
+        double stateActionRate = getStateActionRate(state, choice);
 
         Iterator<Map.Entry<Integer, Double>> transitionIterator;
         transitionIterator = ctmdp.getTransitionsIterator(state, choice);
@@ -72,9 +72,9 @@ public class CTMDPUniformizer {
         return distribution;
     }
 
-    private int getStateActionRate(int state, int choice) {
+    private double getStateActionRate(int state, int choice) {
         // Rate for a state action is represented as sum of all the transition probabilities of that state-action pair
-        int stateActionRate = 0;
+        double stateActionRate = 0;
         Iterator<Map.Entry<Integer, Double>> transitionIterator = ctmdp.getTransitionsIterator(state, choice);
         while (transitionIterator.hasNext()) {
             Map.Entry<Integer, Double> transition = transitionIterator.next();
@@ -87,10 +87,9 @@ public class CTMDPUniformizer {
         return stateActionRate;
     }
 
-    private static void checkRate(int rate) {
+    private static void checkRate(double rate) {
         if (rate <= 0) {
-            //TODO CHANGE THIS
-//            throw new IllegalStateException("Rate should be greater than 0");
+            throw new IllegalStateException("Rate should be greater than 0");
         }
     }
 }
