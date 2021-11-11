@@ -10,6 +10,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Writes an MDP model into a prism file. Lists all the states and it's transitions.
+ * If rewardGenerator is specified it also writes non-zero rewards of every state and state-action pair.
+ */
 public class MDPModelToPrismFileConverter {
     private final File targetFile;
     private final MDP mdpModel;
@@ -83,7 +87,8 @@ public class MDPModelToPrismFileConverter {
         int range = mdpModel.getNumStates() - 1;
 
         // TODO Multiple initial states?
-        String variable = "s: [0.." + range + "] init 0;";
+        int firstInitialState = mdpModel.getFirstInitialState();
+        String variable = "s: [0.." + range + "] init " + firstInitialState + ";";
         writeToBuffer(variable);
     }
 
