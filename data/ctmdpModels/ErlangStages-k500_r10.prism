@@ -1017,3 +1017,7 @@ s: [0..1008] init 438;
 endmodule
 
 label "goal" =  (s=517);
+
+rewards "full"
+ true : 200;
+endrewards

@@ -306,14 +306,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     double requiredSamples = Math.min(1e8, (nTransitions/(2*Math.pow(epsilon, 2)))*Math.log(2*nTransitions/this.errorTolerance));
 //    double requiredSamples = -1e6*Math.log(targetPrecision);
 
-    for(int state: mec.actions.keySet()) {
-      for(int actionInd: mec.actions.get(state)) {
-        if (explorer.model().getChoice(state, actionInd).size()<2) {
-          continue;
-        }
-        explorer.simulateActionRepeatedly(state, actionInd, requiredSamples);
-      }
-    }
+
+    explorer.simulateMECRepeatedly(mec, requiredSamples, nTransitions);
 
     assert !isZero(targetPrecision);
 
