@@ -20,7 +20,6 @@ import prism.PrismException;
 @SuppressWarnings("PMD.SystemPrintln")
 public final class Main {
   private static final Logger logger = Logger.getLogger(Main.class.getName());
-  public static final double DEFAULT_PRECISION = 1.0e-6;
 
   private Main() {
     // Empty

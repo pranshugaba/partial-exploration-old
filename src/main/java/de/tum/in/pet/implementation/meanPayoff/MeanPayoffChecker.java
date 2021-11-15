@@ -2,9 +2,11 @@ package de.tum.in.pet.implementation.meanPayoff;
 
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.set.RoaringNatBitSetFactory;
+import de.tum.in.pet.Input.InputOptions;
+import de.tum.in.pet.Input.InputParser;
+import de.tum.in.pet.Input.InputValues;
 import de.tum.in.pet.Main;
 import de.tum.in.pet.implementation.reachability.*;
-import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.CliHelper;
 import de.tum.in.pet.values.Bounds;
@@ -15,14 +17,11 @@ import de.tum.in.probmodels.generator.*;
 import de.tum.in.probmodels.model.MarkovDecisionProcess;
 import de.tum.in.probmodels.model.Model;
 import de.tum.in.probmodels.util.PrismHelper;
-import explicit.CTMDP;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
 import parser.State;
 import parser.ast.ModulesFile;
-import parser.ast.Update;
 import prism.*;
 import simulator.ModulesFileModelGenerator;
 
@@ -36,22 +35,14 @@ import java.util.function.IntPredicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/* This code's purpose is to facilitate the testing of the OnDemandValueIterator. Right now, this code accepts 5
-parameters, -m/--model (model file path) --precision, --const (defining constants in model , if any). Right now, only
-MDPs are supported. This code should return correct results if the number of states is lesser than or equal to INT_MAX-3
+/*
+This code's purpose is to facilitate the testing of the OnDemandValueIterator.
+This code should return correct results if the number of states is lesser than or equal to INT_MAX-3
 the values INT_MAX, INT_MAX-1, INT_MAX-2 are assigned to special states.
 * */
 public final class MeanPayoffChecker {
   private static final Logger logger = Logger.getLogger(MeanPayoffChecker.class.getName());
-  public static final int DEFAULT_THRESHOLD = 5;
-  public static final double REWARD_UPPERBOUND = 10;
-  public static final double PMIN_LOWERBOUND = 1.0e-6;
-  public static final double DEFAULT_ERROR_TOLERANCE = 0.1;
-  public static final int DEFAULT_ITERATION_SAMPLE = 10000;
-  public static final long DEFAULT_TIMEOUT = 1800000;
-
   private static final List<Pair<Long, Bounds>> timeVBound = new ArrayList<>();
-
   private static final List<String> additionalWriteInfo = new ArrayList<>();
 
   public static void writeResults(CommandLine commandLine) throws IOException {
@@ -107,22 +98,17 @@ public final class MeanPayoffChecker {
     writer.close();
   }
 
-  public static double solve(ModelGenerator generator, InformationLevel informationLevel, int rewardIndex,
-                             SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
-                             int revisitThreshold, double maxReward, double pMin, double errorTolerance, int iterSamples,
-                             long timeout, boolean getErrorProbability)
+  public static double solve(ModelGenerator generator, int rewardIndex, InputValues inputValues)
           throws PrismException {
     ModelType modelType = generator.getModelType();
     switch (modelType) {
       case MDP:
-        return solveMdp(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold,
-                maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
+        return solveMdp(generator, rewardIndex, inputValues);
       case CTMC:
       case DTMC:
       case LTS:
       case CTMDP:
-        return solveCtmdp(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold,
-            maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
+        return solveCtmdp(generator, rewardIndex, inputValues);
       case PTA:
       case STPG:
       case SMG:
@@ -131,9 +117,8 @@ public final class MeanPayoffChecker {
     }
   }
 
-  private static <S, M extends Model> double solveCtmdp(M partialModel, Generator<S> generator, InformationLevel informationLevel,
-                                                   RewardGenerator<S> rewardGenerator, SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
-                                                   int revisitThreshold, double maxReward, double pMin, double errorTolerance, int iterSamples, long timeout, boolean getErrorProbability)
+  private static <S, M extends Model> double solveCtmdp(M partialModel, Generator<S> generator,
+                                                        RewardGenerator<S> rewardGenerator, InputValues inputValues)
           throws PrismException {
 
     var explorer = CTMDPBlackExplorer.of(partialModel, generator, false);
@@ -141,28 +126,21 @@ public final class MeanPayoffChecker {
     IntPredicate target = (x) -> x==Integer.MAX_VALUE;
     OnDemandValueIterator<S, M> valueIterator;
 
-    if (informationLevel==InformationLevel.WHITEBOX) {
+    if (inputValues.informationLevel==InformationLevel.WHITEBOX) {
       throw new UnsupportedOperationException("Whitebox not implemented for CTMDP");
-//      UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, precision / maxReward, heuristic);
-//
-//      valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward, precision / maxReward, System.currentTimeMillis()+timeout);
     }
-    else if (informationLevel==InformationLevel.BLACKBOX) {
-      Double2LongFunction nSampleFunction = s -> iterSamples;
+    else if (inputValues.informationLevel==InformationLevel.BLACKBOX) {
+      Double2LongFunction nSampleFunction = s -> inputValues.iterSamples;
 
-      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
+      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, inputValues.updateMethod, target, inputValues.precision / inputValues.maxReward, inputValues.successorHeuristic);
 
       valueIterator = new CTMDPBlackOnDemandValueIterator<>(explorer, values, rewardGenerator,
-              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout, getErrorProbability);
+              inputValues.revisitThreshold, inputValues.maxReward, inputValues.pMin, inputValues.errorTolerance,
+              nSampleFunction, inputValues.precision / inputValues.maxReward,
+              System.currentTimeMillis()+inputValues.timeout, inputValues.getErrorProbability);
     }
     else{
       throw new UnsupportedOperationException("Greybox not implemented for CTMDP");
-//      Double2LongFunction nSampleFunction = s -> iterSamples;
-//
-//      UnboundedValues values = new GreyUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
-//
-//      valueIterator = new GreyOnDemandValueIterator<>(explorer, values, rewardGenerator,
-//              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout);
     }
 
     valueIterator.run();
@@ -175,40 +153,46 @@ public final class MeanPayoffChecker {
     timeVBound.addAll(valueIterator.timeVBound);
     additionalWriteInfo.addAll(valueIterator.additionalWriteInfo);
 
-    return maxReward*bounds.average();
+    return inputValues.maxReward*bounds.average();
 
   }
 
-  private static <S, M extends Model> double solve(M partialModel, Generator<S> generator, InformationLevel informationLevel,
-      RewardGenerator<S> rewardGenerator, SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
-      int revisitThreshold, double maxReward, double pMin, double errorTolerance, int iterSamples, long timeout, boolean getErrorProbability)
+  private static <S, M extends Model> double solve(M partialModel, Generator<S> generator, RewardGenerator<S> rewardGenerator,
+                                                   InputValues ip)
           throws PrismException {
 
-    var explorer = Explorers.getExplorer(partialModel, generator, informationLevel, false);
+    var explorer = Explorers.getExplorer(partialModel, generator, ip.informationLevel, false);
 
     IntPredicate target = (x) -> x==Integer.MAX_VALUE;
     OnDemandValueIterator<S, M> valueIterator;
 
-    if (informationLevel==InformationLevel.WHITEBOX) {
-      UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target, precision / maxReward, heuristic);
+    if (ip.informationLevel==InformationLevel.WHITEBOX) {
+      UnboundedValues values = new UnboundedReachValues(ValueUpdate.MAX_VALUE, target,
+              ip.precision / ip.maxReward, ip.successorHeuristic);
 
-      valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, revisitThreshold, maxReward, precision / maxReward, System.currentTimeMillis()+timeout);
+      valueIterator = new OnDemandValueIterator<>(explorer, values, rewardGenerator, ip.revisitThreshold,
+              ip.maxReward, ip.precision / ip.maxReward,
+              System.currentTimeMillis()+ip.timeout);
     }
-    else if (informationLevel==InformationLevel.BLACKBOX) {
-      Double2LongFunction nSampleFunction = s -> iterSamples;
+    else if (ip.informationLevel==InformationLevel.BLACKBOX) {
+      Double2LongFunction nSampleFunction = s -> ip.iterSamples;
 
-      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
+      UnboundedValues values = new BlackUnboundedReachValues(ValueUpdate.MAX_VALUE, ip.updateMethod, target,
+              ip.precision / ip.maxReward, ip.successorHeuristic);
 
       valueIterator = new BlackOnDemandValueIterator<>(explorer, values, rewardGenerator,
-              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout, getErrorProbability);
+              ip.revisitThreshold, ip.maxReward, ip.pMin, ip.errorTolerance, nSampleFunction,
+              ip.precision / ip.maxReward, System.currentTimeMillis() + ip.timeout, ip.getErrorProbability);
     }
     else{
-      Double2LongFunction nSampleFunction = s -> iterSamples;
+      Double2LongFunction nSampleFunction = s -> ip.iterSamples;
 
-      UnboundedValues values = new GreyUnboundedReachValues(ValueUpdate.MAX_VALUE, updateMethod, target, precision / maxReward, heuristic);
+      UnboundedValues values = new GreyUnboundedReachValues(ValueUpdate.MAX_VALUE, ip.updateMethod, target,
+              ip.precision / ip.maxReward, ip.successorHeuristic);
 
       valueIterator = new GreyOnDemandValueIterator<>(explorer, values, rewardGenerator,
-              revisitThreshold, maxReward, pMin, errorTolerance, nSampleFunction, precision / maxReward, System.currentTimeMillis()+timeout);
+              ip.revisitThreshold, ip.maxReward, ip.pMin, ip.errorTolerance, nSampleFunction,
+              ip.precision / ip.maxReward, System.currentTimeMillis()+ip.timeout);
     }
 
     valueIterator.run();
@@ -221,14 +205,11 @@ public final class MeanPayoffChecker {
     timeVBound.addAll(valueIterator.timeVBound);
     additionalWriteInfo.addAll(valueIterator.additionalWriteInfo);
 
-    return maxReward*bounds.average();
+    return ip.maxReward*bounds.average();
 
   }
 
-  private static double solveCtmdp(ModelGenerator prismGenerator, InformationLevel informationLevel, int rewardIndex,
-                                    SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
-                                    int revisitThreshold, double maxReward, double pMin, double errorTolerance,
-                                    int iterSamples, long timeout, boolean getErrorProbability)
+  private static double solveCtmdp(ModelGenerator prismGenerator,int rewardIndex, InputValues inputValues)
           throws PrismException {
 
     MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
@@ -236,14 +217,11 @@ public final class MeanPayoffChecker {
 
     RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(rewardIndex, prismGenerator);
 
-    return solveCtmdp(partialModel, generator, informationLevel, rewardGenerator, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
+    return solveCtmdp(partialModel, generator, rewardGenerator, inputValues);
 
   }
 
-  private static double solveMdp(ModelGenerator prismGenerator, InformationLevel informationLevel, int rewardIndex,
-                                 SuccessorHeuristic heuristic, UpdateMethod updateMethod, double precision,
-                                 int revisitThreshold, double maxReward, double pMin, double errorTolerance,
-                                 int iterSamples, long timeout, boolean getErrorProbability)
+  private static double solveMdp(ModelGenerator prismGenerator, int rewardIndex, InputValues inputValues)
           throws PrismException {
 
     MarkovDecisionProcess partialModel = new MarkovDecisionProcess();
@@ -251,116 +229,33 @@ public final class MeanPayoffChecker {
 
     RewardGenerator<State> rewardGenerator = new PrismRewardGenerator(rewardIndex, prismGenerator);
 
-    return solve(partialModel, generator, informationLevel, rewardGenerator, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
+    return solve(partialModel, generator, rewardGenerator, inputValues);
 
   }
 
   public static void main(String[] args) throws PrismException, IOException {
-    Option precisionOption = new Option(null, "precision", true, "Required precision of the returned value. (Default: 10^{-6})");
-    Option heuristicOption = CliHelper.getDefaultHeuristicOption();
-    Option modelOption = new Option("m", "model", true, "Path to model file");
-//    Option propertiesOption = new Option("p", "properties", true, "Path to properties file");
-//    Option propertyNameOption = new Option(null, "property", true, "Name of property to check");
-    Option constantsOption = new Option("c", "const", true,
-            "Constants of model/property file, comma separated list");
-    Option revisitThresholdOption = new Option(null, "revisitThreshold", true, "Number of times a state should be visited before a sampling run is stopped. (Default: 5)");
-//    Option expectedValuesOption = new Option(null, "expected", true,
-//            "Comma separated list of the true values of the properties");
-//    Option onlyPrintResultOption = new Option(null, "only-result", false,
-//            "Only print result");
-//    Option relativeErrorOption = new Option(null, "relative-error", false,
-//            "Use relative error estimate");
-    Option rewardModuleOption = new Option(null, "rewardModule", true, "Name of the reward module in the model file.");
-    Option maxRewardOption = new Option(null, "maxReward", true, "Estimated max reward value for a single transition in the model. (Default: 10)");
-    Option informationOption = CliHelper.getDefaultInformationLevelOption();
-    Option pMinOption = new Option(null, "pMin", true, "Estimated minimum probability of a transition in the model. (Only used for BlackBox models)");
-    Option errorToleranceOption = new Option(null, "errorTolerance", true, "Error tolerance for blackbox exploration.");
-    Option iterationSamplesOption =  new Option(null, "iterSamples", true, "Number of sample paths to be generated per episodic run.");
-    Option updateMethodOption = new Option(null, "updateMethod", true, "Update method to be used (greybox/blackbox)");
-    Option timeoutOption = new Option(null, "timeout", true, "Time before experiment forcefully terminates");
-    Option getErrorProbabilityOption = new Option(null, "getErrorProbability", false, "Computes the error probability for blackbox with greybox equations");
-
-    modelOption.setRequired(true);
-
-    Options options = new Options()
-            .addOption(modelOption)
-            .addOption(constantsOption)
-            .addOption(precisionOption)
-            .addOption(heuristicOption)
-            .addOption(revisitThresholdOption)
-            .addOption(rewardModuleOption)
-            .addOption(maxRewardOption)
-            .addOption(informationOption)
-            .addOption(pMinOption)
-            .addOption(errorToleranceOption)
-            .addOption(iterationSamplesOption)
-            .addOption(updateMethodOption)
-            .addOption(timeoutOption)
-            .addOption(getErrorProbabilityOption);
-
-    CommandLine commandLine = CliHelper.parse(options, args);
-
-    double precision = commandLine.hasOption(precisionOption.getLongOpt())
-            ? Double.parseDouble(commandLine.getOptionValue(precisionOption.getLongOpt()))
-            : Main.DEFAULT_PRECISION;
-
-    int revisitThreshold = commandLine.hasOption(revisitThresholdOption.getLongOpt())
-            ? Integer.parseInt(commandLine.getOptionValue(revisitThresholdOption.getLongOpt()))
-            : DEFAULT_THRESHOLD;
-
-    double maxReward = commandLine.hasOption(maxRewardOption.getLongOpt())
-            ? Double.parseDouble(commandLine.getOptionValue(maxRewardOption.getLongOpt()))
-            : REWARD_UPPERBOUND;
-
-    double pMin = commandLine.hasOption(pMinOption.getLongOpt())
-            ? Double.parseDouble(commandLine.getOptionValue(pMinOption.getLongOpt()))
-            : PMIN_LOWERBOUND;
-
-    double errorTolerance = commandLine.hasOption(errorToleranceOption.getLongOpt())
-            ? Double.parseDouble(commandLine.getOptionValue(errorToleranceOption.getLongOpt()))
-            : DEFAULT_ERROR_TOLERANCE;
-
-    int iterSamples = commandLine.hasOption(iterationSamplesOption.getLongOpt())
-            ? Integer.parseInt(commandLine.getOptionValue(iterationSamplesOption.getLongOpt()))
-            : DEFAULT_ITERATION_SAMPLE;
-
-    long timeout = commandLine.hasOption(timeoutOption.getLongOpt())
-            ? Long.parseLong(commandLine.getOptionValue(timeoutOption.getLongOpt()))
-            : DEFAULT_TIMEOUT;
-
-    boolean getErrorProbability = commandLine.hasOption(getErrorProbabilityOption.getLongOpt());
-
-    SuccessorHeuristic heuristic = CliHelper.parseHeuristic(
-            commandLine.getOptionValue(heuristicOption.getLongOpt()), SuccessorHeuristic.PROB);
-
-    InformationLevel informationLevel = CliHelper.parseInformationLevel(
-            commandLine.getOptionValue(informationOption.getLongOpt()), InformationLevel.WHITEBOX);
-
-    UpdateMethod updateMethod = CliHelper.parseUpdateMethod(
-            commandLine.getOptionValue(updateMethodOption.getLongOpt()), UpdateMethod.GREYBOX);
-
+    InputValues ip = InputParser.parseInput(args);
     NatBitSets.setFactory(new RoaringNatBitSetFactory());
+    CommandLine commandLine = CliHelper.parse(InputOptions.getAllInputOptions(), args);
 
     double startTime1 = System.currentTimeMillis();
     PrismHelper.PrismParseResult parse =
-            Main.parse(commandLine, modelOption, null, constantsOption);
+            Main.parse(commandLine, InputOptions.modelOption, null, InputOptions.constantsOption);
     ModulesFile modulesFile = parse.modulesFile();
 
     Prism prism = new Prism(new PrismDevNullLog());
 
     ModelGenerator generator = new ModulesFileModelGenerator(modulesFile, prism);
 
-    int rewardIndex = commandLine.hasOption(rewardModuleOption.getLongOpt())
-            ? generator.getRewardStructIndex(commandLine.getOptionValue(rewardModuleOption.getLongOpt()))
-            : 0;
+    int rewardIndex = ip.rewardStructure == null ? 0 : generator.getRewardStructIndex(ip.rewardStructure);
 
     if(rewardIndex==-1){
-      throw new NoSuchElementException("Reward module "+commandLine.getOptionValue(rewardModuleOption.getLongOpt())+" not found");
+      throw new NoSuchElementException("Reward module "+commandLine.getOptionValue(InputOptions.rewardModuleOption.getLongOpt())+" not found");
     }
 
     long startTime2 = System.currentTimeMillis();
-    timeVBound.add(new Pair<>(startTime2, Bounds.of(0, maxReward)));
-    double meanPayoff = solve(generator, informationLevel, rewardIndex, heuristic, updateMethod, precision, revisitThreshold, maxReward, pMin, errorTolerance, iterSamples, timeout, getErrorProbability);
+    timeVBound.add(new Pair<>(startTime2, Bounds.of(0, ip.maxReward)));
+    double meanPayoff = solve(generator, rewardIndex, ip);
     long endTime = System.currentTimeMillis();
 
     writeResults(commandLine);

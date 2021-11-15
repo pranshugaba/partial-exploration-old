@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.set.RoaringNatBitSetFactory;
+import de.tum.in.pet.Input.DefaultInputValues;
 import de.tum.in.pet.Main;
 import de.tum.in.pet.sampler.BoundedSampler;
 import de.tum.in.pet.sampler.Iterator;
@@ -292,7 +293,7 @@ public final class ReachChecker {
     boolean relativeError = commandLine.hasOption(relativeErrorOption.getLongOpt());
     double precision = commandLine.hasOption(precisionOption.getLongOpt())
         ? Double.parseDouble(commandLine.getOptionValue(precisionOption.getLongOpt()))
-        : Main.DEFAULT_PRECISION;
+        : DefaultInputValues.PRECISION;
 
     SuccessorHeuristic heuristic = CliHelper.parseHeuristic(
         commandLine.getOptionValue(heuristicOption.getLongOpt()), SuccessorHeuristic.WEIGHTED);

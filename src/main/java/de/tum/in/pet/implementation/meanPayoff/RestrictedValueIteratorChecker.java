@@ -3,6 +3,7 @@ package de.tum.in.pet.implementation.meanPayoff;
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.set.RoaringNatBitSetFactory;
+import de.tum.in.pet.Input.DefaultInputValues;
 import de.tum.in.pet.Main;
 import de.tum.in.pet.util.CliHelper;
 import de.tum.in.pet.values.Bounds;
@@ -168,7 +169,7 @@ public class RestrictedValueIteratorChecker {
 
     double precision = commandLine.hasOption(precisionOption.getLongOpt())
             ? Double.parseDouble(commandLine.getOptionValue(precisionOption.getLongOpt()))
-            : Main.DEFAULT_PRECISION;
+            : DefaultInputValues.PRECISION;
 
     NatBitSets.setFactory(new RoaringNatBitSetFactory());
 
