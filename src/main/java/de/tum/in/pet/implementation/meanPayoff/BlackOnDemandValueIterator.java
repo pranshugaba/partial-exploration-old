@@ -28,19 +28,19 @@ import static de.tum.in.probmodels.util.Util.isZero;
  */
 public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValueIterator<S, M> {
 
-  private final double pMin; // as mentioned in CAV'19. It should be set to the lowest transition probability of the input model.
-  private final double errorTolerance; // as mentioned in CAV'19. Error tolerance for the learned distributions of the learned model.
-  private final Double2LongFunction nSampleFunction; // returns N_k for each k as in CAV'19. Returns the number of times paths should be sampled for each value of k.
+  protected final double pMin; // as mentioned in CAV'19. It should be set to the lowest transition probability of the input model.
+  protected final double errorTolerance; // as mentioned in CAV'19. Error tolerance for the learned distributions of the learned model.
+  protected final Double2LongFunction nSampleFunction; // returns N_k for each k as in CAV'19. Returns the number of times paths should be sampled for each value of k.
 
-  private List<NatBitSet> mecs = new ArrayList<>(); // Holds a list of mecs in the model.
-  private Double transDelta = 1d; // equal to delta_T as mentioned in CAV'19. Error tolerance for each transition of the learned model.
+  protected List<NatBitSet> mecs = new ArrayList<>(); // Holds a list of mecs in the model.
+  protected Double transDelta = 1d; // equal to delta_T as mentioned in CAV'19. Error tolerance for each transition of the learned model.
 
-  private final Int2IntMap stateToMecMap = new Int2IntOpenHashMap(); // Map that returns the mec Index the state is a part of.
-  private Int2ObjectMap<Distribution> stayActionMap = new Int2ObjectOpenHashMap<>(); // Map that holds the stay action for mecs, accessible using mecIndices.
+  protected final Int2IntMap stateToMecMap = new Int2IntOpenHashMap(); // Map that returns the mec Index the state is a part of.
+  protected Int2ObjectMap<Distribution> stayActionMap = new Int2ObjectOpenHashMap<>(); // Map that holds the stay action for mecs, accessible using mecIndices.
 
-  private Int2IntMap stayActionCounts = new Int2IntOpenHashMap(); // Map that holds the number of times each stay action for an mec has been sampled, accessible using mecIndices.
+  protected Int2IntMap stayActionCounts = new Int2IntOpenHashMap(); // Map that holds the number of times each stay action for an mec has been sampled, accessible using mecIndices.
 
-  private boolean seenNewTransitionSignificantly = false; // If a new transition has been sampled a significant number of times.
+  protected boolean seenNewTransitionSignificantly = false; // If a new transition has been sampled a significant number of times.
 
   // Enable this boolean only when the updateMethod is greyBox.
   private final boolean calculateErrorProbability;
@@ -147,7 +147,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
           nextState = explorer.simulateAction(currentState, nextActionIndex);
           // If this action has been sampled enough number of times, we know that it can now be considered as a part of an MEC.
           // Hence, we know that there might be new MECs in the model and it could be worthwhile finding them again.
-          seenNewTransitionSignificantly |= explorer.updateCounts(currentState, nextActionIndex, nextState, true);
+          seenNewTransitionSignificantly |= explorer.updateCounts(currentState, nextActionIndex, nextState);
         }
 
         // This is true when the currentState doesn't have any choices from it, i.e. it is a sink state.
@@ -335,15 +335,23 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
   }
 
+  protected boolean shouldHandleComponents() {
+    return seenNewTransitionSignificantly;
+  }
+
+  protected void resetSeenTransitionsSignificantlyFlag() {
+    seenNewTransitionSignificantly = false;
+  }
+
   @Override
   public void handleComponents(){
 
     // if no new transition has been seen significantly, don't compute mecs.
-    if(!seenNewTransitionSignificantly){
+    if(!shouldHandleComponents()){
       return;
     }
 
-    seenNewTransitionSignificantly = false; // now we are computing mecs. no new transitions would have been seen after this computation.
+    resetSeenTransitionsSignificantlyFlag();
 
     BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) explorer();
     BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
