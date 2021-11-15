@@ -307,7 +307,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 //    double requiredSamples = -1e6*Math.log(targetPrecision);
 
 
-    explorer.simulateMECRepeatedly(mec, requiredSamples, nTransitions);
+    explorer.simulateMECRepeatedly3(mec, requiredSamples);
+    logger.log(Level.INFO, "Simulation ended");
 
     assert !isZero(targetPrecision);
 

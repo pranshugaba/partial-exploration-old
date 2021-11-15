@@ -15,7 +15,6 @@ import de.tum.in.probmodels.graph.UniformizedMEC;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.ints.*;
 import prism.Pair;
 import prism.PrismException;
@@ -317,7 +316,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 //    double requiredSamples = -1e6*Math.log(targetPrecision);
 
 //        explorer.simulateRepeatedly(mec, requiredSamples);
-        explorer.simulateMECRepeatedly(mec, requiredSamples, nTransitions);
+        explorer.simulateMECRepeatedly2(mec, requiredSamples, nTransitions);
 
         assert !isZero(targetPrecision);
 
