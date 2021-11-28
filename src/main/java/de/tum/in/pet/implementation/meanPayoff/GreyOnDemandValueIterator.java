@@ -9,6 +9,10 @@ import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
 import it.unimi.dsi.fastutil.ints.*;
 
+/**
+ * While handling components, we only keep the actions that are fully explored.
+ * Also we use greybox equations to update, only if all the successors are visited.
+ */
 public class GreyOnDemandValueIterator<S, M extends Model> extends BlackOnDemandValueIterator<S, M> {
 
     public GreyOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
