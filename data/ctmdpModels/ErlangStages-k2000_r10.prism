@@ -4017,3 +4017,8 @@ s: [0..4008] init 229;
 endmodule
 
 label "goal" =  (s=3425);
+
+rewards "default"
+  s < 2000 : 100;
+  s > 3500 : 300;
+endrewards

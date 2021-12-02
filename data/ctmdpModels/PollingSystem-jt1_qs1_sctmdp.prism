@@ -44,3 +44,9 @@ s: [0..36] init 2;
 endmodule
 
 label "goal" =  (s=3) | (s=5) | (s=7) | (s=8) | (s=11) | (s=14) | (s=15) | (s=17) | (s=18) | (s=22) | (s=23) | (s=24) | (s=25) | (s=26) | (s=29) | (s=30) | (s=31) | (s=35) | (s=36);
+
+rewards "default"
+  s < 7 : 7;
+  s > 15 : 30;
+  true : 13;
+endrewards

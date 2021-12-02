@@ -811,3 +811,7 @@ s: [0..474] init 283;
 endmodule
 
 label "goal" =  (s=201) | (s=37) | (s=471) | (s=30) | (s=396) | (s=278) | (s=80) | (s=353) | (s=371) | (s=263) | (s=116) | (s=72);
+
+rewards "default"
+  true : 300;
+endrewards

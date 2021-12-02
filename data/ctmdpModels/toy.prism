@@ -23,3 +23,8 @@ s: [0..13] init 13;
 endmodule
 
 label "goal" =  (s=2);
+
+rewards "default"
+  s < 8 : 10;
+  s >= 8 : 20;
+endrewards
