@@ -19,6 +19,7 @@ project.sourceCompatibility = JavaVersion.VERSION_11
 project.targetCompatibility = JavaVersion.VERSION_11
 
 def defaultEncoding = 'UTF-8'
+def ld_lib_path = "$System.env.LD_LIBRARY_PATH"
 
 tasks.withType(JavaCompile) {
     options.encoding = defaultEncoding
@@ -27,11 +28,11 @@ tasks.withType(JavaCompile) {
 tasks.withType(Javadoc) { options.encoding = defaultEncoding }
 
 tasks.withType(JavaExec) {
-    environment "LD_LIBRARY_PATH", "$rootProject.buildDir/lib/"
+    environment "LD_LIBRARY_PATH", "$ld_lib_path:$rootProject.buildDir/lib/"
 }
 
 test {
-    environment "LD_LIBRARY_PATH", "$rootProject.buildDir/lib/"
+    environment "LD_LIBRARY_PATH", "$ld_lib_path:$rootProject.buildDir/lib/"
     useJUnitPlatform()
 }
 
@@ -93,6 +94,7 @@ dependencies {
 
     implementation 'commons-cli:commons-cli:1.4'
     implementation 'org.json:json:20190722'
+    implementation files('libs/gurobi.jar')
 
     // https://immutables.github.io/
     implementation 'org.immutables:value:2.8.2:annotations'

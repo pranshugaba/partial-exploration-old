@@ -21,6 +21,7 @@ public class InputOptions {
     public static Option updateMethodOption = new Option(null, "updateMethod", true, "Update method to be used (greybox/blackbox)");
     public static Option timeoutOption = new Option(null, "timeout", true, "Time before experiment forcefully terminates");
     public static Option getErrorProbabilityOption = new Option(null, "getErrorProbability", false, "Computes the error probability for blackbox with greybox equations");
+    public static Option solveWithQP = new Option(null, "qp", false, "Solve using linear/quadratic programming");
 
     public static Options getAllInputOptions() {
         modelOption.setRequired(true);
@@ -39,6 +40,7 @@ public class InputOptions {
                 .addOption(iterationSamplesOption)
                 .addOption(updateMethodOption)
                 .addOption(timeoutOption)
-                .addOption(getErrorProbabilityOption);
+                .addOption(getErrorProbabilityOption)
+                .addOption(solveWithQP);
     }
 }

@@ -6,6 +6,7 @@ import de.tum.in.pet.Input.InputOptions;
 import de.tum.in.pet.Input.InputParser;
 import de.tum.in.pet.Input.InputValues;
 import de.tum.in.pet.Main;
+import de.tum.in.pet.implementation.qp_meanpayoff.MeanPayOffSolverQP;
 import de.tum.in.pet.implementation.reachability.*;
 import de.tum.in.pet.sampler.UnboundedValues;
 import de.tum.in.pet.util.CliHelper;
@@ -19,14 +20,11 @@ import de.tum.in.probmodels.model.Model;
 import de.tum.in.probmodels.util.PrismHelper;
 import it.unimi.dsi.fastutil.doubles.Double2LongFunction;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
 import parser.State;
 import parser.ast.ModulesFile;
 import prism.*;
 import simulator.ModulesFileModelGenerator;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -191,25 +189,28 @@ public final class MeanPayoffChecker {
     ModulesFile modulesFile = parse.modulesFile();
 
     Prism prism = new Prism(new PrismDevNullLog());
+    ModulesFileModelGenerator generator = new ModulesFileModelGenerator(modulesFile, prism);
 
-    ModelGenerator generator = new ModulesFileModelGenerator(modulesFile, prism);
-
-    int rewardIndex = ip.rewardStructure == null ? 0 : generator.getRewardStructIndex(ip.rewardStructure);
-
-    if(rewardIndex==-1){
-      throw new NoSuchElementException("Reward module "+commandLine.getOptionValue(InputOptions.rewardModuleOption.getLongOpt())+" not found");
+    if (ip.solveUsingQP) {
+      MeanPayOffSolverQP.solveUsingQP(generator, ip.rewardStructure);
     }
+    else {
+      int rewardIndex = ip.rewardStructure == null ? 0 : generator.getRewardStructIndex(ip.rewardStructure);
+      if (rewardIndex == -1) {
+        throw new NoSuchElementException("Reward module " + commandLine.getOptionValue(InputOptions.rewardModuleOption.getLongOpt()) + " not found");
+      }
 
-    long startTime2 = System.currentTimeMillis();
-    timeVBound.add(new Pair<>(startTime2, Bounds.of(0, ip.maxReward)));
-    double meanPayoff = solve(generator, rewardIndex, ip);
-    long endTime = System.currentTimeMillis();
+      long startTime2 = System.currentTimeMillis();
+      timeVBound.add(new Pair<>(startTime2, Bounds.of(0, ip.maxReward)));
+      double meanPayoff = solve(generator, rewardIndex, ip);
+      long endTime = System.currentTimeMillis();
 
-    ResultWriter.write(commandLine, timeVBound, additionalWriteInfo);
+      ResultWriter.write(commandLine, timeVBound, additionalWriteInfo);
 
-    logger.log(Level.INFO, "Time to parse, construct model, and compute {0}", new Object[] {endTime-startTime1});
-    logger.log(Level.INFO, "Time to compute {0}", new Object[] {endTime-startTime2});
-    logger.log(Level.INFO, "Result is {0}", new Object[] {meanPayoff});
+      logger.log(Level.INFO, "Time to parse, construct model, and compute {0}", new Object[]{endTime - startTime1});
+      logger.log(Level.INFO, "Time to compute {0}", new Object[]{endTime - startTime2});
+      logger.log(Level.INFO, "Result is {0}", new Object[]{meanPayoff});
+    }
   }
 
 }

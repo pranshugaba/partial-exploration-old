@@ -35,6 +35,8 @@ public class InputParser {
         UpdateMethod updateMethod = CliHelper.parseUpdateMethod(
                 commandLine.getOptionValue(InputOptions.updateMethodOption.getLongOpt()), DefaultInputValues.UPDATE_METHOD);
 
+        boolean solveUsingQP = isOptionPresent(commandLine, InputOptions.solveWithQP);
+
         return new InputValues(precision,
                 revisitThreshold,
                 maxReward,
@@ -46,7 +48,8 @@ public class InputParser {
                 heuristic,
                 informationLevel,
                 updateMethod,
-                rewardStructure);
+                rewardStructure,
+                solveUsingQP);
     }
 
     private static long parseLongOption(CommandLine commandLine, Option option, long defaultValue) {

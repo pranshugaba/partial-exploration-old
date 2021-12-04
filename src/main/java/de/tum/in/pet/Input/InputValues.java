@@ -17,10 +17,11 @@ public class InputValues {
     public final InformationLevel informationLevel;
     public final UpdateMethod updateMethod;
     public final String rewardStructure;
+    public final boolean solveUsingQP;
 
     public InputValues(double precision, int revisitThreshold, double maxReward, double pMin, double errorTolerance,
                        int iterSamples, long timeout, boolean getErrorProbability, SuccessorHeuristic successorHeuristic,
-                       InformationLevel informationLevel, UpdateMethod updateMethod, String rewardStructure) {
+                       InformationLevel informationLevel, UpdateMethod updateMethod, String rewardStructure, boolean solveUsingQP) {
         this.precision = precision;
         this.revisitThreshold = revisitThreshold;
         this.maxReward = maxReward;
@@ -33,5 +34,6 @@ public class InputValues {
         this.informationLevel = informationLevel;
         this.updateMethod = updateMethod;
         this.rewardStructure = rewardStructure;
+        this.solveUsingQP = solveUsingQP;
     }
 }
