@@ -45,15 +45,18 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
   // Enable this boolean only when the updateMethod is greyBox.
   private final boolean calculateErrorProbability;
 
+  private final SimulateMec simulateMec;
+
   public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                     int revisitThreshold, double rMax, double pMin, double errorTolerance,
                                     Double2LongFunction nSampleFunction, double precision, long timeout,
-                                    boolean getErrorProbability) {
+                                    boolean getErrorProbability, SimulateMec simulateMec) {
     super(explorer, values, rewardGenerator, revisitThreshold, rMax, precision, timeout);
     this.pMin = pMin;
     this.errorTolerance = errorTolerance;
     this.nSampleFunction = nSampleFunction;
     this.calculateErrorProbability = getErrorProbability;
+    this.simulateMec = simulateMec;
   }
 
   @Override
@@ -304,11 +307,8 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     }
 
     double requiredSamples = Math.min(1e8, (nTransitions/(2*Math.pow(epsilon, 2)))*Math.log(2*nTransitions/this.errorTolerance));
-//    double requiredSamples = -1e6*Math.log(targetPrecision);
 
-
-    explorer.simulateMECRepeatedly3(mec, requiredSamples);
-    logger.log(Level.INFO, "Simulation ended");
+    simulateMec(explorer, mec, nTransitions, requiredSamples);
 
     assert !isZero(targetPrecision);
 
@@ -333,6 +333,19 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     updateStayAction(mecIndex, scaledBounds);
 
+  }
+
+  private void simulateMec(BlackExplorer<S, M> explorer, Mec mec, int nTransitions, double requiredSamples) {
+    switch (simulateMec) {
+      case STANDARD: explorer.simulateMECRepeatedly3(mec, requiredSamples);
+      break;
+
+      case CHEAT: explorer.simulateMECRepeatedly1(mec, requiredSamples);
+      break;
+
+      case HEURISTIC: explorer.simulateMECRepeatedly2(mec, requiredSamples, nTransitions);
+      break;
+    }
   }
 
   protected boolean shouldHandleComponents() {

@@ -1,5 +1,6 @@
 package de.tum.in.pet.util;
 
+import de.tum.in.pet.implementation.meanPayoff.SimulateMec;
 import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import java.util.Arrays;
@@ -79,6 +80,24 @@ public final class CliHelper {
               .map(Object::toString)
               .collect(Collectors.joining(", "));
       System.out.println("Unknown information level " + optionString + ". Possible values are: " + values);
+      System.exit(1);
+      throw new AssertionError(e);
+    }
+  }
+
+  public static SimulateMec parseSimulateMec(String optionString, SimulateMec defaultValue) {
+    if (optionString == null) {
+      return defaultValue;
+    }
+
+    try {
+      return SimulateMec.valueOf(optionString);
+    } catch (IllegalArgumentException e) {
+      logger.log(Level.FINE, "Failed to parse simulate mec", e);
+      String values = Arrays.stream(SimulateMec.values())
+              .map(Object::toString)
+              .collect(Collectors.joining(", "));
+      System.out.println("Unknown simulate mec value " + optionString + ". Possible values are: " + values);
       System.exit(1);
       throw new AssertionError(e);
     }

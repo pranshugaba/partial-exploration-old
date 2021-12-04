@@ -1,5 +1,6 @@
 package de.tum.in.pet.Input;
 
+import de.tum.in.pet.implementation.meanPayoff.SimulateMec;
 import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
 import de.tum.in.pet.util.CliHelper;
@@ -37,6 +38,9 @@ public class InputParser {
 
         boolean solveUsingQP = isOptionPresent(commandLine, InputOptions.solveWithQP);
 
+        SimulateMec simulateMec = CliHelper.parseSimulateMec(
+                commandLine.getOptionValue(InputOptions.simulateMec.getLongOpt()), DefaultInputValues.SIMULATE_MEC);
+
         return new InputValues(precision,
                 revisitThreshold,
                 maxReward,
@@ -49,7 +53,8 @@ public class InputParser {
                 informationLevel,
                 updateMethod,
                 rewardStructure,
-                solveUsingQP);
+                solveUsingQP,
+                simulateMec);
     }
 
     private static long parseLongOption(CommandLine commandLine, Option option, long defaultValue) {

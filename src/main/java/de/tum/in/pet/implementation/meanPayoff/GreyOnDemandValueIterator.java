@@ -17,8 +17,9 @@ public class GreyOnDemandValueIterator<S, M extends Model> extends BlackOnDemand
 
     public GreyOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                      int revisitThreshold, double rMax, double pMin, double errorTolerance,
-                                     Double2LongFunction nSampleFunction, double precision, long timeout) {
-        super(explorer, values, rewardGenerator, revisitThreshold, rMax, pMin, errorTolerance, nSampleFunction, precision, timeout, false);
+                                     Double2LongFunction nSampleFunction, double precision, long timeout, SimulateMec simulateMec) {
+        super(explorer, values, rewardGenerator, revisitThreshold, rMax, pMin, errorTolerance, nSampleFunction, precision,
+                timeout, false, simulateMec);
 
         initGreyUnboundedReachValues();
     }
