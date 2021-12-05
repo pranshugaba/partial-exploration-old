@@ -296,7 +296,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
     }
 
     double epsilon = targetPrecision/40;
-    int nTransitions = 0;
+    int nTransitions = 1;
     for(int state: mec.actions.keySet()) {
       for(int actionInd: mec.actions.get(state)) {
         if (explorer.model().getChoice(state, actionInd).size()<2) {
@@ -337,7 +337,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
   private void simulateMec(BlackExplorer<S, M> explorer, Mec mec, int nTransitions, double requiredSamples) {
     switch (simulateMec) {
-      case STANDARD: explorer.simulateMECRepeatedly3(mec, requiredSamples);
+      case STANDARD: explorer.simulateMECRepeatedly3(mec, requiredSamples, nTransitions);
       break;
 
       case CHEAT: explorer.simulateMECRepeatedly1(mec, requiredSamples);

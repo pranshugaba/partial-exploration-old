@@ -4,14 +4,20 @@ import os
 information_level_option = "--informationLevel"
 update_method_option = "--updateMethod"
 get_error_probability_option = "--getErrorProbability"
+simulate_mec_option = "--simulateMec"
 
 white_box_value = "WHITEBOX"
 black_box_value = "BLACKBOX"
 grey_box_value = "GREYBOX"
 update_method_both = "BOTH"
 
+simulate_mec_standard = "STANDARD"
+simulate_mec_cheat = "CHEAT"
+simulate_mec_heuristic = "HEURISTIC"
+
 information_level_choices = [white_box_value, black_box_value, grey_box_value]
 update_method_choices = [black_box_value, grey_box_value, update_method_both]
+simulate_mec_choices = [simulate_mec_standard, simulate_mec_cheat, simulate_mec_heuristic]
 
 
 def find_curr_max_dir():
@@ -24,7 +30,7 @@ def find_curr_max_dir():
     return maxFile
 
 
-runConfigs = ["meanPayoff -m data/models/zeroconf_rewards.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --informationLevel GREYBOX --errorTolerance 0.1 --pMin 0.0002 --iterSample 10000 --const N=40,K=10,reset=false --rewardModule reach",
+runConfigs = ["meanPayoff -m data/models/zeroconf_rewards.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0002 --iterSample 10000 --const N=40,K=10,reset=false --rewardModule reach",
               "meanPayoff -m data/models/sensors.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.05 --iterSample 10000 --const K=3",
               "meanPayoff -m data/models/investor.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.016 --iterSample 10000",
               "meanPayoff -m data/models/cs_nfail3.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.1 --iterSample 10000",
@@ -43,10 +49,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument(information_level_option, choices=information_level_choices, required=True)
 parser.add_argument(update_method_option, choices=update_method_choices)
 parser.add_argument(get_error_probability_option, action="store_true")
+parser.add_argument(simulate_mec_option, choices=simulate_mec_choices)
 arguments = parser.parse_args()
 
 info_level = arguments.informationLevel
 update_method = arguments.updateMethod
+simulate_mec = arguments.simulateMec
 
 
 # Information level
@@ -67,6 +75,12 @@ elif update_method:
 if arguments.getErrorProbability:
     for i in range(len(runConfigs)):
         runConfigs[i] += " --getErrorProbability"
+
+
+# Simulate Mec
+if simulate_mec:
+    for i in range(len(runConfigs)):
+        runConfigs[i] += " --simulateMec " + simulate_mec
 
 
 resultDir = "results/"
