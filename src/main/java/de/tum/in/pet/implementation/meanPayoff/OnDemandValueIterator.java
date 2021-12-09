@@ -130,7 +130,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     int representative = boundedMecQuotient.representative(initialState);
 
     // isSolved() defined in UnboundedReachValues
-    while(!(values.isSolved(representative)||System.currentTimeMillis()>timeout)) {  // The values between upper and lower bounds for the initial states should,be less than epsilon
+    while(!(values.isSolved(representative)|| isTimeout())) {  // The values between upper and lower bounds for the initial states should,be less than epsilon
 //      logger.log(Level.INFO, "Run "+run);
       logger.log(Level.INFO, values.bounds(representative).toString());
       if (sample(representative, run)) {
@@ -146,6 +146,10 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     }
 
     onSamplingFinished(initialState);
+  }
+
+  protected boolean isTimeout() {
+    return System.currentTimeMillis() > timeout;
   }
 
 

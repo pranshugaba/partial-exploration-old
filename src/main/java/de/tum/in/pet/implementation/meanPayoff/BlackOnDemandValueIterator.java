@@ -94,6 +94,11 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
       Int2IntOpenHashMap stateVisitCounts = new Int2IntOpenHashMap();  // keeps counts of the number of times a state is visited
 
       while (true) {
+        // Stop simulation if timeout occurred
+        if (isTimeout()) {
+          return true;
+        }
+
         visitStack.add(currentState);
         stateVisitCounts.putIfAbsent(currentState, 0);
         stateVisitCounts.addTo(currentState, 1);
