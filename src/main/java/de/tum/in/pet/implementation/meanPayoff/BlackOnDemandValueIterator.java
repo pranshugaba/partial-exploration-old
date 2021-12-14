@@ -317,7 +317,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     double requiredSamples = Math.min(1e8, (nActions/(2*Math.pow(epsilon, 2)))*Math.log(2*nActions/this.errorTolerance));
 
-    simulateMec(explorer, mec, nActions, nTransitions, requiredSamples);
+    simulateMec(explorer, mec, nTransitions, requiredSamples);
 
     assert !isZero(targetPrecision);
 
@@ -344,7 +344,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
   }
 
-  private void simulateMec(BlackExplorer<S, M> explorer, Mec mec, int nActions, int nTransitions, double requiredSamples) {
+  private void simulateMec(BlackExplorer<S, M> explorer, Mec mec, int nTransitions, double requiredSamples) {
     switch (simulateMec) {
       case STANDARD: explorer.simulateMECRepeatedly3(mec, requiredSamples, nTransitions);
       break;
