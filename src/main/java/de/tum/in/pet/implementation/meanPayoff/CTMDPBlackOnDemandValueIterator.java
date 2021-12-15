@@ -324,7 +324,8 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
-        RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision/2, rewardGenerator, stateIndexMap, rMax);
+        RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision/2,
+                rewardGenerator, stateIndexMap, rMax, timeout);
         valueIterator.setConfidenceWidthFunction(x -> (y -> Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))));
         valueIterator.setDistributionFunction(x -> y -> uniformizedMEC.getUniformizedDistribution(x, y));
         valueIterator.setLabelFunction(labelFunction);

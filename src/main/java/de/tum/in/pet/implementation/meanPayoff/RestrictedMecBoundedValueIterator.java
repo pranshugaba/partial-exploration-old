@@ -35,8 +35,10 @@ public class RestrictedMecBoundedValueIterator<S> {
 
   private final double aperidocityConstant;
 
+  private final long timeout;
+
   public RestrictedMecBoundedValueIterator(Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
-                                    Int2ObjectFunction<S> stateIndexMap, double rMax){
+                                    Int2ObjectFunction<S> stateIndexMap, double rMax, long timeout){
     this.mec = mec;
     this.targetPrecision = targetPrecision;
     this.values = new Int2ObjectOpenHashMap<>();
@@ -45,10 +47,12 @@ public class RestrictedMecBoundedValueIterator<S> {
     this.iterCount = 0;
     this.aperidocityConstant = 0.8;
     this.rMax = rMax;
+    this.timeout = timeout;
   }
 
   public RestrictedMecBoundedValueIterator(Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
-                                    Int2ObjectFunction<S> stateIndexMap, Int2ObjectMap<Bounds> values, double rMax){
+                                    Int2ObjectFunction<S> stateIndexMap, Int2ObjectMap<Bounds> values, double rMax,
+                                           long timeout){
     this.mec = mec;
     this.targetPrecision = targetPrecision;
     this.values = values;
@@ -57,6 +61,7 @@ public class RestrictedMecBoundedValueIterator<S> {
     this.iterCount = 0;
     this.aperidocityConstant = 0.8;
     this.rMax = rMax;
+    this.timeout = timeout;
   }
 
   /**
@@ -145,7 +150,7 @@ public class RestrictedMecBoundedValueIterator<S> {
         minUpper = Math.min(minUpper, b.second);
       }
       int a = 0;
-    } while ((maxLower-minLower) >= targetPrecision && (maxUpper-minUpper) >= targetPrecision);  // stopping criterion of value iteration
+    } while ((maxLower-minLower) >= targetPrecision && (maxUpper-minUpper) >= targetPrecision && !isTimeout());  // stopping criterion of value iteration
 
     // Sometimes the upper bound is slightly greater than rMax, because of floating point error.
     // This was observed when running the pnueli-zuck3 model.
@@ -212,6 +217,10 @@ public class RestrictedMecBoundedValueIterator<S> {
    */
   public Int2ObjectMap<Bounds> getValues(){
     return this.values;
+  }
+
+  private boolean isTimeout() {
+    return System.currentTimeMillis() >= timeout;
   }
 
 }

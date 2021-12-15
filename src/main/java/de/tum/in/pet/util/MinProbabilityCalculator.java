@@ -1,5 +1,6 @@
 package de.tum.in.pet.util;
 
+import de.tum.in.pet.Input.DefaultInputValues;
 import de.tum.in.pet.Main;
 import de.tum.in.pet.implementation.meanPayoff.MeanPayoffChecker;
 import de.tum.in.probmodels.explorer.Explorer;
@@ -107,7 +108,7 @@ public class MinProbabilityCalculator {
     Generator<State> generator = new MdpGenerator(prismGenerator);
 
     var explorer = Explorers.getExplorer(partialModel, generator,
-            InformationLevel.WHITEBOX, false);
+            InformationLevel.WHITEBOX, false, System.currentTimeMillis() + DefaultInputValues.TIMEOUT);
 
     return findPMinMDP(explorer);
 
