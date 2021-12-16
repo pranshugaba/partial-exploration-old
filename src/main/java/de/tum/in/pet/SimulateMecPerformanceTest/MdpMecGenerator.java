@@ -21,10 +21,10 @@ public class MdpMecGenerator {
     private Map<Integer, Boolean> hasIncomingTransitionsFromOtherState;
     private Map<Integer, Boolean> hasOutgoingTransitionsToOtherState;
 
-    // For each state, we randomly choose number of actions to be from [1...NUM_ACTIONS_BOUND]
+    // For each state, we will have fixed number of actions
     private static final int NUM_ACTIONS_BOUND = 3;
 
-    // For each action, we randomly choose the number of transitions to be from [1...NUM_TRANSITION_BOUND]
+    // For each action, we will have fixed number of transitions
     private static final int NUM_TRANSITIONS_BOUND = 3;
 
     private final Random random = new Random();
@@ -32,14 +32,11 @@ public class MdpMecGenerator {
     public MarkovDecisionProcess createMec(int numStates) {
         initialiseStateVariables(numStates);
         fillMdpWithRandomActions();
-        makeItAsAnMEC();
+//        makeItAsAnMEC();
 
         return mdpMec;
     }
 
-    // NOTE : Just filling up Mdp with random actions will not guarantee an MEC
-    // After filling it up, we check for any states without incoming/outgoing transitions from/to other states
-    // If present, we add an incoming/outgoing transition to that state, by creating an action with 1 transition in it
     private void fillMdpWithRandomActions() {
         for (int state = 0; state < numStates; state++) {
             List<Action> actions = getRandomActions(state);
@@ -47,12 +44,10 @@ public class MdpMecGenerator {
         }
     }
 
-    // For each state we randomly pick the number of actions to be from [1 ... NUM_ACTIONS_BOUND]
     private List<Action> getRandomActions(int state) {
         List<Action> generatedActions = new ArrayList<>();
 
-        int numActions = random.nextInt(NUM_ACTIONS_BOUND) + 1;
-        for (int actionIndex = 0; actionIndex < numActions; actionIndex++) {
+        for (int actionIndex = 0; actionIndex < NUM_ACTIONS_BOUND; actionIndex++) {
             Action action = getRandomAction(state);
             generatedActions.add(action);
         }
@@ -64,20 +59,18 @@ public class MdpMecGenerator {
     // Number of transitions will be randomly picked from [1 ... NUM_TRANSITIONS_BOUND]
     // For an action, all of its transitions will have equal probability (for convenience)
     private Action getRandomAction(int state) {
-        int numSuccessors = random.nextInt(NUM_TRANSITIONS_BOUND) + 1;
-
         // To pick n random successors, we shuffle the states and pick the first n elements
         Collections.shuffle(statesList);
 
         // We give equal probabilities to all the transitions
-        double prob = 1/ ((double) numSuccessors);
+        double prob = 1/ ((double) NUM_TRANSITIONS_BOUND);
         DistributionBuilder builder = Distributions.defaultBuilder();
-        for (int successor = 0; successor < numSuccessors; successor++) {
+        for (int successor = 0; successor < NUM_TRANSITIONS_BOUND; successor++) {
             if (successor != state) {
                 hasIncomingTransitionsFromOtherState.put(successor, true);
                 hasOutgoingTransitionsToOtherState.put(state, true);
             }
-            builder.add(successor, prob);
+            builder.add(statesList.get(successor), prob);
         }
 
         Distribution distribution = builder.build();
@@ -133,5 +126,6 @@ public class MdpMecGenerator {
 
         statesList = IntStream.range(0, numStates).boxed().collect(Collectors.toList());
         hasIncomingTransitionsFromOtherState = new Int2BooleanOpenHashMap();
+        hasOutgoingTransitionsToOtherState = new Int2BooleanOpenHashMap();
     }
 }
