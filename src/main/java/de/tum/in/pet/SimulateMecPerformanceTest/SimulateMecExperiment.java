@@ -3,6 +3,7 @@ package de.tum.in.pet.SimulateMecPerformanceTest;
 import de.tum.in.probmodels.model.MarkovDecisionProcess;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,13 +14,19 @@ import java.util.logging.Logger;
 public class SimulateMecExperiment {
     private final List<TimeTaken> timeTakenList = new ArrayList<>();
     private final Logger logger = Logger.getLogger("SimulateMecExperiment");
+    private static final String FILE_NAME = "simulationResults.txt";
 
     public static void main(String[] args) {
         SimulateMecExperiment experiment = new SimulateMecExperiment();
-        experiment.run();
+        experiment.run(3);
     }
 
-    public void run() {
+    public void run(int n) {
+        File file = new File(FILE_NAME);
+        if (file.exists()) {
+            file.delete();
+        }
+
         MdpMecGenerator mecGenerator = new MdpMecGenerator();
 
         MarkovDecisionProcess MEC5 = mecGenerator.createMec(5);
@@ -28,26 +35,33 @@ public class SimulateMecExperiment {
         MarkovDecisionProcess MEC20 = mecGenerator.createMec(20);
         MarkovDecisionProcess MEC40 = mecGenerator.createMec(40);
         MarkovDecisionProcess MEC80 = mecGenerator.createMec(80);
+        log("all MEC created");
 
         double nSamples = 1e6;
 
-        runSimulateExperiment(MEC5, nSamples);
-        log("MEC5 completed");
-        runSimulateExperiment(MEC10, nSamples);
-        log("MEC10 completed");
-        runSimulateExperiment(MEC15, nSamples);
-        log("MEC15 completed");
-        runSimulateExperiment(MEC20, nSamples);
-        log("MEC20 completed");
-        runSimulateExperiment(MEC40, nSamples);
-        log("MEC40 completed");
-        runSimulateExperiment(MEC80, nSamples);
-        log("MEC80 completed");
+        for (int i = 0; i < n; i++) {
+            runSimulateExperiment(MEC5, nSamples);
+            log("MEC5 completed");
+            runSimulateExperiment(MEC10, nSamples);
+            log("MEC10 completed");
+            runSimulateExperiment(MEC15, nSamples);
+            log("MEC15 completed");
+            runSimulateExperiment(MEC20, nSamples);
+            log("MEC20 completed");
+            runSimulateExperiment(MEC40, nSamples);
+            log("MEC40 completed");
+            runSimulateExperiment(MEC80, nSamples);
+            log("MEC80 completed");
 
-        try {
-            writeResults();
-        } catch (IOException e) {
-            e.printStackTrace();
+            try {
+                writeResults();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            timeTakenList.clear();
+
+            log("Iteration complete");
         }
     }
 
@@ -83,8 +97,8 @@ public class SimulateMecExperiment {
     }
 
     private void writeResults() throws IOException {
-        String filename = "simulationResults.txt";
-        BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
+        String fileName = "simulationResults.txt";
+        BufferedWriter writer = new BufferedWriter(new FileWriter(fileName, true));
 
         for (TimeTaken timeTaken : timeTakenList) {
             writer.newLine();
@@ -95,6 +109,10 @@ public class SimulateMecExperiment {
             writer.write(String.valueOf(timeTaken.standardTimeTaken));
             writer.newLine();
         }
+
+        writer.newLine();
+        writer.write("Iteration complete");
+        writer.newLine();
 
         writer.close();
     }

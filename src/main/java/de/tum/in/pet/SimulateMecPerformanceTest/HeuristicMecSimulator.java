@@ -28,7 +28,7 @@ public class HeuristicMecSimulator {
 
         int simulationCount = 0;
         int nTransitions = getNumTransitions();
-        double requiredSamples = nSamples * nTransitions;
+        double requiredSamples = Math.min(nSamples * nTransitions, 1e8);
 
         while (simulationCount < requiredSamples) {
             List<Action> intActions = mdp.getActions(currentState);
