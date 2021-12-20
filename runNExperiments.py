@@ -52,6 +52,22 @@ def result_comparator(model_result):
     return model_result.get_bounds_diff()
 
 
+def get_average_values(model_result_list):
+    average_lower_bound = 0
+    average_upper_bound = 0
+    average_run_time = 0
+    for model_result in model_result_list:
+        average_lower_bound += model_result.lower_bounds[-1]
+        average_upper_bound += model_result.upper_bounds[-1]
+        average_run_time += model_result.get_runtime
+
+    average_lower_bound /= len(model_result_list)
+    average_upper_bound /= len(model_result_list)
+    average_run_time /= len(model_result_list)
+
+    return average_lower_bound, average_upper_bound, average_run_time
+
+
 def write_model_result(result_file, model_result):
     result_file.write('Execution time: ' + str(model_result.get_runtime()) + '\n')
     result_file.write('Lower bound: ' + str(model_result.lower_bounds[-1]) + '\n')
@@ -64,9 +80,15 @@ def write_model_result(result_file, model_result):
 
 def write_model_results(model_name, model_result_list):
     result_file_name = model_name + '.txt'
+
     with open(result_file_name, 'w') as result_file:
         for model_result in model_result_list:
             write_model_result(result_file, model_result)
+
+        (al, au, ar) = get_average_values(model_result_list)
+        result_file.write('Average Lower Bound: ' + str(al) + '\n')
+        result_file.write('Average Upper Bound: ' + str(au) + '\n')
+        result_file.write('Average Run time: ' + str(ar) + '\n')
 
 
 def write_results(results):
