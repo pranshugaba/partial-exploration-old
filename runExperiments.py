@@ -43,13 +43,15 @@ if input_values.simulate_mec:
         runConfigs[i] += " --simulateMec " + input_values.simulate_mec
 
 
-resultDir = "results/"
+resultDir = input_values.output_directory + '/'
+if not os.path.exists(resultDir):
+    os.makedirs(resultDir, exist_ok=True)
+
 gradle_exec = "./gradlew run"
 baseVal = find_curr_max_dir()
 
 for i in range(len(runConfigs)):
-    runConfig = runConfigs[i]
+    runConfig = runConfigs[i] + " --outputPath " + os.path.join(resultDir, str(i+1+baseVal))
     cmdLine = gradle_exec + " --args='" + runConfig + "'"
     print(cmdLine)
     os.system(cmdLine)
-    os.rename("temp.txt", os.path.join(resultDir, str(i+1+baseVal)))

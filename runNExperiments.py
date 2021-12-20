@@ -5,7 +5,7 @@ import inputOptions
 
 
 def get_exec_command_from_input():
-    input_values = inputOptions.parse_user_input()
+    global input_values
     command = 'python3 runExperiments.py'
     if input_values.information_level:
         command += ' ' + inputOptions.information_level_option + ' ' + input_values.information_level
@@ -18,12 +18,10 @@ def get_exec_command_from_input():
     return command
 
 
-# todo change experimentResults
-def run_benchmarks(n, command):
+def run_benchmarks(n, command, output_directory):
     for i in range(n):
-        os.system(command)
-        shutil.move('results', f'experimentResults/iteration{i}')
-        os.mkdir('results')
+        output_directory_option = inputOptions.output_directory_option + ' ' + output_directory + '/' + f'iteration{i}'
+        os.system(command + ' ' + output_directory_option)
 
 
 def accumulate_results():
@@ -83,9 +81,10 @@ def remove_old_results():
         shutil.rmtree(resultDirectory)
 
 
-resultDirectory = 'experimentResults/'
+input_values = inputOptions.parse_user_input()
+resultDirectory = input_values.output_directory + '/'
 remove_old_results()
 exec_command = get_exec_command_from_input()
-run_benchmarks(10, exec_command)
+run_benchmarks(10, exec_command, input_values.output_directory)
 benchmarkInfo = accumulate_results()
 write_results(benchmarkInfo)
