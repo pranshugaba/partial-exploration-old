@@ -208,7 +208,7 @@ public final class MeanPayoffChecker {
       double meanPayoff = solve(generator, rewardIndex, ip);
       long endTime = System.currentTimeMillis();
 
-      ResultWriter.write(commandLine, timeVBound, additionalWriteInfo);
+      ResultWriter.write(commandLine, timeVBound, additionalWriteInfo, ip.outputPath);
 
       logger.log(Level.INFO, "Time to parse, construct model, and compute {0}", new Object[]{endTime - startTime1});
       logger.log(Level.INFO, "Time to compute {0}", new Object[]{endTime - startTime2});

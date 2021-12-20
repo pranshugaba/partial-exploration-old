@@ -23,6 +23,7 @@ public class InputOptions {
     public static Option getErrorProbabilityOption = new Option(null, "getErrorProbability", false, "Computes the error probability for blackbox with greybox equations");
     public static Option solveWithQP = new Option(null, "qp", false, "Solve using linear/quadratic programming");
     public static Option simulateMec = new Option(null, "simulateMec", true, "Algorithm for simulating MEC, before value iteration");
+    public static Option outputFile = new Option("o", "outputPath", true, "Path to write the output");
 
     public static Options getAllInputOptions() {
         modelOption.setRequired(true);
@@ -43,6 +44,7 @@ public class InputOptions {
                 .addOption(timeoutOption)
                 .addOption(getErrorProbabilityOption)
                 .addOption(solveWithQP)
-                .addOption(simulateMec);
+                .addOption(simulateMec)
+                .addOption(outputFile);
     }
 }

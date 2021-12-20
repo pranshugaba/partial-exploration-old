@@ -6,6 +6,7 @@ import org.apache.commons.cli.Option;
 import prism.Pair;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
@@ -13,9 +14,8 @@ import java.util.List;
 public class ResultWriter {
 
     public static void write(CommandLine commandLine, List<Pair<Long, Bounds>> timeVBound,
-                             List<String> additionalWriteInfo) throws IOException {
-        String filename = "temp.txt";
-        BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
+                             List<String> additionalWriteInfo, String outputFilePath) throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter(outputFilePath));
 
         StringBuilder modelDetails = new StringBuilder();
 

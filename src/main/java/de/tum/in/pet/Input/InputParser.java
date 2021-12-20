@@ -41,6 +41,8 @@ public class InputParser {
         SimulateMec simulateMec = CliHelper.parseSimulateMec(
                 commandLine.getOptionValue(InputOptions.simulateMec.getLongOpt()), DefaultInputValues.SIMULATE_MEC);
 
+        String outputPath = parseOption(commandLine, InputOptions.outputFile, DefaultInputValues.OUTPUT_PATH, Function.identity());
+
         return new InputValues(precision,
                 revisitThreshold,
                 maxReward,
@@ -54,7 +56,8 @@ public class InputParser {
                 updateMethod,
                 rewardStructure,
                 solveUsingQP,
-                simulateMec);
+                simulateMec,
+                outputPath);
     }
 
     private static long parseLongOption(CommandLine commandLine, Option option, long defaultValue) {
