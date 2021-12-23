@@ -23,7 +23,9 @@ public class StandardMecSimulator {
         initializeCount();
     }
 
-    public void simulate() {
+    // Returns True if it stopped due to timeout
+    public boolean simulate(double timeout) {
+        double timeUp = System.currentTimeMillis() + timeout;
         int currentState = 0;
         Random random = new Random();
 
@@ -34,7 +36,7 @@ public class StandardMecSimulator {
         // We terminate the simulation if lest visited state action pair in Mec is at least visited requiredSamples number of times
         boolean runSimulation = getActionCounts(leastVisitedState, leastVisitedAction) < nSamples;
 
-        while (runSimulation) {
+        while (runSimulation && (System.currentTimeMillis() < timeUp)) {
             List<Action> intActions = mdp.getActions(currentState);
             int actionIndex = random.nextInt(intActions.size());
             int successor = mdp.getChoice(currentState, actionIndex).sample();
@@ -52,6 +54,8 @@ public class StandardMecSimulator {
 
             runSimulation = leastStateActionCounts < nSamples;
         }
+
+        return System.currentTimeMillis() >= timeUp;
     }
 
     private void initializeCount() {

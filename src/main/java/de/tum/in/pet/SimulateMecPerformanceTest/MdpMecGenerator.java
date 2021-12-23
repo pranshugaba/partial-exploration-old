@@ -1,6 +1,7 @@
 package de.tum.in.pet.SimulateMecPerformanceTest;
 
 import de.tum.in.probmodels.model.*;
+import edu.jas.util.MapEntry;
 import it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap;
 
 import java.util.*;
@@ -18,22 +19,17 @@ public class MdpMecGenerator {
     private List<Integer> statesList;
     private int numStates;
 
-    private Map<Integer, Boolean> hasIncomingTransitionsFromOtherState;
-    private Map<Integer, Boolean> hasOutgoingTransitionsToOtherState;
+    // For each state, we can have up to 4 actions
+    private static final int NUM_ACTIONS_BOUND = 4;
 
-    // For each state, we will have fixed number of actions
-    private static final int NUM_ACTIONS_BOUND = 3;
-
-    // For each action, we will have fixed number of transitions
-    private static final int NUM_TRANSITIONS_BOUND = 3;
+    // For each action, we can have up to 4 transitions
+    private static final int NUM_TRANSITIONS_BOUND = 4;
 
     private final Random random = new Random();
 
     public MarkovDecisionProcess createMec(int numStates) {
         initialiseStateVariables(numStates);
         fillMdpWithRandomActions();
-//        makeItAsAnMEC();
-
         return mdpMec;
     }
 
@@ -47,7 +43,10 @@ public class MdpMecGenerator {
     private List<Action> getRandomActions(int state) {
         List<Action> generatedActions = new ArrayList<>();
 
-        for (int actionIndex = 0; actionIndex < NUM_ACTIONS_BOUND; actionIndex++) {
+        // We randomly choose the number of actions for each state
+        int numActions = getRandomNumberInRange(1, NUM_ACTIONS_BOUND);
+
+        for (int actionIndex = 0; actionIndex < numActions; actionIndex++) {
             Action action = getRandomAction(state);
             generatedActions.add(action);
         }
@@ -62,61 +61,32 @@ public class MdpMecGenerator {
         // To pick n random successors, we shuffle the states and pick the first n elements
         Collections.shuffle(statesList);
 
-        // We give equal probabilities to all the transitions
-        double prob = 1/ ((double) NUM_TRANSITIONS_BOUND);
-        DistributionBuilder builder = Distributions.defaultBuilder();
-        for (int successor = 0; successor < NUM_TRANSITIONS_BOUND; successor++) {
-            if (successor != state) {
-                hasIncomingTransitionsFromOtherState.put(successor, true);
-                hasOutgoingTransitionsToOtherState.put(state, true);
-            }
-            builder.add(statesList.get(successor), prob);
+        // We randomly pick the number of successors
+        int numSuccessors = getRandomNumberInRange(1, NUM_TRANSITIONS_BOUND);
+        List<Integer> successors = new ArrayList<>();
+
+        // Random transition probabilities of those successors. This always adds up to 1.
+        List<Double> transitionProbabilities = getRandomTransitionProbabilities(numSuccessors);
+
+        // We force that at-least one successor is state+1. For the last state, we connect it with state 0.
+        // This is to force a big MEC. If not forced, then this generator can possibly return an MDP which is not an MEC,
+        // but it may have some connected components within it.
+        if (state < numStates-1) {
+            successors.add(state + 1);
+        } else {
+            successors.add(0);
         }
 
-        Distribution distribution = builder.build();
-        return Action.of(distribution);
-    }
-
-    // If every state has an incoming transition and an outgoing transition (Not from/to the same state itself),
-    // then we can say it is an MEC
-    private void makeItAsAnMEC() {
-        for (int state = 0; state < numStates; state++) {
-            boolean v = hasIncomingTransitionsFromOtherState.getOrDefault(state, false);
-            if (!v) {
-                addIncomingTransition(state);
-            }
-
-            v = hasOutgoingTransitionsToOtherState.getOrDefault(state, false);
-            if (!v) {
-                addOutgoingTransition(state);
-            }
-        }
-    }
-
-    // We randomly pick a source other than the given state, and add a single transition
-    private void addIncomingTransition(int state) {
-        int source = state;
-
-        // We pick a target different from given state
-        while (source == state) {
-            source = random.nextInt(numStates);
+        for (int successor = 1; successor < numSuccessors; successor++) {
+            successors.add(statesList.get(successor));
         }
 
         DistributionBuilder builder = Distributions.defaultBuilder();
-        builder.add(state, 1);
-        mdpMec.addChoice(source, Action.of(builder.build()));
-    }
-
-    private void addOutgoingTransition(int state) {
-        int target = state;
-
-        while (target == state) {
-            target = random.nextInt(numStates);
+        for (int i = 0; i < numSuccessors; i++) {
+            builder.add(successors.get(i), transitionProbabilities.get(i));
         }
 
-        DistributionBuilder builder = Distributions.defaultBuilder();
-        builder.add(target, 1);
-        mdpMec.addChoice(state, Action.of(builder.build()));
+        return Action.of(builder.build());
     }
 
     private void initialiseStateVariables(int numStates) {
@@ -125,7 +95,53 @@ public class MdpMecGenerator {
         mdpMec.addStates(numStates);
 
         statesList = IntStream.range(0, numStates).boxed().collect(Collectors.toList());
-        hasIncomingTransitionsFromOtherState = new Int2BooleanOpenHashMap();
-        hasOutgoingTransitionsToOtherState = new Int2BooleanOpenHashMap();
+    }
+
+    private List<Double> getRandomTransitionProbabilities(int numTransitions) {
+        if (numTransitions <= 0) {
+            throw new IllegalArgumentException("numTransitions is less than 0");
+        }
+
+        //We choose numbers from 1..100, such that their sum is 100.
+        //We then convert this to transition probabilities by dividing by 100.
+        int remainingTransitions = numTransitions;
+        int minValue = 1;
+        int maxValue = 100 - (remainingTransitions - 1);
+        int tempNumber;
+        List<Integer> numbers = new ArrayList<>();
+        int sumSoFar = 0;
+        while (true) {
+            if (remainingTransitions == 1) {
+                numbers.add(100 - sumSoFar);
+                break;
+            }
+
+            tempNumber = getRandomNumberInRange(minValue, maxValue);
+            numbers.add(tempNumber);
+            sumSoFar += tempNumber;
+            remainingTransitions--;
+
+            maxValue = 100 - sumSoFar - (remainingTransitions - 1);
+            if (remainingTransitions == 1) {
+                minValue = maxValue;
+            }
+        }
+
+        return numbers.stream()
+                .mapToDouble(num -> num/100.0)
+                .boxed()
+                .collect(Collectors.toList());
+    }
+
+    private int getRandomNumberInRange(int min, int max) {
+        if (min == max) {
+            return min;
+        }
+
+        if (min >= max) {
+            throw new IllegalArgumentException("max must be greater than min");
+        }
+
+        return random.nextInt((max - min) + 1) + min;
     }
 }

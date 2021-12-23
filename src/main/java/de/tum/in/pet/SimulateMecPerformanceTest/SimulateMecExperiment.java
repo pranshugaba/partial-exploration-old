@@ -1,5 +1,6 @@
 package de.tum.in.pet.SimulateMecPerformanceTest;
 
+import de.tum.in.pet.Input.DefaultInputValues;
 import de.tum.in.probmodels.model.MarkovDecisionProcess;
 
 import java.io.BufferedWriter;
@@ -29,12 +30,12 @@ public class SimulateMecExperiment {
 
         MdpMecGenerator mecGenerator = new MdpMecGenerator();
 
-        MarkovDecisionProcess MEC5 = mecGenerator.createMec(5);
-        MarkovDecisionProcess MEC10 = mecGenerator.createMec(10);
-        MarkovDecisionProcess MEC15 = mecGenerator.createMec(15);
-        MarkovDecisionProcess MEC20 = mecGenerator.createMec(20);
-        MarkovDecisionProcess MEC40 = mecGenerator.createMec(40);
-        MarkovDecisionProcess MEC80 = mecGenerator.createMec(80);
+        MarkovDecisionProcess MEC5 = mecGenerator.createMec(50);
+        MarkovDecisionProcess MEC10 = mecGenerator.createMec(200);
+        MarkovDecisionProcess MEC15 = mecGenerator.createMec(400);
+        MarkovDecisionProcess MEC20 = mecGenerator.createMec(1000);
+        MarkovDecisionProcess MEC40 = mecGenerator.createMec(2000);
+        MarkovDecisionProcess MEC80 = mecGenerator.createMec(4000);
         log("all MEC created");
 
         double nSamples = 1e6;
@@ -68,6 +69,7 @@ public class SimulateMecExperiment {
     private void runSimulateExperiment(MarkovDecisionProcess MEC, double nSamples) {
         long startTime, endTime;
         long timeTaken1, timeTaken2, timeTaken3;
+        boolean stoppedByTimeout;
 
         RandomAccessMecSimulator randomAccessMecSimulator = new RandomAccessMecSimulator(MEC, nSamples);
         startTime = System.currentTimeMillis();
@@ -79,17 +81,26 @@ public class SimulateMecExperiment {
 
         HeuristicMecSimulator heuristicMecSimulator = new HeuristicMecSimulator(MEC, nSamples);
         startTime = System.currentTimeMillis();
-        heuristicMecSimulator.simulate();
+        stoppedByTimeout = heuristicMecSimulator.simulate(DefaultInputValues.TIMEOUT);
         endTime = System.currentTimeMillis();
-        timeTaken2 = (endTime - startTime)/1000;
+        if (stoppedByTimeout) {
+            timeTaken2 = -1;
+        } else {
+            timeTaken2 = (endTime - startTime) / 1000;
+        }
 
         log("Heuristic method completed");
 
         StandardMecSimulator standardMecSimulator = new StandardMecSimulator(MEC, nSamples);
         startTime = System.currentTimeMillis();
-        standardMecSimulator.simulate();
+        stoppedByTimeout = standardMecSimulator.simulate(DefaultInputValues.TIMEOUT);
         endTime = System.currentTimeMillis();
-        timeTaken3 = (endTime - startTime)/1000;
+
+        if (stoppedByTimeout) {
+            timeTaken3 = -1;
+        } else {
+            timeTaken3 = (endTime - startTime)/1000;
+        }
 
         log("Standard method completed");
 
