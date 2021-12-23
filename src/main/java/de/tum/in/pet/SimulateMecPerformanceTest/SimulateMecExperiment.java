@@ -19,7 +19,7 @@ public class SimulateMecExperiment {
 
     public static void main(String[] args) {
         SimulateMecExperiment experiment = new SimulateMecExperiment();
-        experiment.run(3);
+        experiment.run(10);
     }
 
     public void run(int n) {
