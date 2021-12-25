@@ -47,11 +47,13 @@ resultDir = input_values.output_directory + '/'
 if not os.path.exists(resultDir):
     os.makedirs(resultDir, exist_ok=True)
 
-gradle_exec = "./gradlew run"
+gradle_exec = "./../gradlew -p ./../ run"
 baseVal = find_curr_max_dir()
 
 for i in range(len(runConfigs)):
-    runConfig = runConfigs[i] + " --outputPath " + os.path.join(resultDir, str(i+1+baseVal))
+    rel_output_path = os.path.join(resultDir, str(i+1+baseVal))
+    absolute_path = os.path.abspath(rel_output_path)
+    runConfig = runConfigs[i] + " --outputPath " + absolute_path
     cmdLine = gradle_exec + " --args='" + runConfig + "'"
     print(cmdLine)
     os.system(cmdLine)

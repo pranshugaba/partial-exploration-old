@@ -145,15 +145,11 @@ public class MDPModelToPrismFileConverter {
     private void writeRewards() throws IOException {
         int numStates = mdpModel.getNumStates();
         for (int state = 0; state < numStates; state++) {
+            writeStateReward(state);
             for (int choice = 0; choice < mdpModel.getNumChoices(state); choice++) {
-                writeReward(state, choice);
+                writeTransitionReward(state, choice);
             }
         }
-    }
-
-    private void writeReward(int state, int choice) throws IOException {
-        writeStateReward(state);
-        writeTransitionReward(state, choice);
     }
 
     private void writeStateReward(int state) throws IOException {
