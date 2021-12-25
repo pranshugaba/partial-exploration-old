@@ -25,8 +25,27 @@ public class PETConverter {
         RewardGenerator<State> rewardGenerator = modelConstructor.getRewardGenerator();
         List<State> statesList = modelConstructor.getStatesList();
         MDP uniformizedModel = new CTMDPUniformizer(ctmdpModel, ctmdpModel.getMaxExitRate()).uniformize();
+        writeModel(inputValues, uniformizedModel, rewardGenerator,statesList);
+    }
+
+    private static void writeModel(InputValues inputValues, MDP uniformizedModel, RewardGenerator<State> rewardGenerator, List<State> stateList) {
         File targetFile = new File(inputValues.outputFilePath);
-        MDPModelToPrismFileConverter fileWriter = new MDPModelToPrismFileConverter(targetFile, uniformizedModel, rewardGenerator, statesList);
+        MDPModelToPrismFileConverter fileWriter = new MDPModelToPrismFileConverter(targetFile,
+                uniformizedModel, getRewardProperty(rewardGenerator, stateList));
         fileWriter.safeWriteModel();
+    }
+
+    private static MDPModelToPrismFileConverter.RewardProperty getRewardProperty(RewardGenerator<State> rewardGenerator, List<State> statesList) {
+        return new MDPModelToPrismFileConverter.RewardProperty() {
+            @Override
+            public double getStateReward(int s) {
+                return rewardGenerator.stateReward(statesList.get(s));
+            }
+
+            @Override
+            public double getTransitionReward(int state, int actionIndex, Object actionLabel) {
+                return rewardGenerator.transitionReward(statesList.get(state), actionLabel);
+            }
+        };
     }
 }

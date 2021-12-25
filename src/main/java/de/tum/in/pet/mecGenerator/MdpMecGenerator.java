@@ -1,8 +1,6 @@
-package de.tum.in.pet.SimulateMecPerformanceTest;
+package de.tum.in.pet.mecGenerator;
 
 import de.tum.in.probmodels.model.*;
-import edu.jas.util.MapEntry;
-import it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,6 +28,7 @@ public class MdpMecGenerator {
     public MarkovDecisionProcess createMec(int numStates) {
         initialiseStateVariables(numStates);
         fillMdpWithRandomActions();
+        mdpMec.addInitialState(0);
         return mdpMec;
     }
 

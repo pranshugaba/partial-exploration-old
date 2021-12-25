@@ -1,13 +1,10 @@
 package de.tum.in.pet.Converter;
 
-import de.tum.in.probmodels.generator.RewardGenerator;
 import explicit.MDP;
-import parser.State;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,16 +14,14 @@ import java.util.Map;
 public class MDPModelToPrismFileConverter {
     private final File targetFile;
     private final MDP mdpModel;
-    private final RewardGenerator<State> rewardGenerator;
-    private final List<State> stateList;
+    private final RewardProperty rewardFunctions;
 
     private BufferedOutputStream bufferedOutputStream;
 
-    public MDPModelToPrismFileConverter(File targetFile, MDP mdp, RewardGenerator<State> rewardGenerator, List<State> stateList){
+    public MDPModelToPrismFileConverter(File targetFile, MDP mdp, RewardProperty rewardFunctions){
        this.targetFile = targetFile;
        this.mdpModel = mdp;
-       this.rewardGenerator = rewardGenerator;
-       this.stateList = stateList;
+       this.rewardFunctions = rewardFunctions;
     }
 
     public void safeWriteModel(){
@@ -59,7 +54,7 @@ public class MDPModelToPrismFileConverter {
         closeModule();
         newLines(2);
 
-        if (rewardGenerator != null) {
+        if (rewardFunctions != null) {
             openRewardStructure();
             newLines(2);
             writeRewards();
@@ -162,8 +157,7 @@ public class MDPModelToPrismFileConverter {
     }
 
     private void writeStateReward(int state) throws IOException {
-        //TODO CHECK MAPPING STATES IS CORRECT
-        double stateReward = rewardGenerator.stateReward(stateList.get(state));
+        double stateReward = rewardFunctions.getStateReward(state);
 
         if (stateReward == 0d)
             return;
@@ -174,9 +168,8 @@ public class MDPModelToPrismFileConverter {
     }
 
     private void writeTransitionReward(int state, int choice) throws IOException {
-        State s = stateList.get(state);
         Object actionLabel = mdpModel.getAction(state, choice);
-        double transitionReward = rewardGenerator.transitionReward(s, actionLabel);
+        double transitionReward = rewardFunctions.getTransitionReward(state, choice, actionLabel);
 
         if (transitionReward == 0d)
             return;
@@ -202,7 +195,9 @@ public class MDPModelToPrismFileConverter {
 
     private void forceNewTargetFile() throws IOException {
         Files.deleteIfExists(targetFile.toPath());
-        Files.createDirectories(targetFile.getParentFile().toPath());
+        if (targetFile.getParentFile() != null) {
+            Files.createDirectories(targetFile.getParentFile().toPath());
+        }
         Files.createFile(targetFile.toPath());
     }
 
@@ -218,5 +213,10 @@ public class MDPModelToPrismFileConverter {
 
     private void writeToBuffer(String string) throws IOException {
         bufferedOutputStream.write(string.getBytes());
+    }
+
+    public interface RewardProperty {
+        double getStateReward(int s);
+        double getTransitionReward(int state, int actionIndex, Object actionLabel);
     }
 }
