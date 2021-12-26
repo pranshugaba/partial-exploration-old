@@ -20,7 +20,7 @@ public class InputParser {
     private String rewardStructure = null;
     private String outputFilePath = null;
 
-    InputParser() {
+    public InputParser() {
         modelOption.setRequired(true);
         outputFilePathOption.setRequired(true);
     }

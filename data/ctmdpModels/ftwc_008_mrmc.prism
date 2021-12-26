@@ -1,3 +1,8 @@
+// Number of components: 2482
+// Max state action pairs in a MEC: 1
+// Max successors in a MEC: 1
+// Maximum number of successors in model: 8
+
 ctmdp
 
 module m
