@@ -1,3 +1,8 @@
+// Number of components: 3684
+// Max state action pairs in a MEC: 30
+// Max successors per action, in a MEC: 1
+// Max successors per action, in model: 2
+
 mdp
 
 module server

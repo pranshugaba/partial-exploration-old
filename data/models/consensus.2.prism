@@ -1,6 +1,11 @@
 // COIN FLIPPING PROTOCOL FOR POLYNOMIAL RANDOMIZED CONSENSUS [AH90] 
 // gxn/dxp 20/11/00
 
+// Number of components: 52
+// Max state action pairs in a MEC: 1
+// Max successors per action, in a MEC: 1
+// Max successors per action, in model: 2
+
 mdp
 
 // constants

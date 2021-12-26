@@ -2,6 +2,11 @@
 // mutual exclusion [PZ82]
 // dxp/gxn 19/12/99
 
+// Number of components: 481
+// Max state action pairs in a MEC: 9040
+// Max successors per action, in a MEC: 2
+// Max successors per action, in model: 2
+
 mdp
 
 // atomic formula

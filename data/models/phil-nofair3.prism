@@ -6,6 +6,11 @@
 // (1) cannot stay in thinking 
 // (2) if first fork not free then cannot move (another philosopher must more)
 
+// Number of components: 28
+// Max state action pairs in a MEC: 2694
+// Max successors per action, in a MEC: 2
+// Max successors per action, in model: 2
+
 mdp
 
 // atomic formulae 

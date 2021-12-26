@@ -1,6 +1,11 @@
 // EXAMPLE: INVESTING IN THE FUTURES MARKET
 // (McIver and Morgan 03)
 
+// Number of components: 1332
+// Max state action pairs in a MEC: 88
+// Max successors per action, in a MEC: 2
+// Max successors per action, in model: 8
+
 mdp
 
 // module use to synchronize transitions

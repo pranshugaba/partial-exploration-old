@@ -1,6 +1,5 @@
 package de.tum.in.pet.util;
 
-import de.tum.in.naturals.set.BoundedNatBitSet;
 import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.pet.Converter.CTMDPModelConstructor;
@@ -13,14 +12,10 @@ import de.tum.in.probmodels.model.DistributionBuilder;
 import de.tum.in.probmodels.model.Distributions;
 import de.tum.in.probmodels.model.MarkovDecisionProcess;
 import explicit.CTMDP;
-import explicit.MDP;
-import org.jfree.util.Log;
 import prism.PrismException;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class CTMDPModelInfo {
@@ -46,12 +41,7 @@ public class CTMDPModelInfo {
 
 
                 DistributionBuilder builder = Distributions.defaultBuilder();
-                ctmdpModel.forEachTransition(state, choice, new MDP.TransitionConsumer() {
-                    @Override
-                    public void accept(int i, int i1, double v) {
-                        builder.add(i1, v);
-                    }
-                });
+                ctmdpModel.forEachTransition(state, choice, (i, i1, v) -> builder.add(i1, v));
                 mdp.addChoice(state, Action.of(builder.build(), ctmdpModel.getAction(state, choice)));
             }
         }
@@ -60,7 +50,7 @@ public class CTMDPModelInfo {
         mdp.addInitialState(ctmdpModel.getFirstInitialState());
         //Find components
         MecComponentAnalyser analyser = new MecComponentAnalyser();
-        BoundedNatBitSet set = NatBitSets.boundedFullSet(numStates);
+        NatBitSet set = NatBitSets.ensureModifiable(NatBitSets.boundedFullSet(numStates));
         List<NatBitSet> mecs = analyser.findComponents(mdp, set);
         int maxSize = 0;
         int maxSuccessorsInMec = 0;
@@ -88,10 +78,9 @@ public class CTMDPModelInfo {
             }
         }
 
-        Logger logger = Logger.getLogger("CTMDP Model Info");
-        logger.log(Level.INFO, "Number of components: " + mecList.size());
-        logger.log(Level.INFO, "Max state action pairs in a MEC: " + maxSize);
-        logger.log(Level.INFO, "Max successors in a MEC: " + maxSuccessorsInMec);
-        logger.log(Level.INFO, "Maximum number of successors in model: " + maxSuccessors);
+        System.out.println("// Number of components: " + mecList.size());
+        System.out.println("// Max state action pairs in a MEC: " + maxSize);
+        System.out.println("// Max successors per action, in a MEC: " + maxSuccessorsInMec);
+        System.out.println("// Max successors per action, in model: " + maxSuccessors);
     }
 }

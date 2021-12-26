@@ -2,6 +2,11 @@
 // gxn/dxp 29/06/2007
 // network is grid of size N
 
+// Number of components: 0
+// Max state action pairs in a MEC: 0
+// Max successors per action, in a MEC: 0
+// Max successors per action, in model: 2
+
 mdp
 
 // probabilities

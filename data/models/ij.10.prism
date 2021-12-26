@@ -1,6 +1,11 @@
 // Israeli-Jalfon self stabilising algorithm
 // dxp/gxn 10/06/02
 
+// Number of components: 11
+// Max state action pairs in a MEC: 10
+// Max successors per action, in a MEC: 2
+// Max successors per action, in model: 2
+
 mdp
 
 // variables to represent whether a process has a token or not
