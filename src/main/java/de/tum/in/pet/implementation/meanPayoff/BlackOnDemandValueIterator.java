@@ -96,7 +96,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
       while (true) {
         // Stop simulation if timeout occurred
         if (isTimeout()) {
-          return true;
+          break;
         }
 
         visitStack.add(currentState);
