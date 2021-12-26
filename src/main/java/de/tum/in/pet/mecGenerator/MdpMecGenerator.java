@@ -46,7 +46,7 @@ public class MdpMecGenerator {
         int numActions = getRandomNumberInRange(1, NUM_ACTIONS_BOUND);
 
         for (int actionIndex = 0; actionIndex < numActions; actionIndex++) {
-            Action action = getRandomAction(state);
+            Action action = getRandomAction(state, "a" + actionIndex);
             generatedActions.add(action);
         }
 
@@ -56,7 +56,7 @@ public class MdpMecGenerator {
     // For each action, we randomly pick the number of transitions and the successors of those transitions.
     // Number of transitions will be randomly picked from [1 ... NUM_TRANSITIONS_BOUND]
     // For an action, all of its transitions will have equal probability (for convenience)
-    private Action getRandomAction(int state) {
+    private Action getRandomAction(int state, Object actionLabel) {
         // To pick n random successors, we shuffle the states and pick the first n elements
         Collections.shuffle(statesList);
 
@@ -85,7 +85,7 @@ public class MdpMecGenerator {
             builder.add(successors.get(i), transitionProbabilities.get(i));
         }
 
-        return Action.of(builder.build());
+        return Action.of(builder.build(), actionLabel);
     }
 
     private void initialiseStateVariables(int numStates) {
