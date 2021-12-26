@@ -33,7 +33,7 @@ public class MecsForExperiment {
         MDPModelToPrismFileConverter.RewardProperty property = new MDPModelToPrismFileConverter.RewardProperty() {
             @Override
             public double getStateReward(int s) {
-                return random.nextInt(50);
+                return ((double) random.nextInt(50))/50d;
             }
 
             @Override

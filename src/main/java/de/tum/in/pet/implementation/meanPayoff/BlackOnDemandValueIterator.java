@@ -300,6 +300,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
       return;
     }
 
+    // This is an approximation of epsilon from algorithm 5
     double epsilon = targetPrecision/40;
 
     // We start with 1, because if 0, the requiredSamples become NaN
