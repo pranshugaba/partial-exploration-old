@@ -15,6 +15,8 @@ def get_exec_command_from_input():
         command += ' ' + inputOptions.simulate_mec_option + ' ' + input_values.simulate_mec
     if input_values.get_error_probability:
         command += ' ' + inputOptions.get_error_probability_option
+    if input_values.delta_t_method:
+        command += ' ' + inputOptions.deltat_method_option + ' ' + input_values.delta_t_method
     return command
 
 

@@ -1,5 +1,6 @@
 package de.tum.in.pet.Input;
 
+import de.tum.in.pet.implementation.meanPayoff.DeltaTCalculationMethod;
 import de.tum.in.pet.implementation.meanPayoff.SimulateMec;
 import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
@@ -21,12 +22,14 @@ public class InputValues {
     public final boolean solveUsingQP;
     public final SimulateMec simulateMec;
     public final String outputPath;
+    public final int maxSuccessorsInModel;
+    public final DeltaTCalculationMethod deltaTCalculationMethod;
 
 
     public InputValues(double precision, int revisitThreshold, double maxReward, double pMin, double errorTolerance,
                        int iterSamples, long timeout, boolean getErrorProbability, SuccessorHeuristic successorHeuristic,
                        InformationLevel informationLevel, UpdateMethod updateMethod, String rewardStructure, boolean solveUsingQP,
-                       SimulateMec simulateMec, String outputPath) {
+                       SimulateMec simulateMec, String outputPath, int maxSuccessorsInModel, DeltaTCalculationMethod deltaTCalculationMethod) {
         this.precision = precision;
         this.revisitThreshold = revisitThreshold;
         this.maxReward = maxReward;
@@ -42,5 +45,7 @@ public class InputValues {
         this.solveUsingQP = solveUsingQP;
         this.simulateMec = simulateMec;
         this.outputPath = outputPath;
+        this.maxSuccessorsInModel = maxSuccessorsInModel;
+        this.deltaTCalculationMethod = deltaTCalculationMethod;
     }
 }

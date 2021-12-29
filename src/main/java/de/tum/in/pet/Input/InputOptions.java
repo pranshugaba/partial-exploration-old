@@ -24,6 +24,8 @@ public class InputOptions {
     public static Option solveWithQP = new Option(null, "qp", false, "Solve using linear/quadratic programming");
     public static Option simulateMec = new Option(null, "simulateMec", true, "Algorithm for simulating MEC, before value iteration");
     public static Option outputFile = new Option("o", "outputPath", true, "Path to write the output");
+    public static Option maxSuccessorOption = new Option(null, "maxSuccessor", true, "Maximum number of successors in model");
+    public static Option deltaTOption = new Option(null, "deltaTMethod", true, "Computation method of Delta T");
 
     public static Options getAllInputOptions() {
         modelOption.setRequired(true);
@@ -45,6 +47,8 @@ public class InputOptions {
                 .addOption(getErrorProbabilityOption)
                 .addOption(solveWithQP)
                 .addOption(simulateMec)
-                .addOption(outputFile);
+                .addOption(outputFile)
+                .addOption(maxSuccessorOption)
+                .addOption(deltaTOption);
     }
 }

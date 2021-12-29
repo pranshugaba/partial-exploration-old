@@ -47,16 +47,24 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
   private final SimulateMec simulateMec;
 
+  private final int maxSuccessorsInModel;
+
+  //TODO DO THIS FOR CTMDP
+  private final DeltaTCalculationMethod deltaTCalculationMethod;
+
   public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                     int revisitThreshold, double rMax, double pMin, double errorTolerance,
                                     Double2LongFunction nSampleFunction, double precision, long timeout,
-                                    boolean getErrorProbability, SimulateMec simulateMec) {
+                                    boolean getErrorProbability, SimulateMec simulateMec,
+                                    DeltaTCalculationMethod deltaTCalculationMethod, int maxSuccessorsInModel) {
     super(explorer, values, rewardGenerator, revisitThreshold, rMax, precision, timeout);
     this.pMin = pMin;
     this.errorTolerance = errorTolerance;
     this.nSampleFunction = nSampleFunction;
     this.calculateErrorProbability = getErrorProbability;
     this.simulateMec = simulateMec;
+    this.deltaTCalculationMethod = deltaTCalculationMethod;
+    this.maxSuccessorsInModel = maxSuccessorsInModel;
   }
 
   @Override
@@ -165,8 +173,7 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
         currentState = nextState;
 
-        transDelta = errorTolerance*pMin/explorer.getNumTrans();
-        explorer.updateCountParams(transDelta, pMin);
+        computeDeltaT(explorer, errorTolerance);
 
       }
 
@@ -195,6 +202,20 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     return true;
 
+  }
+
+  private void computeDeltaT(BlackExplorer<S, M> explorer, double errorTolerance) {
+    switch (deltaTCalculationMethod) {
+      case P_MIN:
+        transDelta = errorTolerance *pMin/ explorer.getNumExploredActions();
+        break;
+
+      case MAX_SUCCESSORS:
+        transDelta = errorTolerance / (explorer.getNumExploredActions() * maxSuccessorsInModel);
+        break;
+    }
+
+    explorer.updateCountParams(transDelta, pMin);
   }
 
   private Pair<Integer, Integer> getSampledBestLeavingAction(int currentState) {

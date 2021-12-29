@@ -1,5 +1,6 @@
 package de.tum.in.pet.util;
 
+import de.tum.in.pet.implementation.meanPayoff.DeltaTCalculationMethod;
 import de.tum.in.pet.implementation.meanPayoff.SimulateMec;
 import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
@@ -98,6 +99,24 @@ public final class CliHelper {
               .map(Object::toString)
               .collect(Collectors.joining(", "));
       System.out.println("Unknown simulate mec value " + optionString + ". Possible values are: " + values);
+      System.exit(1);
+      throw new AssertionError(e);
+    }
+  }
+
+  public static DeltaTCalculationMethod parseDeltaTCalculationMethod(String optionString, DeltaTCalculationMethod defaultMethod) {
+    if (optionString == null) {
+      return defaultMethod;
+    }
+
+    try {
+      return DeltaTCalculationMethod.valueOf(optionString);
+    } catch (IllegalArgumentException e) {
+      logger.log(Level.FINE, "Failed to parse deltaTMethod ", e);
+      String values = Arrays.stream(DeltaTCalculationMethod.values())
+              .map(Object::toString)
+              .collect(Collectors.joining(", "));
+      System.out.println("Unknown deltat method value " + optionString + ". Possible values are: " + values);
       System.exit(1);
       throw new AssertionError(e);
     }

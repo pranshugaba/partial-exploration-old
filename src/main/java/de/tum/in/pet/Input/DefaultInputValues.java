@@ -1,5 +1,6 @@
 package de.tum.in.pet.Input;
 
+import de.tum.in.pet.implementation.meanPayoff.DeltaTCalculationMethod;
 import de.tum.in.pet.implementation.meanPayoff.SimulateMec;
 import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
@@ -18,4 +19,5 @@ public class DefaultInputValues {
     public static final UpdateMethod UPDATE_METHOD = UpdateMethod.GREYBOX;
     public static final SimulateMec SIMULATE_MEC = SimulateMec.STANDARD;
     public static final String OUTPUT_PATH = "temp.txt";
+    public static final DeltaTCalculationMethod DELTA_T_CALCULATION_METHOD = DeltaTCalculationMethod.P_MIN;
 }

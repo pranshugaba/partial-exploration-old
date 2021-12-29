@@ -1,5 +1,6 @@
 package de.tum.in.pet.Input;
 
+import de.tum.in.pet.implementation.meanPayoff.DeltaTCalculationMethod;
 import de.tum.in.pet.implementation.meanPayoff.SimulateMec;
 import de.tum.in.pet.implementation.reachability.UpdateMethod;
 import de.tum.in.pet.sampler.SuccessorHeuristic;
@@ -43,6 +44,12 @@ public class InputParser {
 
         String outputPath = parseOption(commandLine, InputOptions.outputFile, DefaultInputValues.OUTPUT_PATH, Function.identity());
 
+        int maxSuccessorsInModel = parseIntOption(commandLine, InputOptions.maxSuccessorOption,
+                (int) (1/pMin));
+
+        DeltaTCalculationMethod deltaTMethod = CliHelper.parseDeltaTCalculationMethod(
+                commandLine.getOptionValue(InputOptions.deltaTOption.getLongOpt()), DefaultInputValues.DELTA_T_CALCULATION_METHOD);
+
         return new InputValues(precision,
                 revisitThreshold,
                 maxReward,
@@ -57,7 +64,9 @@ public class InputParser {
                 rewardStructure,
                 solveUsingQP,
                 simulateMec,
-                outputPath);
+                outputPath,
+                maxSuccessorsInModel,
+                deltaTMethod);
     }
 
     private static long parseLongOption(CommandLine commandLine, Option option, long defaultValue) {
