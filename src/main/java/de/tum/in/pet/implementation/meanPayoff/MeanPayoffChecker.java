@@ -83,7 +83,8 @@ public final class MeanPayoffChecker {
       valueIterator = new CTMDPBlackOnDemandValueIterator<>(explorer, values, rewardGenerator,
               inputValues.revisitThreshold, inputValues.maxReward, inputValues.pMin, inputValues.errorTolerance,
               nSampleFunction, inputValues.precision / inputValues.maxReward,
-              System.currentTimeMillis()+inputValues.timeout, inputValues.getErrorProbability);
+              System.currentTimeMillis()+inputValues.timeout, inputValues.getErrorProbability, inputValues.simulateMec,
+              inputValues.deltaTCalculationMethod, inputValues.maxSuccessorsInModel);
     }
     else{
       throw new UnsupportedOperationException("Greybox not implemented for CTMDP");

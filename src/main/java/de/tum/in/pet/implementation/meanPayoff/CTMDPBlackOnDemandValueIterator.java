@@ -48,16 +48,24 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     private final Int2ObjectFunction<Int2ObjectFunction<Object>> labelFunction;
 
+    private final SimulateMec simulateMec;
+    private final int maxSuccessorsInModel;
+    private final DeltaTCalculationMethod deltaTCalculationMethod;
+
     public CTMDPBlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
-                                      int revisitThreshold, double rMax, double pMin, double errorTolerance,
-                                      Double2LongFunction nSampleFunction, double precision, long timeout,
-                                      boolean getErrorProbability) {
+                                           int revisitThreshold, double rMax, double pMin, double errorTolerance,
+                                           Double2LongFunction nSampleFunction, double precision, long timeout,
+                                           boolean getErrorProbability, SimulateMec simulateMec,
+                                           DeltaTCalculationMethod deltaTCalculationMethod, int maxSuccessorsInModel) {
         super(explorer, values, rewardGenerator, revisitThreshold, rMax, precision, timeout);
         this.pMin = pMin;
         this.errorTolerance = errorTolerance;
         this.nSampleFunction = nSampleFunction;
         this.calculateErrorProbability = getErrorProbability;
         this.mecUniformizer = new MecUniformizer();
+        this.simulateMec = simulateMec;
+        this.maxSuccessorsInModel = maxSuccessorsInModel;
+        this.deltaTCalculationMethod = deltaTCalculationMethod;
         Int2ObjectFunction<Int2ObjectFunction<Distribution>> distributionFunction = x -> y -> this.explorer.model().getChoice(x, y);
         this.labelFunction = x -> y -> this.explorer.model().getActions(x).get(y).label();
         Int2ObjectFunction<Int2DoubleFunction> rateFunction = x -> y -> computeRate(x, y);
@@ -89,7 +97,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         // the explorer holds, it must be the stay action. We set confidence width of stay action equal to zero as we
         // know the probabilities of the action are accurate as they have been calculated and not learned.
         Int2ObjectFunction<Int2DoubleFunction> confidenceWidthFunction = x -> (y -> y < explorer.getChoices(x).size()
-                ? Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))
+                ? Math.sqrt(-Math.log(transDelta) / (2 * explorer.getActionCounts(x, y)))
                 : 0);
 
         // Updates the confidence width function in UnboundedReachValues.
@@ -111,7 +119,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
                     // However, this is also OK as reaching the plus state shows that probably the lower reward bound is high
                     // enough, meaning the EC is promising and it is worth getting a more precise value. We make sure in updateMEC
                     // that we don't get value that is more precise than what is required.
-                    if (BoundedMecQuotient.isUncertainState(currentState)||BoundedMecQuotient.isPlusState(currentState)) {
+                    if (BoundedMecQuotient.isUncertainState(currentState) || BoundedMecQuotient.isPlusState(currentState)) {
                         int mecIndex = stateToMecMap.get(prevState);
                         explorer.activateActionCountFilter();
                         updateMec(mecIndex);
@@ -125,20 +133,19 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
                 }
 
                 List<Distribution> choices = choices(currentState);
-                if (choices.isEmpty()){
+                if (choices.isEmpty()) {
                     break;
                 }
 
                 int nextState, nextActionIndex;
                 // This condition is there as in the simulate function in CAV'19. It checks whether we have been returning to a
                 // state too many times during simulation indicating that we could be stuck inside an MEC.
-                if (stateVisitCounts.get(currentState)>=revisitThreshold && looping(currentState)) {
+                if (stateVisitCounts.get(currentState) >= revisitThreshold && looping(currentState)) {
                     Pair<Integer, Integer> bestStateActionPairs = getSampledBestLeavingAction(currentState);
                     currentState = bestStateActionPairs.first;
                     nextActionIndex = bestStateActionPairs.second;
                     choices = choices(currentState);
-                }
-                else {
+                } else {
                     nextActionIndex = sampleNextAction(currentState);
                 }
 
@@ -147,11 +154,10 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
                 // If the sampled action's index is the last index and state is a part of an mec, then this index of a stay action.
                 // Here, we simply sample the next state. However, if we don't have a stay action, we have to call the explorer to
                 // sample the next state according to the real distributions.
-                if (nextActionIndex == choices.size()-1 && stateToMecMap.containsKey(currentState)){
+                if (nextActionIndex == choices.size() - 1 && stateToMecMap.containsKey(currentState)) {
                     nextState = choices.get(nextActionIndex).sample();
-                    stayActionCounts.put(stateToMecMap.get(currentState), stayActionCounts.get(stateToMecMap.get(currentState))+1);
-                }
-                else {
+                    stayActionCounts.put(stateToMecMap.get(currentState), stayActionCounts.get(stateToMecMap.get(currentState)) + 1);
+                } else {
                     nextState = explorer.simulateAction(currentState, nextActionIndex);
                     // If this action has been sampled enough number of times, we know that it can now be considered as a part of an MEC.
                     // Hence, we know that there might be new MECs in the model and it could be worthwhile finding them again.
@@ -166,8 +172,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
                 prevState = currentState;
                 currentState = nextState;
 
-                transDelta = errorTolerance*pMin/explorer.getNumTrans();
-                explorer.updateCountParams(transDelta, pMin);
+                computeDeltaT(explorer, errorTolerance);
 
             }
 
@@ -180,7 +185,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         initSinkStates();
 
         confidenceWidthFunction = x -> (y -> y < explorer.getChoices(x).size()
-                ? Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))
+                ? Math.sqrt(-Math.log(transDelta) / (2 * explorer.getActionCounts(x, y)))
                 : 0);
         values.setConfidenceWidthFunction(confidenceWidthFunction);
 
@@ -189,13 +194,27 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         boolean ifProgress = true;
         int nMaxUpdates = explorer.exploredStateCount();
         int nUpdates = 0;
-        while(ifProgress && nUpdates < nMaxUpdates) {
+        while (ifProgress && nUpdates < nMaxUpdates) {
             ifProgress = update();
             nUpdates++;
         }
 
         return true;
 
+    }
+
+    private void computeDeltaT(CTMDPBlackExplorer<S, M> explorer, double errorTolerance) {
+        switch (deltaTCalculationMethod) {
+            case P_MIN:
+                transDelta = errorTolerance *pMin/ explorer.getNumExploredActions();
+                break;
+
+            case MAX_SUCCESSORS:
+                transDelta = errorTolerance / (explorer.getNumExploredActions() * maxSuccessorsInModel);
+                break;
+        }
+
+        explorer.updateCountParams(transDelta, pMin);
     }
 
     private Pair<Integer, Integer> getSampledBestLeavingAction(int currentState) {
@@ -224,13 +243,14 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     /**
      * Updates the bounds of the model according to the latest changes.
+     *
      * @return true, if there have been any changes to the bounds of the states, else false.
      */
-    private boolean update(){
+    private boolean update() {
         BlackUnboundedReachValues values = (BlackUnboundedReachValues) this.values;
         values.cacheCurrBounds(); // cache the current bounds to check if we will make any progress in update.
 
-        for (int state: explorer.exploredStates()){
+        for (int state : explorer.exploredStates()) {
             List<Distribution> realChoices = choices(state);
             values.update(state, realChoices);
         }
@@ -265,7 +285,8 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     /**
      * Updates stay action of the MEC according to the given scaled bounds.
-     * @param mecIndex: index of the desired MEC.
+     *
+     * @param mecIndex:     index of the desired MEC.
      * @param scaledBounds: scaled reward bounds for the MEC according to which the stay action is to be updated.
      */
     @Override
@@ -276,47 +297,49 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     /**
      * Implements lines 11-15 in CAV'17 paper. Runs VI on mec.
+     *
      * @param mecIndex: Index of mec on which VI has to be run.
      */
     @Override
-    protected void updateMec(int mecIndex){
+    protected void updateMec(int mecIndex) {
 
         CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
 
         // mecBounds now contain the scaled reward upper and lower bounds.
         Bounds mecBounds = getMecBounds(mecIndex);
 
-        double currPrecision = mecBounds.difference()*this.rMax;
+        double currPrecision = mecBounds.difference() * this.rMax;
 
-        if(currPrecision<this.precision/2){
+        if (currPrecision < this.precision / 2) {
             return;
         }
 
-        double targetPrecision = currPrecision/2;
+        double targetPrecision = currPrecision / 2;
 
         // get all the MEC states corresponding to mecRepresentative.
         Mec mec = getMec(mecIndex);
 
-        if (mec.states.size()==0){
+        if (mec.states.size() == 0) {
             return;
         }
 
-        double epsilon = targetPrecision/40;
+        double epsilon = targetPrecision / 40;
         int nTransitions = 1;
-        for(int state: mec.actions.keySet()) {
-            for(int actionInd: mec.actions.get(state)) {
-                if (explorer.model().getChoice(state, actionInd).size()<2) {
+        int nActions = 1;
+        for (int state : mec.actions.keySet()) {
+            for (int actionInd : mec.actions.get(state)) {
+                if (explorer.model().getChoice(state, actionInd).size() < 2) {
                     continue;
                 }
-                nTransitions += 1;
+                nActions += 1;
+                nTransitions += explorer.model().getChoice(state, actionInd).size();
             }
         }
 
-        double requiredSamples = Math.min(1e8, (nTransitions/(2*Math.pow(epsilon, 2)))*Math.log(2*nTransitions/this.errorTolerance));
+        double requiredSamples = Math.min(1e8, (nActions / (2 * Math.pow(epsilon, 2))) * Math.log(2 * nActions / this.errorTolerance));
 //    double requiredSamples = -1e6*Math.log(targetPrecision);
 
-//        explorer.simulateRepeatedly(mec, requiredSamples);
-        explorer.simulateMECRepeatedly2(mec, requiredSamples, nTransitions);
+        simulateMec(explorer, mec, nTransitions, requiredSamples);
 
         assert !isZero(targetPrecision);
 
@@ -324,16 +347,16 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
-        RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision/2,
+        RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision / 2,
                 rewardGenerator, stateIndexMap, rMax, timeout);
-        valueIterator.setConfidenceWidthFunction(x -> (y -> Math.sqrt(-Math.log(transDelta)/(2*explorer.getActionCounts(x, y)))));
+        valueIterator.setConfidenceWidthFunction(x -> (y -> Math.sqrt(-Math.log(transDelta) / (2 * explorer.getActionCounts(x, y)))));
         valueIterator.setDistributionFunction(x -> y -> uniformizedMEC.getUniformizedDistribution(x, y));
         valueIterator.setLabelFunction(labelFunction);
 
         valueIterator.run();
 
         Bounds newBounds = valueIterator.getBounds();
-        Bounds scaledBounds = Bounds.of(newBounds.lowerBound()/this.rMax, newBounds.upperBound()/this.rMax);
+        Bounds scaledBounds = Bounds.of(newBounds.lowerBound() / this.rMax, newBounds.upperBound() / this.rMax);
 
         // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
         // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
@@ -345,11 +368,27 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     }
 
+    private void simulateMec(CTMDPBlackExplorer<S, M> explorer, Mec mec, int nTransitions, double requiredSamples) {
+        switch (simulateMec) {
+            case STANDARD:
+                explorer.simulateMECRepeatedly3(mec, requiredSamples, nTransitions);
+                break;
+
+            case CHEAT:
+                explorer.simulateMECRepeatedly1(mec, requiredSamples);
+                break;
+
+            case HEURISTIC:
+                explorer.simulateMECRepeatedly2(mec, requiredSamples, nTransitions);
+                break;
+        }
+    }
+
     @Override
-    public void handleComponents(){
+    public void handleComponents() {
 
         // if no new transition has been seen significantly, don't compute mecs.
-        if(!seenNewTransitionSignificantly){
+        if (!seenNewTransitionSignificantly) {
             return;
         }
 
@@ -366,7 +405,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         List<NatBitSet> newComponents = mecAnalyser.findComponents(explorer.model(), states);  // find all MECs in the partial model.
 
         // if no new components have been found, we clear all mec info that has been computed until now.
-        if(newComponents.isEmpty()){
+        if (newComponents.isEmpty()) {
             this.mecs.clear();
             this.stateToMecMap.clear();
             this.stayActionMap.clear();
@@ -386,7 +425,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
         // This deflates the values of the states of the new mecs. Further, the stay action is added here.
 
-        for(int i: changedMecs){
+        for (int i : changedMecs) {
 
             // We need to run VI on the MEC again to account for the following case. It can be that the bounds on the MEC are
             // already very precise. Thus, the probability of reaching the uncertain state would be very small and we may
@@ -397,7 +436,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
         explorer.deactivateActionCountFilter();
 
-        for(int i: changedMecs){
+        for (int i : changedMecs) {
             NatBitSet newComponent = newComponents.get(i);
 
             values.deflate(newComponent, this::choices);
@@ -406,40 +445,40 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     /**
      * Updates mec information according to newComponents.
+     *
      * @param newComponents: List of sets where each set represents an mec.
      * @return the indices of new mecs.
      */
-    private NatBitSet updateMecInfo(List<NatBitSet> newComponents){
+    private NatBitSet updateMecInfo(List<NatBitSet> newComponents) {
 
         newComponents.sort((t1, t2) -> {
-            if(t1.firstInt()<t2.firstInt()){
+            if (t1.firstInt() < t2.firstInt()) {
                 return -1;
-            }
-            else if(t1.firstInt()>t2.firstInt()){
+            } else if (t1.firstInt() > t2.firstInt()) {
                 return 1;
             }
             return 0;
         });
 
-        int i=0;
+        int i = 0;
 
         IntList unchangedMecs = new IntArrayList();
         IntList newIndices = new IntArrayList();
 
-        for(NatBitSet newComponent: newComponents){
+        for (NatBitSet newComponent : newComponents) {
             int mecIndex = stateToMecMap.getOrDefault(newComponent.firstInt(), -1);
             boolean oldMec = true;
-            for(int state: newComponent){
+            for (int state : newComponent) {
                 int stateMecIndex = stateToMecMap.getOrDefault(state, -1);
                 // if the stateMecIndex is -1, it means that it didn't have an mec index previously. Thus, it must be a new mec.
-                if (stateMecIndex==-1) {
+                if (stateMecIndex == -1) {
                     oldMec = false;
                 }
-                if(stateMecIndex!=mecIndex){
+                if (stateMecIndex != mecIndex) {
                     // if this state's previous mec index is not equal to the previous mec index of the previous states, and if the current
                     // previous mecIndex is not -1 (if it were one, it could have meant that the current state was the first one),
                     // then we are looking at a new mec.
-                    if (mecIndex!=-1){
+                    if (mecIndex != -1) {
                         oldMec = false;
                     }
                     mecIndex = stateMecIndex;
@@ -447,7 +486,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
             }
 
             // If all the below conditions are satisfied, this mec must be unchanged.
-            if (mecIndex != -1 && oldMec && mecs.get(mecIndex).size() == newComponent.size()){
+            if (mecIndex != -1 && oldMec && mecs.get(mecIndex).size() == newComponent.size()) {
                 unchangedMecs.add(mecIndex);
                 // this holds the new index of this mec according to the new computation.
                 newIndices.add(i);
@@ -459,7 +498,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         Int2IntMap newStayActionCounts = new Int2IntOpenHashMap();
 
         // for unchanged mecs, we retain all mec info and put them at their new places.
-        for(i=0; i<unchangedMecs.size(); i++){
+        for (i = 0; i < unchangedMecs.size(); i++) {
             newStayActionMap.put(newIndices.getInt(i), stayActionMap.get(unchangedMecs.getInt(i)));
             newStayActionCounts.put(newIndices.getInt(i), stayActionCounts.get(unchangedMecs.getInt(i)));
         }
@@ -470,8 +509,8 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
         stateToMecMap.clear();
 
-        for(i=0; i<this.mecs.size(); i++){
-            for(int state: this.mecs.get(i)){
+        for (i = 0; i < this.mecs.size(); i++) {
+            for (int state : this.mecs.get(i)) {
                 stateToMecMap.put(state, i);
             }
         }
@@ -484,7 +523,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         assert stayActionMap.size() + newMecs.size() == mecs.size();
 
         // initializing info for new mecs.
-        for(int mecIndex: newMecs){
+        for (int mecIndex : newMecs) {
             stayActionCounts.put(mecIndex, 0);
             stayActionMap.put(mecIndex, BoundedMecQuotient.getStayDistribution(Bounds.reachUnknown()));
         }
@@ -495,9 +534,10 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
 
     /**
      * The looping condition as found in algorithm 4 in CAV '19.
+     *
      * @return true if we are looping, else false
      */
-    private boolean looping(int lastVisitedState){
+    private boolean looping(int lastVisitedState) {
 
         // computes the set of mecs.
         handleComponents();
@@ -555,7 +595,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         int numStayTimes = transitionTimesPair.second;
         double accumulatedStayTimes = transitionTimesPair.first;
 
-        return numStayTimes/accumulatedStayTimes;
+        return numStayTimes / accumulatedStayTimes;
     }
 }
 
