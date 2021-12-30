@@ -28,6 +28,7 @@ import java.util.function.IntConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+// Here we also compute the maximum successors of a model
 public class MinProbabilityCalculator {
   private static final Logger logger = Logger.getLogger(MeanPayoffChecker.class.getName());
 
@@ -42,6 +43,7 @@ public class MinProbabilityCalculator {
 
     int numStates = 1000000;
     int printCount = 1;
+    final int[] maxSuccessorsInModel = {-1};
 
     while (newExploredStates.size()!=0) {
 
@@ -53,9 +55,15 @@ public class MinProbabilityCalculator {
       exploredStates.forEach((IntConsumer) s -> {
         List<Distribution> choices = explorer.getChoices(s);
         IntSet neighbours = new IntArraySet();
-        choices.forEach(d -> neighbours.addAll(d.support()));
+        choices.forEach(d -> {
+          neighbours.addAll(d.support());
+        });
 
         for(Distribution choice: choices) {
+          if (choice.support().size() > maxSuccessorsInModel[0]) {
+            maxSuccessorsInModel[0] = choice.support().size();
+          }
+
           for(int succ: choice.support()) {
             if (choice.get(succ) < pMin[0]) {
               pMin[0] = choice.get(succ);
@@ -79,6 +87,7 @@ public class MinProbabilityCalculator {
     }
 
     logger.log(Level.INFO, "Execution finished with pMin " + pMin[0]);
+    System.out.println("MaxSuccessors in model is " + maxSuccessorsInModel[0]);
 
     return pMin[0];
 
