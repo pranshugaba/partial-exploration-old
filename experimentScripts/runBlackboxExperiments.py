@@ -1,14 +1,14 @@
 # This script runs experiments for InformationLevel BLACKBOX, UpdateMethod BLACKBOX for different variants of
-# simulateMec options. Each variant is run in a new process.
+# simulateMec and deltaTMethod options. Each variant is run in a new process.
 
 # The output directory for each variant is named after the first letter of the option provided for InformationLevel,
-# UpdateMethod and SimulateMec option. For example, for the following configuration
-# informationLevel BLACKBOX, updateMethod BLACKBOX, simulateMec STANDARD
-# result will be stored in the directory 'BBS', where first 'B' corresponds to informationLevel, second 'B' corresponds
-# to updateMethod and the third 'S' corresponds to simulateMec value.
+# UpdateMethod, SimulateMec and deltaTMethod. For example, for the following configuration
+# informationLevel BLACKBOX, updateMethod BLACKBOX, simulateMec STANDARD, deltaTMethod P_MIN
+# result will be stored in the directory 'BBSP', where first 'B' corresponds to informationLevel, second 'B' corresponds
+# to updateMethod, the third 'S' corresponds to simulateMec value and the fourth 'P' corresponds to deltaTMethod.
 
 import os
-from multiprocessing import Process
+from multiprocessing import Pool
 
 import inputOptions
 
@@ -16,38 +16,55 @@ base_dir = 'experimentResults'
 base_command = 'python3 runNExperiments.py --informationLevel BLACKBOX --updateMethod BLACKBOX'
 
 
-# SimulateMec - Standard
-def run_configuration_1():
-    simulate_mec_param = inputOptions.simulate_mec_option + ' ' + inputOptions.simulate_mec_standard
-    output_directory = base_dir + '/' + 'BBS'
-    output_directory_param = inputOptions.output_directory_option + ' ' + output_directory
-    os.system(base_command + ' ' + simulate_mec_param + ' ' + output_directory_param)
+class Configuration:
+    def __init__(self, simulate_mec_config, delta_t_config, output_directory_config):
+        self.simulate_mec_config = simulate_mec_config
+        self.delta_t_config = delta_t_config
+        self.output_directory_config = output_directory_config
 
 
-# SimulateMec - Heuristic
-def run_configuration_2():
-    simulate_mec_param = inputOptions.simulate_mec_option + ' ' + inputOptions.simulate_mec_heuristic
-    output_directory = base_dir + '/' + 'BBH'
-    output_directory_param = inputOptions.output_directory_option + ' ' + output_directory
-    os.system(base_command + ' ' + simulate_mec_param + ' ' + output_directory_param)
+def run_configuration(configuration):
+    simulate_mec_param = inputOptions.simulate_mec_option + ' ' + configuration.simulate_mec_config
+    deltat_method_param = inputOptions.deltat_method_option + ' ' + configuration.delta_t_config
+    output_directory_param = inputOptions.output_directory_option + ' ' + configuration.output_directory_config
+    os.system(base_command + ' ' + simulate_mec_param + ' ' + deltat_method_param + ' ' + output_directory_param)
 
 
-# SimulateMec - Cheat
-def run_configuration_3():
-    simulate_mec_param = inputOptions.simulate_mec_option + ' ' + inputOptions.simulate_mec_cheat
-    output_directory = base_dir + '/' + 'BBC'
-    output_directory_param = inputOptions.output_directory_option + ' ' + output_directory
-    os.system(base_command + ' ' + simulate_mec_param + ' ' + output_directory_param)
+def configuration_1():
+    output_directory = base_dir + '/' + 'BBSP'
+    return Configuration(inputOptions.simulate_mec_standard, inputOptions.deltat_method_p_min, output_directory)
 
 
-process1 = Process(target=run_configuration_1)
-process2 = Process(target=run_configuration_2)
-process3 = Process(target=run_configuration_3)
+def configuration_2():
+    output_directory = base_dir + '/' + 'BBHP'
+    return Configuration(inputOptions.simulate_mec_heuristic, inputOptions.deltat_method_p_min, output_directory)
 
-process1.start()
-process2.start()
-process3.start()
 
-process1.join()
-process2.join()
-process3.join()
+def configuration_3():
+    output_directory = base_dir + '/' + 'BBCP'
+    return Configuration(inputOptions.simulate_mec_cheat, inputOptions.deltat_method_p_min, output_directory)
+
+
+def configuration_4():
+    output_directory = base_dir + '/' + 'BBSM'
+    return Configuration(inputOptions.simulate_mec_standard, inputOptions.deltat_method_max_successors, output_directory)
+
+
+def configuration_5():
+    output_directory = base_dir + '/' + 'BBHM'
+    return Configuration(inputOptions.simulate_mec_heuristic, inputOptions.deltat_method_max_successors, output_directory)
+
+
+def configuration_6():
+    output_directory = base_dir + '/' + 'BBCM'
+    return Configuration(inputOptions.simulate_mec_cheat, inputOptions.deltat_method_max_successors, output_directory)
+
+
+all_configurations = [configuration_1(), configuration_2(), configuration_3(), configuration_4(), configuration_5(),
+                      configuration_6()]
+
+
+pool = Pool(processes=3)
+pool.map(run_configuration, all_configurations)
+pool.close()
+pool.join()
