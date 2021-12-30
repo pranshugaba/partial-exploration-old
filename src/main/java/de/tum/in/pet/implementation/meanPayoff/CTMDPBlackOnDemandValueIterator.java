@@ -52,6 +52,9 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
     private final int maxSuccessorsInModel;
     private final DeltaTCalculationMethod deltaTCalculationMethod;
 
+    protected static final double initialNSamples = 1e4;
+    protected static final double multiplicativeFactor = 5;
+
     public CTMDPBlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                            int revisitThreshold, double rMax, double pMin, double errorTolerance,
                                            Double2LongFunction nSampleFunction, double precision, long timeout,
@@ -323,23 +326,14 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
             return;
         }
 
-        double epsilon = targetPrecision / 40;
         int nTransitions = 1;
-        int nActions = 1;
         for (int state : mec.actions.keySet()) {
             for (int actionInd : mec.actions.get(state)) {
-                if (explorer.model().getChoice(state, actionInd).size() < 2) {
-                    continue;
-                }
-                nActions += 1;
                 nTransitions += explorer.model().getChoice(state, actionInd).size();
             }
         }
 
-        double requiredSamples = Math.min(1e8, (nActions / (2 * Math.pow(epsilon, 2))) * Math.log(2 * nActions / this.errorTolerance));
-//    double requiredSamples = -1e6*Math.log(targetPrecision);
-
-        simulateMec(explorer, mec, nTransitions, requiredSamples);
+        simulateMec(explorer, mec, nTransitions, computeNSamples(mec));
 
         assert !isZero(targetPrecision);
 
@@ -596,6 +590,28 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         double accumulatedStayTimes = transitionTimesPair.first;
 
         return numStayTimes / accumulatedStayTimes;
+    }
+
+    private double computeNSamples(Mec mec) {
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
+        Pair<Integer, Integer> pair = explorer.getLeastVisitedStateAction(mec);
+        double currentCount = explorer.getActionCounts(pair.first, pair.second);
+
+        return getNextNSamples(currentCount);
+    }
+
+    private double getNextNSamples(double currentCount) {
+        double nSamples = initialNSamples;
+        while (nSamples < currentCount) {
+            nSamples = nSamples * multiplicativeFactor;
+
+            if (nSamples > 1e8) {
+                nSamples = 1e8;
+                break;
+            }
+        }
+
+        return nSamples;
     }
 }
 

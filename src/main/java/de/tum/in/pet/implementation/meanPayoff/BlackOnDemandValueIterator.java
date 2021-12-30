@@ -44,13 +44,12 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
   // Enable this boolean only when the updateMethod is greyBox.
   private final boolean calculateErrorProbability;
-
   private final SimulateMec simulateMec;
-
   private final int maxSuccessorsInModel;
-
-  //TODO DO THIS FOR CTMDP
   private final DeltaTCalculationMethod deltaTCalculationMethod;
+
+  protected static final double initialNSamples = 1e4;
+  protected static final double multiplicativeFactor = 5;
 
   public BlackOnDemandValueIterator(Explorer<S, M> explorer, UnboundedValues values, RewardGenerator<S> rewardGenerator,
                                     int revisitThreshold, double rMax, double pMin, double errorTolerance,
@@ -321,25 +320,15 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
       return;
     }
 
-    // This is an approximation of epsilon from algorithm 5
-    double epsilon = targetPrecision/40;
-
     // We start with 1, because if 0, the requiredSamples become NaN
     int nTransitions = 1;
-    int nActions = 1;
     for(int state: mec.actions.keySet()) {
       for(int actionInd: mec.actions.get(state)) {
-        if (explorer.model().getChoice(state, actionInd).size()<2) {
-          continue;
-        }
-        nActions += 1;
         nTransitions += explorer.model().getChoice(state, actionInd).size();
       }
     }
 
-    double requiredSamples = Math.min(1e8, (nActions/(2*Math.pow(epsilon, 2)))*Math.log(2*nActions/this.errorTolerance));
-
-    simulateMec(explorer, mec, nTransitions, requiredSamples);
+    simulateMec(explorer, mec, nTransitions, computeNSamples(mec));
 
     assert !isZero(targetPrecision);
 
@@ -365,6 +354,28 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
 
     updateStayAction(mecIndex, scaledBounds);
 
+  }
+
+  private double computeNSamples(Mec mec) {
+    BlackExplorer<S, M> explorer = (BlackExplorer<S, M>) this.explorer;
+    Pair<Integer, Integer> pair = explorer.getLeastVisitedStateAction(mec);
+    double currentCount = explorer.getActionCounts(pair.first, pair.second);
+
+    return getNextNSamples(currentCount);
+  }
+
+  private double getNextNSamples(double currentCount) {
+    double nSamples = initialNSamples;
+    while (nSamples < currentCount) {
+      nSamples = nSamples * multiplicativeFactor;
+
+      if (nSamples > 1e8) {
+        nSamples = 1e8;
+        break;
+      }
+    }
+
+    return nSamples;
   }
 
   private void simulateMec(BlackExplorer<S, M> explorer, Mec mec, int nTransitions, double requiredSamples) {
