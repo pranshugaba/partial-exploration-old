@@ -22,7 +22,7 @@ def get_exec_command_from_input():
 
 def run_benchmarks(n, command, output_directory):
     for i in range(n):
-        output_directory_option = inputOptions.output_directory_option + ' ' + output_directory + '/' + f'iteration{i}'
+        output_directory_option = inputOptions.output_directory_option + ' ' + output_directory + '/' + f'iteration{i+2}'
         os.system(command + ' ' + output_directory_option)
 
 
@@ -109,8 +109,8 @@ def remove_old_results():
 
 input_values = inputOptions.parse_user_input()
 resultDirectory = input_values.output_directory + '/'
-remove_old_results()
+# remove_old_results()
 exec_command = get_exec_command_from_input()
-run_benchmarks(3, exec_command, input_values.output_directory)
+run_benchmarks(1, exec_command, input_values.output_directory)
 benchmarkInfo = accumulate_results()
 write_results(benchmarkInfo, resultDirectory)
