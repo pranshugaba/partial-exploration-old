@@ -32,6 +32,7 @@ public class CTMDPModelInfo {
         mdp.addStates(numStates);
 
         int maxSuccessors = 0;
+        final double[] minProbability = {1};
         for (int state = 0; state < numStates; state++) {
             for (int choice = 0; choice < ctmdpModel.getNumChoices(state); choice++) {
                 int numSuccessors = ctmdpModel.getNumTransitions(state, choice);
@@ -41,7 +42,12 @@ public class CTMDPModelInfo {
 
 
                 DistributionBuilder builder = Distributions.defaultBuilder();
-                ctmdpModel.forEachTransition(state, choice, (i, i1, v) -> builder.add(i1, v));
+                ctmdpModel.forEachTransition(state, choice, (i, i1, v) -> {
+                    builder.add(i1, v);
+                    if (minProbability[0] > v) {
+                        minProbability[0] = v;
+                    }
+                });
                 mdp.addChoice(state, Action.of(builder.build(), ctmdpModel.getAction(state, choice)));
             }
         }
@@ -82,5 +88,6 @@ public class CTMDPModelInfo {
         System.out.println("// Max state action pairs in a MEC: " + maxSize);
         System.out.println("// Max successors per action, in a MEC: " + maxSuccessorsInMec);
         System.out.println("// Max successors per action, in model: " + maxSuccessors);
+        System.out.println("// Min Probability in model: " + minProbability[0]);
     }
 }

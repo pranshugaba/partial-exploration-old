@@ -1,0 +1,49 @@
+// Adapted from the recycling robot example of Sutton and Barto.
+//
+// Rewards are not modeled accurately and we need more states than
+// in Sutton and Barto to write our labels, since labels (and rewards)
+// do not depend on actions.
+
+// Number of components: 1
+// Max state action pairs in a MEC: 8
+// Max successors per action, in a MEC: 2
+// Max successors per action, in model: 2
+// Min Probability in model: 0.19999999999999996
+
+mdp
+
+// State codes.
+const int low   = 0;
+const int high  = 1;
+const int empty = 2;
+const int search_high = 3;
+const int search_low = 4;
+
+// Transition probabilities.
+const double alpha = 0.8;
+const double beta  = 0.4;
+
+// Rewards
+const int r_wait = 1;
+const int r_search = 2;
+const int r_rescue = -5;
+
+label "rescue" = state=empty;
+label "search" = state=search_high | state=search_low;
+
+module robot
+  state : [low..search_low] init high;
+
+  [search] state=high -> (state'=search_high);
+  [search] state=search_high -> alpha : (state'=high) + (1-alpha) : (state'=low);
+  [search] state=low  -> (state'=search_low);
+  [search] state=search_low -> beta: (state'=low) + (1-beta) : (state'=empty);
+  [wait]   state=low | state=high -> true;
+  [recharge] state=low | state=empty -> (state'=high);
+endmodule
+
+rewards
+  state=search_high | state=search_low : r_search;
+  state=empty : r_rescue;
+  state=high | state=low : r_wait;
+endrewards

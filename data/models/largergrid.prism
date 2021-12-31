@@ -1,0 +1,79 @@
+// Another MDP in the "frozen lake" style.
+
+// Number of components: 1
+// Max state action pairs in a MEC: 9998
+// Max successors per action, in a MEC: 3
+// Max successors per action, in model: 3
+// Min Probability in model: 0.3333333333333333
+
+mdp
+
+const int M = 50;
+const int N = 50;
+
+formula goal0 = r=1 & c=N-2 | r=M-2 & c=1;
+formula goal1 = r=0 & c=1   | r=M-1 & c=N-1;
+formula goal2 = r=2 & c=2;
+formula trap0 = r=3 & (c=0 | c=2 | c=3);
+formula trap1 = r=0 & (c=2 | c=3) | r=3 & c=2 | r=M-1 & c=0;
+
+label "start" = r=0 & c=0;
+label "g0"    = goal0;
+label "g1"    = goal1;
+label "g2"    = goal2;
+label "t0"    = trap0;
+label "t1"    = trap1;
+
+module grid
+  r : [0..M-1] init M-1;
+  c : [0..N-1] init 0;
+
+  [n] r<M-1 & c>0 & c<N-1 -> 1/3 : (r'=r+1) & (c'=c) +
+                             1/3 : (r'=r) & (c'=c-1) + 1/3 : (r'=r) & (c'=c+1);
+  [n] r<M-1 & c=0         -> 1/3 : (r'=r+1) & (c'=c) +
+                             1/3 : (r'=r) & (c'=c) + 1/3 : (r'=r) & (c'=c+1);
+  [n] r<M-1 & c=N-1       -> 1/3 : (r'=r+1) & (c'=c) +
+                             1/3 : (r'=r) & (c'=c-1) + 1/3 : (r'=r) & (c'=c);
+  [n] r=M-1 & c>0 & c<N-1 -> 1/3 : (r'=r) & (c'=c) +
+                             1/3 : (r'=r) & (c'=c-1) + 1/3 : (r'=r) & (c'=c+1);
+  [n] r=M-1 & c=0         -> 2/3 : (r'=r) & (c'=c) + 1/3 : (r'=r) & (c'=c+1);
+  [n] r=M-1 & c=N-1       -> 2/3 : (r'=r) & (c'=c) + 1/3 : (r'=r) & (c'=c-1);
+
+  [e] r>0 & r<M-1 & c<N-1 -> 1/3 : (r'=r) & (c'=c+1) +
+                             1/3 : (r'=r+1) & (c'=c) + 1/3 : (r'=r-1) & (c'=c);
+  [e] r=0 & c<N-1         -> 1/3 : (r'=r) & (c'=c+1) +
+                             1/3 : (r'=r+1) & (c'=c) + 1/3 : (r'=r) & (c'=c);
+  [e] r=M-1 & c<N-1       -> 1/3 : (r'=r) & (c'=c+1) +
+                             1/3 : (r'=r) & (c'=c) + 1/3 : (r'=r-1) & (c'=c);
+  [e] r>0 & r<M-1 & c=N-1 -> 1/3 : (r'=r) & (c'=c) +
+                             1/3 : (r'=r+1) & (c'=c) + 1/3 : (r'=r-1) & (c'=c);
+  [e] r=0 & c=N-1         -> 2/3 : (r'=r) & (c'=c) + 1/3 : (r'=r+1) & (c'=c);
+  [e] r=M-1 & c=N-1       -> 2/3 : (r'=r) & (c'=c) + 1/3 : (r'=r-1) & (c'=c);
+
+  [s] r>0 & c>0 & c<N-1   -> 1/3 : (r'=r-1) & (c'=c) +
+                             1/3 : (r'=r) & (c'=c-1) + 1/3 : (r'=r) & (c'=c+1);
+  [s] r>0 & c=0           -> 1/3 : (r'=r-1) & (c'=c) +
+                             1/3 : (r'=r) & (c'=c) + 1/3 : (r'=r) & (c'=c+1);
+  [s] r>0 & c=N-1         -> 1/3 : (r'=r-1) & (c'=c) +
+                             1/3 : (r'=r) & (c'=c-1) + 1/3 : (r'=r) & (c'=c);
+  [s] r=0 & c>0 & c<N-1   -> 1/3 : (r'=r) & (c'=c) +
+                             1/3 : (r'=r) & (c'=c-1) + 1/3 : (r'=r) & (c'=c+1);
+  [s] r=0 & c=0           -> 2/3 : (r'=r) & (c'=c) + 1/3 : (r'=r) & (c'=c+1);
+  [s] r=0 & c=N-1         -> 2/3 : (r'=r) & (c'=c) + 1/3 : (r'=r) & (c'=c-1);
+
+  [w] r>0 & r<M-1 & c>0   -> 1/3 : (r'=r) & (c'=c-1) +
+                             1/3 : (r'=r+1) & (c'=c) + 1/3 : (r'=r-1) & (c'=c);
+  [w] r=0 & c>0           -> 1/3 : (r'=r) & (c'=c-1) +
+                             1/3 : (r'=r+1) & (c'=c) + 1/3 : (r'=r) & (c'=c);
+  [w] r=M-1 & c>0         -> 1/3 : (r'=r) & (c'=c-1) +
+                             1/3 : (r'=r) & (c'=c) + 1/3 : (r'=r-1) & (c'=c);
+  [w] r>0 & r<M-1 & c=0   -> 1/3 : (r'=r) & (c'=c) +
+                             1/3 : (r'=r+1) & (c'=c) + 1/3 : (r'=r-1) & (c'=c);
+  [w] r=0 & c=0           -> 2/3 : (r'=r) & (c'=c) + 1/3 : (r'=r+1) & (c'=c);
+  [w] r=M-1 & c=0         -> 2/3 : (r'=r) & (c'=c) + 1/3 : (r'=r-1) & (c'=c);
+endmodule
+
+rewards
+  goal0 | goal1 | goal2 :  1.0;
+  trap0 | trap1         : -1.0;
+endrewards

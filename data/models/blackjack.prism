@@ -1,0 +1,81 @@
+// Number of components: 2116
+// Max state action pairs in a MEC: 1
+// Max successors per action, in a MEC: 1
+// Max successors per action, in model: 10
+// Min Probability in model: 0.076
+
+
+// Simplified model of the blackjack game as described in Sutton and Barto, Example 5.2, except that
+// the two sides draw from an infinite deck with the correct distribution: the probability of drawing
+// a card of value 10 is 4/13.  For all other cards, the probability is 1/13.
+// When the dealer has a total of 17 or more, the dealer sticks.
+// The number of cards used to get to the total is irrelevant.  In particular, 21 with two cards counts
+// just much as 21 with more than two cards.
+
+mdp
+
+// The dealer receives one card that is shown to the player, and one card that is not.
+// The first is part of the state observable by the player.  Hence, it is drawn before the player
+// gets any cards.  The other card should not be available to the player.  Hence, it is drawn later.
+// Given that we have an infinite deck, it makes no difference.
+const int deal = 0;
+const int phits = 1;
+const int dhits = 2;
+// By keeping "compare" and "done" separate, we can easily assign rewards only once. 
+const int compare = 3;
+const int done = 4;
+
+const double p = 1/13;
+
+formula psum = x + ((pa & x<12) ? 10 : 0); 
+formula dsum = y + ((da & y<12) ? 10 : 0);
+
+// These are ugly because formulae cannot be nested.
+formula win = s=compare & (x + ((pa & x<12) ? 10 : 0)) < 22 & ((x + ((pa & x<12) ? 10 : 0)) >
+              (y + ((da & y<12) ? 10 : 0)) | (y + ((da & y<12) ? 10 : 0)) > 21);
+formula loss = s=compare & (y + ((da & y<12) ? 10 : 0)) < 22 & ((x + ((pa & x<12) ? 10 : 0)) >
+              21 | (x + ((pa & x<12) ? 10 : 0)) < (y + ((da & y<12) ? 10 : 0)));
+formula draw = s=compare & (x + ((pa & x<12) ? 10 : 0)) = (y + ((da & y<12) ? 10 : 0)); // bust == 22
+
+label "victory" = win;
+label "loss" = loss;
+label "draw" = draw;
+label "vord" = s=compare & ((psum = dsum) | (psum < 22 & (psum > dsum | dsum > 21))); // victory or draw
+
+module play
+  x  : [0..22] init 0;   // player's sum
+  pa : bool init false;  // whether player has ace
+  y  : [0..22] init 0;   // dealer's sum
+  da : bool init false;  // whether dealer has ace
+
+  [d] s=deal  -> p : (y'=1) & (da'=true) + p : (y'=2) + p : (y'=3) + p : (y'=4) + p : (y'=5) +
+                 p : (y'=6) + p : (y'=7) + p : (y'=8) + p : (y'=9) + 4*p : (y'=10);
+  [h] s=phits -> p : (x'=min(x+1,22)) & (pa'=true) + p : (x'=min(x+2,22)) + p : (x'=min(x+3,22)) +
+                 p : (x'=min(x+4,22)) + p : (x'=min(x+5,22)) + p : (x'=min(x+6,22)) + p : (x'=min(x+7,22)) +
+                 p : (x'=min(x+8,22)) + p : (x'=min(x+9,22)) + 4*p : (x'=min(x+10,22));
+  [s] s=phits -> true;
+  [d] s=dhits -> p : (y'=min(y+1,22)) & (da'=true) + p : (y'=min(y+2,22)) + p : (y'=min(y+3,22)) +
+                 p : (y'=min(y+4,22)) + p : (y'=min(y+5,22)) + p : (y'=min(y+6,22)) + p : (y'=min(y+7,22)) +
+                 p : (y'=min(y+8,22)) + p : (y'=min(y+9,22)) + 4*p : (y'=min(y+10,22));
+  [e] s=dhits -> true;
+  [e] s=compare -> true;
+  [e] s=done -> true;
+endmodule
+
+module control
+  s : [deal..done] init deal; // stage of the game
+
+  [d] s=deal -> (s'=phits);
+  [h] s=phits & x < 21 -> true;
+  [s] s=phits -> (s'=dhits);
+  [d] s=dhits & dsum < 17 -> true;
+  [e] s=dhits & dsum > 16 -> (s'=compare);
+  [e] s=compare -> (s'=done);
+  [e] s=done -> true;
+endmodule
+
+// The odds are 3 to 2.
+rewards
+  win : 3/2;
+  loss : -1;
+endrewards
