@@ -26,4 +26,4 @@ mdpMecConfigs = ["meanPayoff -m data/mdpMecModels/mec50.prism --precision 0.01 -
                  "meanPayoff -m data/mdpMecModels/mec4000.prism --precision 0.01 --maxReward 50 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000"]
 
 
-runConfigs = mdpConfigs
+runConfigs = newMdpConfigs
