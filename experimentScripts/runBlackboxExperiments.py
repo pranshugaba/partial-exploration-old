@@ -60,7 +60,7 @@ def configuration_6():
     return Configuration(inputOptions.simulate_mec_cheat, inputOptions.deltat_method_max_successors, output_directory)
 
 
-all_configurations = [configuration_1(), configuration_2(), configuration_3()]
+all_configurations = [configuration_1(), configuration_2(), configuration_3(), configuration_4(), configuration_5(), configuration_6()]
 
 
 pool = Pool(processes=3)
