@@ -19,11 +19,12 @@ newMdpConfigs = ["meanPayoff -m data/models/blackjack.prism --precision 0.01 --m
                  "meanPayoff -m data/models/recycling.prism --precision 0.01 --maxReward 2 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.199 --maxSuccessors 2 --iterSamples 10000",
                  "meanPayoff -m data/models/largergrid.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.333 --maxSuccessors 3 --iterSamples 10000"]
 
-mdpMecConfigs = ["meanPayoff -m data/mdpMecModels/mec50.prism --precision 0.01 --maxReward 50 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
-                 "meanPayoff -m data/mdpMecModels/mec200.prism --precision 0.01 --maxReward 50 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
-                 "meanPayoff -m data/mdpMecModels/mec400.prism --precision 0.01 --maxReward 50 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
-                 "meanPayoff -m data/mdpMecModels/mec1000.prism --precision 0.01 --maxReward 50 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
-                 "meanPayoff -m data/mdpMecModels/mec4000.prism --precision 0.01 --maxReward 50 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000"]
+mdpMecConfigs = ["meanPayoff -m data/mdpMecModels/mec7.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
+                 "meanPayoff -m data/mdpMecModels/mec50.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
+                 "meanPayoff -m data/mdpMecModels/mec200.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
+                 "meanPayoff -m data/mdpMecModels/mec400.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
+                 "meanPayoff -m data/mdpMecModels/mec1000.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
+                 "meanPayoff -m data/mdpMecModels/mec4000.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000"
+                 ]
 
-
-runConfigs = newMdpConfigs
+runConfigs = mdpMecConfigs

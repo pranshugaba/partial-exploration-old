@@ -13,6 +13,7 @@ public class MecsForExperiment {
     public static void main(String[] args) {
         MdpMecGenerator mecGenerator = new MdpMecGenerator();
 
+        MarkovDecisionProcess MEC7 = mecGenerator.createMec(7);
         MarkovDecisionProcess MEC50 = mecGenerator.createMec(50);
         MarkovDecisionProcess MEC200 = mecGenerator.createMec(200);
         MarkovDecisionProcess MEC400 = mecGenerator.createMec(400);
@@ -20,6 +21,7 @@ public class MecsForExperiment {
         MarkovDecisionProcess MEC2000 = mecGenerator.createMec(2000);
         MarkovDecisionProcess MEC4000 = mecGenerator.createMec(4000);
 
+        writeMdpToFile(MEC7, "mec7.prism");
         writeMdpToFile(MEC50, "mec50.prism");
         writeMdpToFile(MEC200, "mec200.prism");
         writeMdpToFile(MEC400, "mec400.prism");
