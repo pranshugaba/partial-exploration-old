@@ -30,4 +30,8 @@ mdpMecConfigs = ["meanPayoff -m data/mdpMecModels/mec7.prism --precision 0.01 --
                  "meanPayoff -m data/mdpMecModels/mec4000.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000"
                  ]
 
-runConfigs = mdpConfigs
+
+newMdpBenchmarks = ["meanPayoff -m data/models/busyRing4.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.125 --iterSample 10000",
+                    "meanPayoff -m data/models/busyRingMC4.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0625 --iterSample 10000"]
+
+runConfigs = newMdpBenchmarks
