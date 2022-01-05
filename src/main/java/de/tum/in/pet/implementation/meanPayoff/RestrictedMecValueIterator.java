@@ -4,22 +4,21 @@ import de.tum.in.naturals.set.NatBitSet;
 import de.tum.in.pet.values.Bounds;
 import de.tum.in.probmodels.generator.RewardGenerator;
 import de.tum.in.probmodels.graph.Mec;
-import de.tum.in.probmodels.model.Action;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Model;
 import it.unimi.dsi.fastutil.ints.*;
 
-import java.util.List;
 
 public class RestrictedMecValueIterator<S, M extends Model> {
 
-  public final M model; // Original Model
   public final Mec mec; // Mec with respect to original model
   public final double targetPrecision;
   public final Int2DoubleMap values;  // map of states and total values; the average value can be obtained by dividing by iterCount
   public final RewardGenerator<S> rewardGenerator;
   private int iterCount;  // number of iterations in value iteration
   private final Int2ObjectFunction<S> stateIndexMap; // map from original model state number to corresponding state object
+  private final double rMax;
+  private final long timeout;
 
   private Bounds bounds;
 
@@ -29,28 +28,36 @@ public class RestrictedMecValueIterator<S, M extends Model> {
   // Refer to Puterman '94 Section 8.5.4 for details and proofs.
   private final double aperidocityConstant;
 
-  public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
-                                    Int2ObjectFunction<S> stateIndexMap){
-    this.model = model;
+  // Returns the distribution for a state x and it's corresponding action index y
+  private Int2ObjectFunction<Int2ObjectFunction<Distribution>> distributionFunction = x -> (y -> null);
+
+  // Returns the label of the action y
+  private Int2ObjectFunction<Int2ObjectFunction<Object>> labelFunction = x -> (y -> null);
+
+  public RestrictedMecValueIterator(Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
+                                    Int2ObjectFunction<S> stateIndexMap, double rMax, long timeout){
     this.mec = mec;
     this.targetPrecision = targetPrecision;
+    this.timeout = timeout;
     this.values = new Int2DoubleOpenHashMap();
     this.rewardGenerator = rewardGenerator;
     this.stateIndexMap = stateIndexMap;
     this.iterCount = 0;
     this.aperidocityConstant = 0.8;
+    this.rMax = rMax;
   }
 
-  public RestrictedMecValueIterator(M model, Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
-                                    Int2ObjectFunction<S> stateIndexMap, Int2DoubleMap values){
-    this.model = model;
+  public RestrictedMecValueIterator(Mec mec, double targetPrecision, RewardGenerator<S> rewardGenerator,
+                                    Int2ObjectFunction<S> stateIndexMap, Int2DoubleMap values, double rMax, long timeout){
     this.mec = mec;
     this.targetPrecision = targetPrecision;
     this.values = values;
     this.rewardGenerator = rewardGenerator;
     this.stateIndexMap = stateIndexMap;
+    this.timeout = timeout;
     this.iterCount = 0;
     this.aperidocityConstant = 0.8;
+    this.rMax = rMax;
   }
 
   // todo: confidence width
@@ -82,14 +89,13 @@ public class RestrictedMecValueIterator<S, M extends Model> {
         double maxActionValue = 0.0;
         IntSet allowedActions = mec.actions.get(state);  // allowedActions numbered as in original model
         assert allowedActions != null;
-        List<Action> choices = model.getActions(state);  // get all actions (not distributions)
         // Get Actions from original model, filter according to mec actions
         for (int action : allowedActions) {  // find the value of the state over all actions
           // Send action label instead of action object. State object needs to be fetched from stateIndexMap.
           // val_transformed = const*rewards + actionVal. Instead, we have found val = rewards + actionVal/const (This division is done by actionVal itself). We do this to store the original value.
-          double val = rewardGenerator.transitionReward(stateIndexMap.get(state), choices.get(action).label()) // Action.label() returns label
+          double val = rewardGenerator.transitionReward(stateIndexMap.get(state), labelFunction.apply(state).apply(action)) // Action.label() returns label
                   + rewardGenerator.stateReward(stateIndexMap.get(state))
-                  + getActionVal(state, choices.get(action).distribution()); // Action.distribution returns distribution
+                  + getActionVal(state, distributionFunction.apply(state).apply(action)); // Action.distribution returns distribution
           if (val > maxActionValue) {
             maxActionValue = val;
           }
@@ -112,7 +118,15 @@ public class RestrictedMecValueIterator<S, M extends Model> {
           min = v;
         }
       }
-    } while ((max-min) >= targetPrecision);  // stopping criterion of value iteration
+    } while ((max-min) >= targetPrecision && (!isTimeout()));  // stopping criterion of value iteration
+
+
+    // Sometimes the upper bound is slightly greater than rMax, because of floating point error.
+    // This was observed when running the pnueli-zuck3 model.
+    // We change the upper bound to be rMax itself, when it goes beyond rMax.
+    if (max >= rMax) {
+      max = rMax;
+    }
     bounds = Bounds.of(min, max);
   }
 
@@ -145,6 +159,15 @@ public class RestrictedMecValueIterator<S, M extends Model> {
   }
 
 
+  public void setDistributionFunction(Int2ObjectFunction<Int2ObjectFunction<Distribution>> distributionFunction) {
+    this.distributionFunction = distributionFunction;
+  }
+
+  public void setLabelFunction(Int2ObjectFunction<Int2ObjectFunction<Object>> labelFunction) {
+    this.labelFunction = labelFunction;
+  }
+
+
   /**
    * @return Returns the calculated reward upper and lower bounds.
    */
@@ -157,5 +180,9 @@ public class RestrictedMecValueIterator<S, M extends Model> {
    */
   public Int2DoubleMap getValues(){
     return this.values;
+  }
+
+  private boolean isTimeout() {
+    return System.currentTimeMillis() >= timeout;
   }
 }

@@ -306,7 +306,9 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
     // lambda function that returns a state object when given the state index. required for accessing reward generator function.
     Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
-    RestrictedMecValueIterator<S, M> valueIterator = new RestrictedMecValueIterator<>(this.explorer.model(), mec, targetPrecision, rewardGenerator, stateIndexMap, valueCache);
+    RestrictedMecValueIterator<S, M> valueIterator = new RestrictedMecValueIterator<>(mec, targetPrecision, rewardGenerator, stateIndexMap, valueCache, rMax, timeout);
+    valueIterator.setDistributionFunction(x -> y -> this.explorer.model().getChoice(x, y));
+    valueIterator.setLabelFunction(x -> y -> this.explorer.model().getActions(x).get(y).label());
 
     valueIterator.run();
 
