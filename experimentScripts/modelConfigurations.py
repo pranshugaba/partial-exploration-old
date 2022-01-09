@@ -30,4 +30,4 @@ mdpMecConfigs = ["meanPayoff -m data/mdpMecModels/mec7.prism --precision 0.01 --
 ctmdpConfigs = ["meanPayoff -m data/ctmdpModels/DynamicPM-tt_3_qs_2_sctmdp.prism --precision 0.01 --maxReward 200 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 5 --iterSample 10000",
                 "meanPayoff -m data/ctmdpModels/DynamicPM-tt_3_qs_6_sctmdp.prism --precision 0.01 --maxReward 400 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 5 --iterSample 10000"]
 
-runConfigs = ["meanPayoff -m data/models/ij.3.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000"]
+runConfigs = mdpConfigs
