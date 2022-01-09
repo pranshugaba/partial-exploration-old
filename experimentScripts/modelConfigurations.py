@@ -12,15 +12,11 @@ mdpConfigs = ["meanPayoff -m data/models/zeroconf_rewards.prism --precision 0.01
               "meanPayoff -m data/models/phil-nofair3.prism --precision 0.01 --maxReward 3 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000 --rewardModule both",
               "meanPayoff -m data/models/blackjack.prism --precision 0.01 --maxReward 1.5 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.076 --maxSuccessors 10 --iterSamples 10000",
               "meanPayoff -m data/models/counter.prism --precision 0.01 --maxReward 10 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.333 --maxSuccessors 2 --iterSamples 10000",
-              "meanPayoff -m data/models/recycling.prism --precision 0.01 --maxReward 2 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.199 --maxSuccessors 2 --iterSamples 10000"
+              "meanPayoff -m data/models/recycling.prism --precision 0.01 --maxReward 2 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.199 --maxSuccessors 2 --iterSamples 10000",
+              "meanPayoff -m data/models/busyRing4.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.125 --iterSample 10000",
+              "meanPayoff -m data/models/busyRingMC4.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0625 --iterSample 10000"
               ]
 
-
-# newMdpConfigs = ["meanPayoff -m data/models/blackjack.prism --precision 0.01 --maxReward 1.5 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.076 --maxSuccessors 10 --iterSamples 10000",
-#                  "meanPayoff -m data/models/counter.prism --precision 0.01 --maxReward 10 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.333 --maxSuccessors 2 --iterSamples 10000",
-#                  "meanPayoff -m data/models/frozenLarge.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.333 --maxSuccessors 3 --iterSamples 10000",
-#                  "meanPayoff -m data/models/recycling.prism --precision 0.01 --maxReward 2 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.199 --maxSuccessors 2 --iterSamples 10000",
-#                  "meanPayoff -m data/models/largergrid.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.333 --maxSuccessors 3 --iterSamples 10000"]
 
 mdpMecConfigs = ["meanPayoff -m data/mdpMecModels/mec7.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
                  "meanPayoff -m data/mdpMecModels/mec50.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.01 --iterSample 10000",
@@ -31,7 +27,7 @@ mdpMecConfigs = ["meanPayoff -m data/mdpMecModels/mec7.prism --precision 0.01 --
                  ]
 
 
-newMdpBenchmarks = ["meanPayoff -m data/models/busyRing4.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.125 --iterSample 10000",
-                    "meanPayoff -m data/models/busyRingMC4.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0625 --iterSample 10000"]
+ctmdpConfigs = ["meanPayoff -m data/ctmdpModels/DynamicPM-tt_3_qs_2_sctmdp.prism --precision 0.01 --maxReward 200 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 5 --iterSample 10000",
+                "meanPayoff -m data/ctmdpModels/DynamicPM-tt_3_qs_6_sctmdp.prism --precision 0.01 --maxReward 400 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 5 --iterSample 10000"]
 
-runConfigs = newMdpBenchmarks
+runConfigs = ["meanPayoff -m data/models/ij.3.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000"]
