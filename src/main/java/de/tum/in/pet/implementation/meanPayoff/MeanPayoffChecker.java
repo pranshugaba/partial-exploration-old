@@ -66,7 +66,7 @@ public final class MeanPayoffChecker {
                                                         RewardGenerator<S> rewardGenerator, InputValues inputValues)
           throws PrismException {
 
-    var explorer = CTMDPBlackExplorer.of(partialModel, generator, false,
+    var explorer = new CTMDPBlackExplorer<S, M>(partialModel, generator, false,
             System.currentTimeMillis() + inputValues.timeout);
 
     IntPredicate target = (x) -> x==Integer.MAX_VALUE;

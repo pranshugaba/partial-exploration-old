@@ -3,6 +3,7 @@
 // Max successors in a MEC: 1
 // Maximum number of successors in model: 7
 
+// Storm Value: 163.7786
 ctmdp
 
 module m

@@ -71,10 +71,8 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         this.deltaTCalculationMethod = deltaTCalculationMethod;
         Int2ObjectFunction<Int2ObjectFunction<Distribution>> distributionFunction = x -> y -> this.explorer.model().getChoice(x, y);
         this.labelFunction = x -> y -> this.explorer.model().getActions(x).get(y).label();
-        Int2ObjectFunction<Int2DoubleFunction> rateFunction = x -> y -> computeRate(x, y);
 
         mecUniformizer.setDistributionFunction(distributionFunction);
-        mecUniformizer.setRateFunction(rateFunction);
     }
 
     @Override
@@ -318,6 +316,8 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         }
 
         double targetPrecision = currPrecision / 2;
+        assert !isZero(targetPrecision);
+
 
         // get all the MEC states corresponding to mecRepresentative.
         Mec mec = getMec(mecIndex);
@@ -334,16 +334,40 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         }
 
         simulateMec(explorer, mec, nTransitions, computeNSamples(mec));
+        Bounds scaledBounds = findMecBounds(mec, targetPrecision, mecBounds);
+        updateStayAction(mecIndex, scaledBounds);
 
-        assert !isZero(targetPrecision);
+    }
 
+    private Bounds findMecBounds(Mec mec, double targetPrecision, Bounds previousBounds) {
+        Bounds mecMeanPayOffBounds = performUniformizationAndValueIteration(mec, targetPrecision, previousBounds, getRateFunction());
+        double mecMeanPayOff = mecMeanPayOffBounds.average();
+
+        Bounds mecMeanPayOffBoundsLower = performUniformizationAndValueIteration(mec, targetPrecision, previousBounds, getMinimizingRateFunction(mecMeanPayOff));
+        Bounds mecMeanPayOffBoundsUpper = performUniformizationAndValueIteration(mec, targetPrecision, previousBounds, getMaximizingRateFunction(mecMeanPayOff));
+
+        logger.log(Level.INFO, "MeanPayOff is " + mecMeanPayOff);
+        logger.log(Level.INFO, "Lower is " + mecMeanPayOffBoundsLower);
+        logger.log(Level.INFO, "Upper is " + mecMeanPayOffBoundsUpper);
+        // TODO run benchmarks for testing and remove this
+        if (mecMeanPayOffBoundsLower.lowerBound() > mecMeanPayOffBoundsUpper.upperBound()) {
+            throw new IllegalStateException("Wrong bounds");
+        }
+
+        return Bounds.of(mecMeanPayOffBoundsLower.lowerBound(), mecMeanPayOffBoundsUpper.upperBound());
+    }
+
+    private Bounds performUniformizationAndValueIteration(Mec mec, double targetPrecision, Bounds previousBounds, Int2ObjectFunction<Int2DoubleFunction> rateFunction) {
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
+
+
+        mecUniformizer.setRateFunction(rateFunction);
         UniformizedMEC uniformizedMEC = mecUniformizer.uniformize(mec, computeMaxRate(mec));
         // lambda function that returns a state object when given the state index. required for accessing reward generator function.
         Int2ObjectFunction<S> stateIndexMap = explorer::getState;
 
-        RestrictedMecBoundedValueIterator<S> valueIterator = new RestrictedMecBoundedValueIterator<>(mec, targetPrecision / 2,
+        RestrictedMecValueIterator<S, M> valueIterator = new RestrictedMecValueIterator<S, M>(mec, targetPrecision / 2,
                 rewardGenerator, stateIndexMap, rMax, timeout);
-        valueIterator.setConfidenceWidthFunction(x -> (y -> Math.sqrt(-Math.log(transDelta) / (2 * explorer.getActionCounts(x, y)))));
         valueIterator.setDistributionFunction(x -> y -> uniformizedMEC.getUniformizedDistribution(x, y));
         valueIterator.setLabelFunction(labelFunction);
 
@@ -355,11 +379,72 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
         // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
         // lower bound value. Thus, we can use the previously computed lower bound value for slightly faster convergence.
-        scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), mecBounds.lowerBound()));
+        scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), previousBounds.lowerBound()));
+        return scaledBounds;
+    }
 
 
-        updateStayAction(mecIndex, scaledBounds);
+    private Int2ObjectFunction<Int2DoubleFunction> getRateFunction() {
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
+        return x -> y -> explorer.computeRate(x, y);
+    }
 
+    private Int2ObjectFunction<Int2DoubleFunction> getMinimizingRateFunction(double mecValue) {
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
+
+        return x -> y -> {
+
+            double rate = explorer.computeRate(x, y);
+            double reward = rewardGenerator.stateReward(explorer.getState(x)) +
+                    rewardGenerator.transitionReward(explorer.getState(x), explorer.model().getActions(x).get(y).label());
+            double epsilonHat = computeEpsilonHat(x, y);
+
+            if (reward >= mecValue) {
+                rate =  rate * (1 + epsilonHat);
+            } else {
+                rate = rate * (1 - epsilonHat);
+            }
+
+            return rate;
+        };
+    }
+
+    private Int2ObjectFunction<Int2DoubleFunction> getMaximizingRateFunction(double mecValue) {
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
+
+        return x -> y -> {
+
+            double rate = explorer.computeRate(x, y);
+            double reward = rewardGenerator.stateReward(explorer.getState(x)) +
+                    rewardGenerator.transitionReward(explorer.getState(x), explorer.model().getActions(x).get(y).label());
+            double epsilonHat = computeEpsilonHat(x, y);
+
+            if (reward >= mecValue) {
+                rate =  rate * (1 - epsilonHat);
+            } else {
+                rate = rate * (1 + epsilonHat);
+            }
+
+            return rate;
+        };
+    }
+
+    private double computeEpsilonHat(int state, int action) {
+        double epsilon = computeEpsilon(state, action);
+        double epsilonPrime = computeConfidenceWidth(state, action);
+
+        return (epsilon + (maxSuccessorsInModel * epsilonPrime))/(1 - (maxSuccessorsInModel * epsilonPrime));
+    }
+
+    private double computeEpsilon(int state, int action) {
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
+        long visitCount = explorer.getActionCounts(state, action);
+        return CTMDPNSamplesTable.getEpsilon(visitCount, transDelta);
+    }
+
+    private double computeConfidenceWidth(int state, int action) {
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
+        return Math.sqrt(-Math.log(transDelta) / (2 * explorer.getActionCounts(state, action)));
     }
 
     private void simulateMec(CTMDPBlackExplorer<S, M> explorer, Mec mec, int nTransitions, double requiredSamples) {
@@ -571,25 +656,17 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
     }
 
     private double computeMaxRate(Mec mec) {
+        CTMDPBlackExplorer<S, M> explorer = (CTMDPBlackExplorer<S, M>) this.explorer;
+
         double maxRate = 0;
 
         for (int state : mec.states) {
             for (int action : mec.actions.get(state)) {
-                maxRate = Math.max(computeRate(state, action), maxRate);
+                maxRate = Math.max(explorer.computeRate(state, action), maxRate);
             }
         }
 
         return maxRate;
-    }
-
-    private double computeRate(int state, int action) {
-        CTMDPBlackExplorer<S, M> ctmdpBlackExplorer = (CTMDPBlackExplorer<S, M>) this.explorer;
-
-        Pair<Double, Integer> transitionTimesPair = ctmdpBlackExplorer.transitionTimes.get(state).get(action);
-        int numStayTimes = transitionTimesPair.second;
-        double accumulatedStayTimes = transitionTimesPair.first;
-
-        return numStayTimes / accumulatedStayTimes;
     }
 
     private double computeNSamples(Mec mec) {
