@@ -399,7 +399,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
                     rewardGenerator.transitionReward(explorer.getState(x), explorer.model().getActions(x).get(y).label());
             double epsilonHat = computeEpsilonHat(x, y);
 
-            if (reward >= mecValue) {
+            if (reward >= (mecValue * rMax)) {
                 rate =  rate * (1 + epsilonHat);
             } else {
                 rate = rate * (1 - epsilonHat);
@@ -419,7 +419,7 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
                     rewardGenerator.transitionReward(explorer.getState(x), explorer.model().getActions(x).get(y).label());
             double epsilonHat = computeEpsilonHat(x, y);
 
-            if (reward >= mecValue) {
+            if (reward >= (mecValue * rMax)) {
                 rate =  rate * (1 - epsilonHat);
             } else {
                 rate = rate * (1 + epsilonHat);
