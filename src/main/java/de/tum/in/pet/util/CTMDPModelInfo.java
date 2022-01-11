@@ -33,8 +33,14 @@ public class CTMDPModelInfo {
 
         int maxSuccessors = 0;
         final double[] minProbability = {1};
+        final double[] totalRate = {0};
         for (int state = 0; state < numStates; state++) {
             for (int choice = 0; choice < ctmdpModel.getNumChoices(state); choice++) {
+                totalRate[0] = 0;
+                ctmdpModel.forEachTransition(state, choice, (i, i1, v) -> {
+                    totalRate[0] += v;
+                });
+
                 int numSuccessors = ctmdpModel.getNumTransitions(state, choice);
                 if (maxSuccessors < numSuccessors) {
                     maxSuccessors = numSuccessors;
@@ -44,8 +50,9 @@ public class CTMDPModelInfo {
                 DistributionBuilder builder = Distributions.defaultBuilder();
                 ctmdpModel.forEachTransition(state, choice, (i, i1, v) -> {
                     builder.add(i1, v);
-                    if (minProbability[0] > v) {
-                        minProbability[0] = v;
+                    double prob = v/totalRate[0];
+                    if (minProbability[0] > prob) {
+                        minProbability[0] = prob;
                     }
                 });
                 mdp.addChoice(state, Action.of(builder.build(), ctmdpModel.getAction(state, choice)));

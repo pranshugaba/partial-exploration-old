@@ -2,6 +2,7 @@
 // Max state action pairs in a MEC: 1
 // Max successors in a MEC: 1
 // Maximum number of successors in model: 8
+// Min Probability: 2.1868774799333354E-16
 
 // Storm Value: 30.85464547
 ctmdp

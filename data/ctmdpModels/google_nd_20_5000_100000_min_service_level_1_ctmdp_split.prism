@@ -2,6 +2,7 @@
 // Max state action pairs in a MEC: 1
 // Max successors in a MEC: 1
 // Maximum number of successors in model: 6
+// Min Probability: 9.920634920634921E-8
 
 ctmdp
 
