@@ -1,9 +1,10 @@
 class ModelResult:
-    def __init__(self, model_name, times, lower_bounds, upper_bounds, missing_probability, iteration_number):
+    def __init__(self, model_name, times, lower_bounds, upper_bounds, num_explored_states, missing_probability, iteration_number):
         self.model_name = model_name
         self.times = times
         self.lower_bounds = lower_bounds
         self.upper_bounds = upper_bounds
+        self.num_explored_states = num_explored_states
         self.missing_probability = missing_probability
         self.iteration_number = iteration_number
 
@@ -29,9 +30,10 @@ def parse_output_file(file_name, iteration_number=0):
     times = list(map(float, content[0].split()))
     lower_bound = list(map(float, content[1].split()))
     upper_bound = list(map(float, content[2].split()))
+    explored_states = int(content[3])
 
     missing_probability = None
     if len(content) > 3:
         missing_probability = float(content[3])
 
-    return ModelResult(model_name, times, lower_bound, upper_bound, missing_probability, iteration_number)
+    return ModelResult(model_name, times, lower_bound, upper_bound, explored_states, missing_probability, iteration_number)

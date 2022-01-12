@@ -58,16 +58,19 @@ def get_average_values(model_result_list):
     average_lower_bound = 0
     average_upper_bound = 0
     average_run_time = 0
+    average_states_explored = 0
     for model_result in model_result_list:
         average_lower_bound += model_result.lower_bounds[-1]
         average_upper_bound += model_result.upper_bounds[-1]
         average_run_time += model_result.get_runtime()
+        average_states_explored += model_result.num_explored_states
 
     average_lower_bound /= len(model_result_list)
     average_upper_bound /= len(model_result_list)
     average_run_time /= len(model_result_list)
+    average_states_explored /= len(model_result_list)
 
-    return average_lower_bound, average_upper_bound, average_run_time
+    return average_lower_bound, average_upper_bound, average_run_time, average_states_explored
 
 
 def write_model_result(result_file, model_result):
@@ -87,12 +90,13 @@ def write_model_results(model_name, model_result_list, result_directory):
         for model_result in model_result_list:
             write_model_result(result_file, model_result)
 
-        (al, au, ar) = get_average_values(model_result_list)
+        (al, au, ar, av_states) = get_average_values(model_result_list)
         precision = au - al
         result_file.write('Average Lower Bound: ' + str(al) + '\n')
         result_file.write('Average Upper Bound: ' + str(au) + '\n')
         result_file.write('Average Run time: ' + str(ar) + '\n')
         result_file.write('Precision: ' + str(precision) + '\n')
+        result_file.write('Average number of states explored: ' + str(av_states) + '\n')
 
 
 def write_results(results, result_directory):
@@ -111,6 +115,6 @@ input_values = inputOptions.parse_user_input()
 resultDirectory = input_values.output_directory + '/'
 remove_old_results()
 exec_command = get_exec_command_from_input()
-run_benchmarks(3, exec_command, input_values.output_directory)
+run_benchmarks(10, exec_command, input_values.output_directory)
 benchmarkInfo = accumulate_results()
 write_results(benchmarkInfo, resultDirectory)

@@ -346,18 +346,8 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
     private Bounds findMecBounds(Mec mec, double targetPrecision, Bounds previousBounds) {
         Bounds mecMeanPayOffBounds = performUniformizationAndValueIteration(mec, targetPrecision, previousBounds, getRateFunction());
         double mecMeanPayOff = mecMeanPayOffBounds.average();
-
         Bounds mecMeanPayOffBoundsLower = performUniformizationAndValueIteration(mec, targetPrecision, null, getMinimizingRateFunction(mecMeanPayOff));
         Bounds mecMeanPayOffBoundsUpper = performUniformizationAndValueIteration(mec, targetPrecision, null, getMaximizingRateFunction(mecMeanPayOff));
-
-        logger.log(Level.INFO, "MeanPayOff is " + mecMeanPayOff);
-        logger.log(Level.INFO, "Lower is " + mecMeanPayOffBoundsLower);
-        logger.log(Level.INFO, "Upper is " + mecMeanPayOffBoundsUpper);
-        // TODO run benchmarks for testing and remove this
-        if (mecMeanPayOffBoundsLower.lowerBound() > mecMeanPayOffBoundsUpper.upperBound()) {
-            throw new IllegalStateException("Wrong bounds");
-        }
-
         return Bounds.of(mecMeanPayOffBoundsLower.lowerBound(), mecMeanPayOffBoundsUpper.upperBound());
     }
 

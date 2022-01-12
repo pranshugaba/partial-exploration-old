@@ -59,8 +59,7 @@ def configuration_6():
     output_directory = base_dir + '/' + 'BBCM'
     return Configuration(inputOptions.simulate_mec_cheat, inputOptions.deltat_method_max_successors, output_directory)
 
-
-all_configurations = [configuration_1(), configuration_2(), configuration_3(), configuration_4(), configuration_5(), configuration_6()]
+all_configurations = [configuration_2()]
 
 
 pool = Pool(processes=3)

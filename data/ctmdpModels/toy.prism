@@ -31,6 +31,6 @@ endmodule
 label "goal" =  (s=2);
 
 rewards "default"
-  s < 8 : 10;
-  s >= 8 : 20;
+  s < 8 : 1;
+  s >= 8 : 2;
 endrewards
