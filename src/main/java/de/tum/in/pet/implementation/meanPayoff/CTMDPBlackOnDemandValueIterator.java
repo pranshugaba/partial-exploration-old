@@ -110,6 +110,10 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
             Int2IntOpenHashMap stateVisitCounts = new Int2IntOpenHashMap();  // keeps counts of the number of times a state is visited
 
             while (true) {
+                if (isTimeout()) {
+                    return true;
+                }
+
                 stateVisitCounts.putIfAbsent(currentState, 0);
                 stateVisitCounts.addTo(currentState, 1);
 
@@ -343,8 +347,8 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         Bounds mecMeanPayOffBounds = performUniformizationAndValueIteration(mec, targetPrecision, previousBounds, getRateFunction());
         double mecMeanPayOff = mecMeanPayOffBounds.average();
 
-        Bounds mecMeanPayOffBoundsLower = performUniformizationAndValueIteration(mec, targetPrecision, previousBounds, getMinimizingRateFunction(mecMeanPayOff));
-        Bounds mecMeanPayOffBoundsUpper = performUniformizationAndValueIteration(mec, targetPrecision, previousBounds, getMaximizingRateFunction(mecMeanPayOff));
+        Bounds mecMeanPayOffBoundsLower = performUniformizationAndValueIteration(mec, targetPrecision, null, getMinimizingRateFunction(mecMeanPayOff));
+        Bounds mecMeanPayOffBoundsUpper = performUniformizationAndValueIteration(mec, targetPrecision, null, getMaximizingRateFunction(mecMeanPayOff));
 
         logger.log(Level.INFO, "MeanPayOff is " + mecMeanPayOff);
         logger.log(Level.INFO, "Lower is " + mecMeanPayOffBoundsLower);
@@ -379,7 +383,9 @@ public class CTMDPBlackOnDemandValueIterator<S, M extends Model> extends OnDeman
         // In the case when we run VI after some new states have been added, the lower bounds may be worse than the
         // previously computed bounds. However, we know that the MEC's reward must be greater than the previously computed
         // lower bound value. Thus, we can use the previously computed lower bound value for slightly faster convergence.
-        scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), previousBounds.lowerBound()));
+        if (previousBounds != null) {
+            scaledBounds = scaledBounds.withLower(Math.max(scaledBounds.lowerBound(), previousBounds.lowerBound()));
+        }
         return scaledBounds;
     }
 

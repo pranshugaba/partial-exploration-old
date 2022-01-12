@@ -4,7 +4,6 @@
 // Maximum number of successors in model: 3
 // Min Probability: 0.05
 
-// Storm value : 5.000000052
 ctmdp
 
 module m
@@ -4028,4 +4027,5 @@ label "goal" =  (s=3425);
 rewards "default"
   s < 2000 : 100;
   s > 3500 : 300;
+  true : 50;
 endrewards
