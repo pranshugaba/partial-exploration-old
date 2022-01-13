@@ -1,7 +1,14 @@
 import os
 import shutil
+from multiprocessing import Pool
 import benchmarksUtil
 import inputOptions
+
+
+class ParallelRange:
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
 
 
 def get_exec_command_from_input():
@@ -20,10 +27,35 @@ def get_exec_command_from_input():
     return command
 
 
-def run_benchmarks(n, command, output_directory):
+def run_benchmark_iteration(i):
+    global input_values
+    global exec_command
+
+    output_directory_option = inputOptions.output_directory_option + ' ' + input_values.output_directory + '/' + f'iteration{i}'
+    os.system(exec_command + ' ' + output_directory_option)
+
+
+def run_benchmarks(n):
     for i in range(n):
-        output_directory_option = inputOptions.output_directory_option + ' ' + output_directory + '/' + f'iteration{i}'
-        os.system(command + ' ' + output_directory_option)
+        run_benchmark_iteration(i)
+
+
+# For running iterations in parallel
+def run_benchmarks_range(parallel_range):
+    for i in range(parallel_range.start, parallel_range.end + 1):
+        run_benchmark_iteration(i)
+
+
+def run_benchmarks_in_parallel():
+    first_range = ParallelRange(0, 2)
+    second_range = ParallelRange(3, 5)
+    third_range = ParallelRange(6, 9)
+
+    ranges = [first_range, second_range, third_range]
+    pool = Pool(processes=3)
+    pool.map(run_benchmarks_range, ranges)
+    pool.close()
+    pool.join()
 
 
 def accumulate_results():
@@ -78,6 +110,7 @@ def write_model_result(result_file, model_result):
     result_file.write('Lower bound: ' + str(model_result.lower_bounds[-1]) + '\n')
     result_file.write('Upper bound: ' + str(model_result.upper_bounds[-1]) + '\n')
     result_file.write('Iteration number: ' + str(model_result.iteration_number) + '\n')
+    result_file.write('Num states explored: ' + str(model_result.num_explored_states) + '\n')
     result_file.write('\n')
     result_file.write('\n')
     result_file.write('\n')
@@ -115,6 +148,6 @@ input_values = inputOptions.parse_user_input()
 resultDirectory = input_values.output_directory + '/'
 remove_old_results()
 exec_command = get_exec_command_from_input()
-run_benchmarks(3, exec_command, input_values.output_directory)
+run_benchmarks_in_parallel()
 benchmarkInfo = accumulate_results()
 write_results(benchmarkInfo, resultDirectory)

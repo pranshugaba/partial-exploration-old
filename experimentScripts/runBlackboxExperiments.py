@@ -8,8 +8,6 @@
 # to updateMethod, the third 'S' corresponds to simulateMec value and the fourth 'P' corresponds to deltaTMethod.
 
 import os
-from multiprocessing import Pool
-
 import inputOptions
 
 base_dir = 'experimentResults'
@@ -60,10 +58,4 @@ def configuration_6():
     return Configuration(inputOptions.simulate_mec_cheat, inputOptions.deltat_method_max_successors, output_directory)
 
 
-all_configurations = [configuration_2()]
-
-
-pool = Pool(processes=3)
-pool.map(run_configuration, all_configurations)
-pool.close()
-pool.join()
+run_configuration(configuration_2())
