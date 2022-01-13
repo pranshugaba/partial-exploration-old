@@ -17,6 +17,7 @@ public class CTMDPModelConstructor {
 
     private RewardGenerator<State> rewardGenerator;
     private List<State> statesList;
+    private boolean ignoreLowProbability = false;
 
     public CTMDPSimple constructCTMDPFromInput(InputValues inputValues) throws PrismException, IOException {
         PrismHelper.PrismParseResult prismParseResult = PrismHelper.parse(inputValues.modulePath, null, inputValues.constants);
@@ -61,7 +62,13 @@ public class CTMDPModelConstructor {
                     assert target != -1;
                     double prob = generator.getTransitionProbability(choice, transition);
 
-                    choiceDistribution.add(target, prob);
+                    if (ignoreLowProbability) {
+                       if (prob > 1e-4) {
+                           choiceDistribution.add(target, prob);
+                       }
+                    } else {
+                        choiceDistribution.add(target, prob);
+                    }
                 }
 
                 model.addActionLabelledChoice(state, choiceDistribution, choiceLabel);
@@ -104,5 +111,9 @@ public class CTMDPModelConstructor {
 
     public List<State> getStatesList() {
         return statesList;
+    }
+
+    public void setIgnoreLowProbability(boolean ignoreLowProbability) {
+        this.ignoreLowProbability = ignoreLowProbability;
     }
 }

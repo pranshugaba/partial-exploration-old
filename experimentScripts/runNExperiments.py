@@ -115,6 +115,6 @@ input_values = inputOptions.parse_user_input()
 resultDirectory = input_values.output_directory + '/'
 remove_old_results()
 exec_command = get_exec_command_from_input()
-run_benchmarks(10, exec_command, input_values.output_directory)
+run_benchmarks(3, exec_command, input_values.output_directory)
 benchmarkInfo = accumulate_results()
 write_results(benchmarkInfo, resultDirectory)
