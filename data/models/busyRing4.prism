@@ -61,7 +61,7 @@ module celem1 = celem0 [ a0 = a1, l0 = l1, t0 = t1, c0 = c1 ] endmodule
 module celem2 = celem0 [ a0 = a2, l0 = l2, t0 = t2, c0 = c2 ] endmodule
 module celem3 = celem0 [ a0 = a3, l0 = l3, t0 = t3, c0 = c3 ] endmodule
 
-rewards
-    l0 : 0;
-    true : 1;
+rewards "r"
+    l0: 0;
+    true: 1;
 endrewards

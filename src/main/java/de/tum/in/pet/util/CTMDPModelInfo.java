@@ -67,6 +67,7 @@ public class CTMDPModelInfo {
         List<NatBitSet> mecs = analyser.findComponents(mdp, set);
         int maxSize = 0;
         int maxSuccessorsInMec = 0;
+        int maxMecStates = 0;
         List<Mec> mecList = mecs.stream().map(mec -> Mec.create(mdp, mec)).collect(Collectors.toList());
         for (Mec mec : mecList) {
             int numPairs = 0;
@@ -89,9 +90,15 @@ public class CTMDPModelInfo {
             if (maxSuccessorsInMec < maxS) {
                 maxSuccessorsInMec = maxS;
             }
+
+            if (maxMecStates < mec.states.size()) {
+                maxMecStates = mec.states.size();
+            }
         }
 
+        System.out.println("// Number of states: " + numStates);
         System.out.println("// Number of components: " + mecList.size());
+        System.out.println("// Max number of states in a MEC: " + maxMecStates);
         System.out.println("// Max state action pairs in a MEC: " + maxSize);
         System.out.println("// Max successors per action, in a MEC: " + maxSuccessorsInMec);
         System.out.println("// Max successors per action, in model: " + maxSuccessors);

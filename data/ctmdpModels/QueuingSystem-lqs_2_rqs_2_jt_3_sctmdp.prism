@@ -4,6 +4,7 @@
 // Maximum number of successors in model: 9
 // Min Probability: 0.0186
 
+// Storm value: 173.5139746
 ctmdp
 
 module m
