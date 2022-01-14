@@ -36,4 +36,4 @@ ctmdpConfigs = ["meanPayoff -m data/ctmdpModels/DynamicPM-tt_3_qs_2_sctmdp.prism
 
                 "meanPayoff -m data/ctmdpModels/toy.prism --precision 0.01 --maxReward 2 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.11 --maxSuccessors 2 --iterSample 10000"]
 
-runConfigs = ctmdpConfigs
+runConfigs = mdpConfigs
