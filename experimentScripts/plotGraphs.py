@@ -1,34 +1,60 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import modelNames
+import trueValues
+import benchmarksUtil
+import maxRewards
 
-resultDir = os.path.abspath("./experimentResults/")
+resultDir = os.path.abspath("./experimentScripts/experimentResults/")
 plotsDir = os.path.join(resultDir, "plots")
 
-# runConfigs = open(os.path.join(resultDir, "configInfo.txt"), 'r').readlines()
+blackbox_result_dir = os.path.abspath("./experimentScripts/experimentResults/BBHP/iteration7/")
+greybox_result_dir = os.path.abspath("./experimentScripts/experimentResults/BGHP/iteration7/")
+modelResults = {model: [None, None] for model in modelNames.model_names}
 
-models = ["zeroconf_rewards", "sensors", "investor", "cs_nfail3", "consensus.2", "ij.10", "ij.3", "pacman", "pnueli-zuck.3", "wlan.0", "virus", "phil-nofair3"]
+print(blackbox_result_dir)
+print(greybox_result_dir)
 
-values = {"zeroconf_rewards": 1, "sensors": 0.333, "investor": 0.95, "cs_nfail3": 0.333, "consensus.2": 0.1083, "ij.10": 1, "ij.3": 1,
-          "pacman": 0.5511, "pnueli-zuck.3": 1, "wlan.0": 1, "virus": 0, "phil-nofair3": 2.4286}
 
-modelResults = {model: ["", ""] for model in models}
+def store_model_result(file_path, index):
+    model_result = benchmarksUtil.parse_output_file(file_path)
+    modelResults[model_result.model_name][index] = model_result
 
-for file in os.listdir(resultDir):
-    if not file.split(".")[0].isnumeric():
-        continue
-    content = open(os.path.join(resultDir, file)).readlines()
-    grey = True
-    options = content[0].split(" -")
-    model = options[0].split("/")[-1].split(".prism")[0]
-    for option in options:
-        if "-updateMethod" in option:
-            if "GREY" in option:
-                grey = True
-            elif "BLACK" in option:
-                grey = False
 
-    modelResults[model][0] = content[1:]
+def parse_results_in_dir(result_dir, index):
+    for file in os.listdir(result_dir):
+        if not file.split(".")[0].isnumeric():
+            continue
+        store_model_result(os.path.join(result_dir, file), index)
+
+
+def parse_blackbox_results():
+    parse_results_in_dir(blackbox_result_dir, 0)
+
+
+def parse_greybox_results():
+    parse_results_in_dir(greybox_result_dir, 1)
+
+
+parse_blackbox_results()
+parse_greybox_results()
+
+# for file in os.listdir(resultDir):
+#     if not file.split(".")[0].isnumeric():
+#         continue
+#     content = open(os.path.join(resultDir, file)).readlines()
+#     grey = True
+#     options = content[0].split(" -")
+#     model = options[0].split("/")[-1].split(".prism")[0]
+#     for option in options:
+#         if "-updateMethod" in option:
+#             if "GREY" in option:
+#                 grey = True
+#             elif "BLACK" in option:
+#                 grey = False
+#
+#     modelResults[model][0] = content[1:]
     # if grey:
     #     modelResults[model][0] = content[1:]
     # else:
@@ -36,30 +62,34 @@ for file in os.listdir(resultDir):
 
 for model in modelResults:
     blackResult = modelResults[model][0]
-    if len(blackResult) == 0:
+    if blackResult is None:
         continue
-    times = (np.array(list(map(float, blackResult[0].split()))))
+    true_model_value = trueValues.get_true_value(model) / maxRewards.get_max_reward(model)
+    times = (np.array(blackResult.times))
     times -= times.min()
-    lowerBounds = np.array(list(map(float, blackResult[1].split())))
-    upperBounds = np.array(list(map(float, blackResult[2].split())))
+    lowerBounds = blackResult.lower_bounds
+    scaled_lower_bound = np.array([x/maxRewards.get_max_reward(model) for x in lowerBounds])
+    upperBounds = blackResult.upper_bounds
+    scaled_upper_bound = np.array([x/maxRewards.get_max_reward(model) for x in upperBounds])
 
-    plt.plot(times/60000.0, lowerBounds, label="Lower Bounds (B): "+str(np.around(lowerBounds[-1], 8)))
-    plt.plot(times/60000.0, upperBounds, label="Upper Bounds (B): "+str(np.around(upperBounds[-1], 8)))
-
-    plt.plot(times/60000.0, [values[model]]*len(times), label="True Value: "+str(values[model]), linestyle="dotted")
+    plt.plot(times/60000.0, scaled_lower_bound, label="Lower Bounds (B): "+str(np.around(scaled_lower_bound[-1], 8)))
+    plt.plot(times/60000.0, scaled_upper_bound, label="Upper Bounds (B): "+str(np.around(scaled_upper_bound[-1], 8)))
+    plt.plot(times/60000.0, [true_model_value]*len(times), label="True Value: "+str(true_model_value), linestyle="dotted")
     lasttime = times[-1]
 
-#     greyResult = modelResults[model][0]
-#     times = (np.array(list(map(float, greyResult[0].split()))))
-#     times -= times.min()
-# # 	times = np.append(times, lasttime)
-#     lowerBounds = np.array(list(map(float, greyResult[1].split())))
-# # 	lowerBounds = np.append(lowerBounds, lowerBounds[-1])
-#     upperBounds = np.array(list(map(float, greyResult[2].split())))
-# # 	upperBounds = np.append(upperBounds, upperBounds[-1])
-#
-#     plt.plot(times/60000.0, lowerBounds, label="Lower Bounds (G): "+str(np.around(lowerBounds[-1], 8)))
-#     plt.plot(times/60000.0, upperBounds, label="Upper Bounds (G): "+str(np.around(upperBounds[-1], 8)))
+    greyResult = modelResults[model][1]
+    times = (np.array(greyResult.times))
+    times -= times.min()
+# 	times = np.append(times, lasttime)
+    lowerBounds = greyResult.lower_bounds
+    scaled_lower_bound = np.array([x/maxRewards.get_max_reward(model) for x in lowerBounds])
+# 	lowerBounds = np.append(lowerBounds, lowerBounds[-1])
+    upperBounds = greyResult.upper_bounds
+    scaled_upper_bound = np.array([x/maxRewards.get_max_reward(model) for x in upperBounds])
+# 	upperBounds = np.append(upperBounds, upperBounds[-1])
+
+    plt.plot(times/60000.0, scaled_lower_bound, label="Lower Bounds (G): "+str(np.around(scaled_lower_bound[-1], 8)))
+    plt.plot(times/60000.0, scaled_upper_bound, label="Upper Bounds (G): "+str(np.around(scaled_upper_bound[-1], 8)))
 
     plt.legend()
 
