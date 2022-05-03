@@ -9,9 +9,17 @@
 
 import os
 import inputOptions
+import argparse
 
 base_dir = 'experimentResults'
 base_command = 'python3 runNExperiments.py --informationLevel BLACKBOX --updateMethod BLACKBOX'
+
+parser = argparse.ArgumentParser()
+parser.add_argument(inputOptions.number_of_experiments_option, type=int)
+parser.add_argument(inputOptions.ctmdp_benchmarks_option)
+arguments = parser.parse_args()
+number_of_experiments = arguments.nExperiments
+is_ctmdp = arguments.ctmdp
 
 
 class Configuration:
@@ -25,7 +33,15 @@ def run_configuration(configuration):
     simulate_mec_param = inputOptions.simulate_mec_option + ' ' + configuration.simulate_mec_config
     deltat_method_param = inputOptions.deltat_method_option + ' ' + configuration.delta_t_config
     output_directory_param = inputOptions.output_directory_option + ' ' + configuration.output_directory_config
-    os.system(base_command + ' ' + simulate_mec_param + ' ' + deltat_method_param + ' ' + output_directory_param)
+    n_experiments_param = inputOptions.number_of_experiments_option + ' ' + str(number_of_experiments)
+    is_ctmdp_param = None
+
+    if is_ctmdp:
+        is_ctmdp_param = inputOptions.ctmdp_benchmarks_option
+    else:
+        is_ctmdp_param = ""
+    os.system(
+        base_command + ' ' + simulate_mec_param + ' ' + deltat_method_param + ' ' + output_directory_param + ' ' + n_experiments_param + ' ' + is_ctmdp_param)
 
 
 def configuration_1():
@@ -45,12 +61,14 @@ def configuration_3():
 
 def configuration_4():
     output_directory = base_dir + '/' + 'BBSM'
-    return Configuration(inputOptions.simulate_mec_standard, inputOptions.deltat_method_max_successors, output_directory)
+    return Configuration(inputOptions.simulate_mec_standard, inputOptions.deltat_method_max_successors,
+                         output_directory)
 
 
 def configuration_5():
     output_directory = base_dir + '/' + 'BBHM'
-    return Configuration(inputOptions.simulate_mec_heuristic, inputOptions.deltat_method_max_successors, output_directory)
+    return Configuration(inputOptions.simulate_mec_heuristic, inputOptions.deltat_method_max_successors,
+                         output_directory)
 
 
 def configuration_6():

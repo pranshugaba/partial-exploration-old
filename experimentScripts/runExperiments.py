@@ -1,7 +1,9 @@
 import argparse
 import os
 import inputOptions
-from modelConfigurations import runConfigs
+import modelConfigurations
+from ParallelRange import get_thread_allocations
+from multiprocessing import Pool
 
 
 def find_curr_max_dir():
@@ -14,8 +16,57 @@ def find_curr_max_dir():
     return max_file
 
 
+def run_benchmark(index):
+    global runConfigs
+    global resultDir
+    global baseVal
+    global gradle_exec
+
+    rel_output_path = os.path.join(resultDir, str(index+1+baseVal))
+    absolute_path = os.path.abspath(rel_output_path)
+    run_config = runConfigs[index] + " --outputPath " + absolute_path
+    cmd_line = gradle_exec + " --args='" + run_config + "'"
+    print(cmd_line)
+    os.system(cmd_line)
+
+
+def run_benchmarks_in_range(parallel_range):
+    for index in range(parallel_range.start, parallel_range.end + 1):
+        run_benchmark(index)
+
+
+def run_benchmarks_sequentially():
+    global runConfigs
+
+    for index in range(len(runConfigs)):
+        run_benchmark(index)
+
+
+def run_benchmarks():
+    global input_values
+    global runConfigs
+
+    if input_values.number_of_threads == 1:
+        run_benchmarks_sequentially()
+        return
+
+    parallel_ranges = get_thread_allocations(input_values.number_of_threads, len(runConfigs))
+    pool = Pool(processes=input_values.number_of_threads)
+    pool.map(run_benchmarks_in_range, parallel_ranges)
+    pool.close()
+    pool.join()
+
+
 parser = argparse.ArgumentParser()
-input_values = inputOptions.parse_user_input()
+inputOptions.add_basic_input_options(parser)
+input_values = inputOptions.parse_user_input(parser.parse_args())
+
+# Benchmark type
+runConfigs = None
+if input_values.is_ctmdp:
+    runConfigs = modelConfigurations.ctmdpConfigs
+else:
+    runConfigs = modelConfigurations.mdpConfigs
 
 # Information level
 for i in range(len(runConfigs)):
@@ -47,13 +98,8 @@ resultDir = input_values.output_directory + '/'
 if not os.path.exists(resultDir):
     os.makedirs(resultDir, exist_ok=True)
 
-gradle_exec = "./../gradlew -p ./../ run"
+dir_path = os.path.dirname(os.path.realpath(__file__))
+gradle_exec = dir_path + "/../gradlew -p " + dir_path + "/../ run"
 baseVal = find_curr_max_dir()
 
-for i in range(len(runConfigs)):
-    rel_output_path = os.path.join(resultDir, str(i+1+baseVal))
-    absolute_path = os.path.abspath(rel_output_path)
-    runConfig = runConfigs[i] + " --outputPath " + absolute_path
-    cmdLine = gradle_exec + " --args='" + runConfig + "'"
-    print(cmdLine)
-    os.system(cmdLine)
+run_benchmarks()

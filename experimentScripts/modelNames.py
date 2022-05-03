@@ -5,8 +5,11 @@ ctmdp_model_names = ["DynamicPM-tt_3_qs_2_sctmdp", "DynamicPM-tt_3_qs_6_sctmdp",
                      "SJS-procn_2_jobn_2_sctmdp", "SJS-procn_2_jobn_6_sctmdp", "SJS-procn_3_jobn_5_sctmdp",
                      "SJS-procn_6_jobn_2_sctmdp", "toy"]
 
-mdp_model_names = ["zeroconf_rewards", "sensors", "investor", "cs_nfail3", "consensus.2", "ij.10", "ij.3", "pacman",
-                   "pnueli-zuck.3", "wlan.0", "virus", "phil-nofair3", "blackjack", "counter", "recycling", "busyRing4",
-                   "busyRingMC4"]
+# mdp_model_names = ["zeroconf_rewards", "sensors", "investor", "cs_nfail3", "consensus.2", "ij.10", "ij.3", "pacman",
+#                    "pnueli-zuck.3", "wlan.0", "virus", "phil-nofair3", "blackjack", "counter", "recycling", "busyRing4",
+#                    "busyRingMC4"]
+
+mdp_model_names = ["virus", "cs_nfail3", "investor", "zeroconf_rewards", "sensors", "consensus.2", "ij.10", "ij.3",
+                   "pacman", "wlan.0", "blackjack", "counter", "recycling", "busyRing4", "busyRingMC4", "pnueli-zuck.3"]
 
 model_names = ctmdp_model_names + mdp_model_names

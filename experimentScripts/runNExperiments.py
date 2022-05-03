@@ -3,17 +3,14 @@ import shutil
 from multiprocessing import Pool
 import benchmarksUtil
 import inputOptions
-
-
-class ParallelRange:
-    def __init__(self, start, end):
-        self.start = start
-        self.end = end
+import argparse
+from ParallelRange import get_thread_allocations
 
 
 def get_exec_command_from_input():
     global input_values
-    command = 'python3 runExperiments.py'
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    command = 'python3 ' + dir_path + '/runExperiments.py'
     if input_values.information_level:
         command += ' ' + inputOptions.information_level_option + ' ' + input_values.information_level
     if input_values.update_method:
@@ -24,15 +21,19 @@ def get_exec_command_from_input():
         command += ' ' + inputOptions.get_error_probability_option
     if input_values.delta_t_method:
         command += ' ' + inputOptions.deltat_method_option + ' ' + input_values.delta_t_method
+    if input_values.is_ctmdp:
+        command += ' ' + inputOptions.ctmdp_benchmarks_option
     return command
 
 
 def run_benchmark_iteration(i):
     global input_values
     global exec_command
+    global number_of_threads_in_exec
 
     output_directory_option = inputOptions.output_directory_option + ' ' + input_values.output_directory + '/' + f'iteration{i}'
-    os.system(exec_command + ' ' + output_directory_option)
+    n_threads_option = inputOptions.number_of_threads_option + ' ' + str(number_of_threads_in_exec)
+    os.system(exec_command + ' ' + output_directory_option + ' ' + n_threads_option)
 
 
 def run_benchmarks(n):
@@ -46,63 +47,30 @@ def run_benchmarks_range(parallel_range):
         run_benchmark_iteration(i)
 
 
-def run_benchmarks_in_parallel():
-    first_range = ParallelRange(0, 2)
-    second_range = ParallelRange(3, 5)
-    third_range = ParallelRange(6, 9)
+def run_benchmarks_in_parallel(n):
+    global input_values
+    parallel_ranges = get_thread_allocations(input_values.number_of_threads, n)
 
-    ranges = [first_range, second_range, third_range]
-    pool = Pool(processes=3)
-    pool.map(run_benchmarks_range, ranges)
+    pool = Pool(processes=input_values.number_of_threads)
+    pool.map(run_benchmarks_range, parallel_ranges)
     pool.close()
     pool.join()
 
 
-def accumulate_results():
-    # Now store all the information in variables
-    benchmark_info = {}
-    num_iterations = 0
-    for directory in os.listdir(resultDirectory):
-        files = os.listdir(os.path.join(resultDirectory, directory))
+def schedule_and_run_benchmarks(n):
+    global input_values
+    global number_of_threads_in_exec
 
-        for file in files:
-            if not file.split(".")[0].isnumeric():
-                continue
+    if input_values.number_of_threads == 1 or n == 1:
+        run_benchmarks(n)
+        return
 
-            file_path = os.path.join(resultDirectory, directory, file)
-            model_result = benchmarksUtil.parse_output_file(file_path, num_iterations)
-
-            if model_result.model_name not in benchmark_info:
-                benchmark_info[model_result.model_name] = []
-
-            benchmark_info[model_result.model_name].append(model_result)
-
-        num_iterations = num_iterations + 1
-
-    return benchmark_info
+    number_of_threads_in_exec = 1
+    run_benchmarks_in_parallel(n)
 
 
 def result_comparator(model_result):
     return model_result.get_bounds_diff()
-
-
-def get_average_values(model_result_list):
-    average_lower_bound = 0
-    average_upper_bound = 0
-    average_run_time = 0
-    average_states_explored = 0
-    for model_result in model_result_list:
-        average_lower_bound += model_result.lower_bounds[-1]
-        average_upper_bound += model_result.upper_bounds[-1]
-        average_run_time += model_result.get_runtime()
-        average_states_explored += model_result.num_explored_states
-
-    average_lower_bound /= len(model_result_list)
-    average_upper_bound /= len(model_result_list)
-    average_run_time /= len(model_result_list)
-    average_states_explored /= len(model_result_list)
-
-    return average_lower_bound, average_upper_bound, average_run_time, average_states_explored
 
 
 def write_model_result(result_file, model_result):
@@ -117,13 +85,14 @@ def write_model_result(result_file, model_result):
 
 
 def write_model_results(model_name, model_result_list, result_directory):
+    print(model_name)
     result_file_name = result_directory + model_name + '.txt'
 
     with open(result_file_name, 'w') as result_file:
         for model_result in model_result_list:
             write_model_result(result_file, model_result)
 
-        (al, au, ar, av_states) = get_average_values(model_result_list)
+        (al, au, ar, av_states) = benchmarksUtil.get_average_values(model_result_list)
         precision = au - al
         result_file.write('Average Lower Bound: ' + str(al) + '\n')
         result_file.write('Average Upper Bound: ' + str(au) + '\n')
@@ -144,10 +113,20 @@ def remove_old_results():
         shutil.rmtree(resultDirectory)
 
 
-input_values = inputOptions.parse_user_input()
+# Handling input
+parser = argparse.ArgumentParser()
+inputOptions.add_basic_input_options(parser)
+inputOptions.add_n_experiments_option(parser)
+arguments = parser.parse_args()
+input_values = inputOptions.parse_user_input(arguments)
+number_of_experiments = arguments.nExperiments
+
+
 resultDirectory = input_values.output_directory + '/'
 remove_old_results()
 exec_command = get_exec_command_from_input()
-run_benchmarks_in_parallel()
-benchmarkInfo = accumulate_results()
+number_of_threads_in_exec = input_values.number_of_threads
+schedule_and_run_benchmarks(number_of_experiments)
+benchmarkInfo = benchmarksUtil.accumulate_results(resultDirectory)
 write_results(benchmarkInfo, resultDirectory)
+print("writing results in " + resultDirectory)
