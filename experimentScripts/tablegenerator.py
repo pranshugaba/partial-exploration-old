@@ -1,3 +1,4 @@
+import os
 import csv
 import argparse
 import benchmarksUtil
@@ -6,10 +7,16 @@ import modelNames
 parser = argparse.ArgumentParser()
 parser.add_argument("--blackboxResultDir", required=True)
 parser.add_argument("--greyboxResultDir", required=True)
+parser.add_argument("--resultDir", required=True)
 arguments = parser.parse_args()
 
 blackbox_result_dir = arguments.blackboxResultDir
 greybox_result_dir = arguments.greyboxResultDir
+result_dir = arguments.resultDir
+tables_dir = os.path.join(result_dir, "tables")
+
+# Create results dir if not present
+os.makedirs(tables_dir, exist_ok=True)
 
 blackbox_results = benchmarksUtil.accumulate_results(blackbox_result_dir)
 greybox_results = benchmarksUtil.accumulate_results(greybox_result_dir)
@@ -32,7 +39,7 @@ def write_model_result(spamwriter, modelName):
                          str(g_av_states), str(round(g_al, 4)), str(round(g_au, 4)), str(round(g_ar, 4))])
 
 
-with open('experimentResults.csv', 'w', newline='') as csvfile:
+with open(os.path.join(tables_dir, "experimentResults.csv"), 'w', newline='') as csvfile:
     spamwriter = csv.writer(csvfile, dialect='unix')
 
     write_headings(spamwriter)

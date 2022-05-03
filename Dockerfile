@@ -21,7 +21,9 @@ RUN apk --update --no-cache add \
     git \
     openssh \
     gradle \
-    openjdk11
+    openjdk11 \
+    py3-numpy \
+    py3-matplotlib
 
 
 # Copy all the contents in the current directory and paste it into the container

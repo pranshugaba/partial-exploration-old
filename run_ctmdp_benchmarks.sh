@@ -12,5 +12,8 @@ python3 ./experimentScripts/runNExperiments.py --informationLevel BLACKBOX --upd
 python3 ./experimentScripts/runNExperiments.py --informationLevel BLACKBOX --updateMethod GREYBOX --nExperiments "${nExperiments}" --outputDirectory "./ctmdp_greybox_results" --ctmdp
 
 # Run plot graphs
-python3 ./experimentScripts/plotGraphs.py --blackboxResultDir "./ctmdp_blackbox_results/iteration0" --greyboxResultDir "./ctmdp_greybox_results/iteration0" --resultDir "./"
+python3 ./experimentScripts/plotGraphs.py --blackboxResultDir "./ctmdp_blackbox_results/iteration0" --greyboxResultDir "./ctmdp_greybox_results/iteration0" --resultDir "./ctmdp_results"
+
+# Run table generator
+python3 ./experimentScripts/tablegenerator.py --blackboxResultDir "./ctmdp_blackbox_results" --greyboxResultDir "./ctmdp_greybox_results" --resultDir "./ctmdp_results"
 
