@@ -35,8 +35,20 @@ def write_model_result(spamwriter, modelName):
     (b_al, b_au, b_ar, b_av_states) = benchmarksUtil.get_average_values(blackbox_results[modelName])
     (g_al, g_au, g_ar, g_av_states) = benchmarksUtil.get_average_values(greybox_results[modelName])
 
-    spamwriter.writerow([modelName, str(b_av_states), str(round(b_al, 4)), str(round(b_au, 4)), str(round(b_ar, 4)),
-                         str(g_av_states), str(round(g_al, 4)), str(round(g_au, 4)), str(round(g_ar, 4))])
+    # Use TO if runtime is greater than 30 minutes
+    if b_ar >= 1800:
+        b_ar = "TO"
+    else:
+        b_ar = str(round(b_ar, 4))
+
+    # Use TO if runtime is greater than 30 minutes
+    if g_ar >= 1800:
+        g_ar = "TO"
+    else:
+        g_ar = str(round(g_ar, 4))
+
+    spamwriter.writerow([modelName, str(b_av_states), str(round(b_al, 4)), str(round(b_au, 4)), b_ar,
+                         str(g_av_states), str(round(g_al, 4)), str(round(g_au, 4)), g_ar])
 
 
 with open(os.path.join(tables_dir, "experimentResults.csv"), 'w', newline='') as csvfile:
