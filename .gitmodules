@@ -1,4 +1,6 @@
 [submodule "lib/models"]
-	path = lib/models
-	url = https://github.com/pazhamalai/probabilistic-models
-	update = checkout
+    path = lib/models
+	url = ../../i7/probabilistic-models.git
+    branch = mean-payoff-ctmdp
+    update = merge
+
