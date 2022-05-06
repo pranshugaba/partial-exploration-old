@@ -24,7 +24,7 @@ B.1) Running bash on Docker image:
     
     2. Once Docker is installed, open the terminal and execute the following command. 
 
-       docker pull pazhamalaim/partial-exploration-tool:v1
+       docker pull pazhamalaim/partial-exploration-tool:v2
     
        This command will download our docker image locally into the user's system. Then run the following command to see the installed images.
     
@@ -32,7 +32,7 @@ B.1) Running bash on Docker image:
     
     3. Now run our image using the command 
     
-       sudo docker run -dit pazhamalaim/partial-exploration-tool:v1
+       sudo docker run -dit pazhamalaim/partial-exploration-tool:v2
        
     4. A new instance of this image will be running. This can be verified by running
     
@@ -45,7 +45,7 @@ B.1) Running bash on Docker image:
     
        sudo docker ps 
        
-       There will be a name associated with the running image "pazhamalaim/partial-exploration-tool:v1".
+       There will be a name associated with the running image "pazhamalaim/partial-exploration-tool:v2".
        
     6. Run the following command to start the bash terminal of the running image.
     
@@ -61,7 +61,7 @@ B.1) Running bash on Docker image:
        To remove the docker image from host machine run the following commands.
        
        sudo docker container prune
-       sudo docker image rm pazhamalaim/partial-exploration-tool:v1
+       sudo docker image rm pazhamalaim/partial-exploration-tool:v2
 
 
 B.2) Replicating experiment results:
