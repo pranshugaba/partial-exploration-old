@@ -7,6 +7,8 @@ import org.apache.commons.cli.Options;
 import prism.PrismException;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class InputParser {
     public static final Option modelOption = new Option("m", "model", true, "Path to model file");
@@ -38,7 +40,9 @@ public class InputParser {
     }
 
     private void extractOptionValues(CommandLine commandLine) throws PrismException, IOException {
-        modelPath = extractModulesPath(commandLine);
+        Path currentRelativePath = Paths.get("");
+        String absolutePrefix = currentRelativePath.toAbsolutePath().toString();
+        modelPath = Paths.get(absolutePrefix, extractModulesPath(commandLine)).toString();
         constantsString = extractConstantsString(commandLine);
         rewardStructure = extractRewardStructure(commandLine);
         outputFilePath = extractOutputFilePath(commandLine);
