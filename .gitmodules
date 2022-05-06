@@ -1,3 +1,0 @@
-[submodule "lib/models"]
-	path = lib/models
-	url = https://github.com/pazhamalai/probabilistic-models
