@@ -7,6 +7,7 @@ import de.tum.in.pet.implementation.core.CoreChecker;
 import de.tum.in.pet.implementation.meanPayoff.MeanPayoffChecker;
 import de.tum.in.pet.implementation.meanPayoff.RestrictedValueIteratorChecker;
 import de.tum.in.pet.implementation.reachability.ReachChecker;
+import de.tum.in.pet.util.CTMDPModelInfo;
 import de.tum.in.pet.util.MinProbabilityCalculator;
 import de.tum.in.probmodels.util.PrismHelper;
 import java.io.IOException;
@@ -71,6 +72,9 @@ public final class Main {
         break;
       case "pMin":
         MinProbabilityCalculator.main(subArgs);
+        break;
+      case "ctmdpModelInfo":
+        CTMDPModelInfo.main(subArgs);
         break;
       case "pet-convert":
         PETConverter.main(subArgs);

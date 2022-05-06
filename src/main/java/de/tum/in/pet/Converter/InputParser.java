@@ -22,7 +22,7 @@ public class InputParser {
 
     public InputParser() {
         modelOption.setRequired(true);
-        outputFilePathOption.setRequired(true);
+//        outputFilePathOption.setRequired(true);
     }
 
 
