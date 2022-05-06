@@ -63,9 +63,9 @@ for model in modelResults:
     lowerBounds = blackboxResult.lower_bounds
     upperBounds = blackboxResult.upper_bounds
 
-    plt.plot(times/60000.0, lowerBounds, label="Lower Bounds (B): "+str(np.around(lowerBounds[-1], 8)))
-    plt.plot(times/60000.0, upperBounds, label="Upper Bounds (B): "+str(np.around(upperBounds[-1], 8)))
-    plt.plot(times/60000.0, [true_model_value]*len(times), label="True Value: "+str(true_model_value), linestyle="dotted")
+    plt.plot(times/60000.0, lowerBounds, label="Lower Bounds (B): "+str(np.around(lowerBounds[-1], 4)))
+    plt.plot(times/60000.0, upperBounds, label="Upper Bounds (B): "+str(np.around(upperBounds[-1], 4)))
+    plt.plot(times/60000.0, [true_model_value]*len(times), label="True Value: "+str(round(true_model_value, 4)), linestyle="dotted")
     lasttime = times[-1]
 
     greyResult = modelResults[model][1]
@@ -74,8 +74,8 @@ for model in modelResults:
     lowerBounds = greyResult.lower_bounds
     upperBounds = greyResult.upper_bounds
 
-    plt.plot(times/60000.0, lowerBounds, label="Lower Bounds (G): "+str(np.around(lowerBounds[-1], 8)))
-    plt.plot(times/60000.0, upperBounds, label="Upper Bounds (G): "+str(np.around(upperBounds[-1], 8)))
+    plt.plot(times/60000.0, lowerBounds, label="Lower Bounds (G): "+str(np.around(lowerBounds[-1], 4)))
+    plt.plot(times/60000.0, upperBounds, label="Upper Bounds (G): "+str(np.around(upperBounds[-1], 4)))
 
     plt.legend()
 

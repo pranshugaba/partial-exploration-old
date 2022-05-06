@@ -47,8 +47,8 @@ def write_model_result(spamwriter, modelName):
     else:
         g_ar = str(round(g_ar, 4))
 
-    spamwriter.writerow([modelName, str(b_av_states), str(round(b_al, 4)), str(round(b_au, 4)), b_ar,
-                         str(g_av_states), str(round(g_al, 4)), str(round(g_au, 4)), g_ar])
+    spamwriter.writerow([modelName, str(round(b_av_states, 4)), str(round(b_al, 4)), str(round(b_au, 4)), b_ar,
+                         str(round(g_av_states, 4)), str(round(g_al, 4)), str(round(g_au, 4)), g_ar])
 
 
 with open(os.path.join(tables_dir, "experimentResults.csv"), 'w', newline='') as csvfile:
