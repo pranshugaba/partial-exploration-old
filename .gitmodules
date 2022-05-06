@@ -1,0 +1,5 @@
+[submodule "lib/models"]
+	path = lib/models
+	url = https://gitlab.lrz.de/i7/probabilistic-models
+	branch = mean-payoff-ctmdp
+
