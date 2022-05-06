@@ -24,7 +24,7 @@ B.1) Running bash on Docker image:
     
     2. Once Docker is installed, open the terminal and execute the following command. 
 
-       docker pull pazhamalaim/partial-exploration-tool:v2
+       sudo docker pull pazhamalaim/partial-exploration-tool:v2
     
        This command will download our docker image locally into the user's system. Then run the following command to see the installed images.
     
@@ -70,11 +70,12 @@ B.2) Replicating experiment results:
 
     1. For reproducing Table 2 results execute the following commands,
     
-       chmod +x run_mdp_experiments.sh
-       ./run_mdp_experiments.sh
+       chmod +x run_mdp_benchmarks.sh
+       ./run_mdp_benchmarks.sh
        
        This script computes mean-payoff for various blackbox mdp models. As seen in Table 2, it computes the mean-payoff using both blackbox update and greybox update
-       equations.
+       equations. By default this script will run each mdp benchmark once and it uses 3 threads. It will take around 2.5 hours to complete its execution. The user can
+       change the number of threads as well as the number of experiments performed on each benchmark. Follow step 4, to change these parameters.
        
        Note that the results produced may not be exactly the same as the results shown in our paper. For each benchmark we got the result by taking an average over 10
        experiments. We observed by running multiple times that the mean-payoff for counter model is produced in as minimum as 2 seconds to as maximum as 42 seconds for
@@ -98,7 +99,7 @@ B.2) Replicating experiment results:
        
        This will copy the "results" directory into current working directory in host machine.
        
-    3. For reproducing the results of Table 3 follow the above procedure with the script "run_ctmdp_experiments.sh". Then copy the directory "ctmdp_results" to the host
+    3. For reproducing the results of Table 3 follow the above procedure with the script "run_ctmdp_benchmarks.sh". Then copy the directory "ctmdp_results" to the host
        machine. 
 
        
@@ -107,12 +108,12 @@ B.2) Replicating experiment results:
               
        To run each benchmark 5 times and to take the average as result, use the following command on step 1.
        
-       ./run_mdp_experiments.sh -n 5
+       ./run_mdp_benchmarks.sh -n 5
        
        Also by default the scripts uses 3 threads. Provide a value to "-t" option to change the number of threads. For example the following command runs each
        benchmark 5 times and it uses 4 threads.
        
-       ./run_mdp_experiments.sh -n 5 -t 4
+       ./run_mdp_benchamrks.sh -n 5 -t 4
        
        "lscpu" would give the hardware information about user's machine and the value corresponding to "CPU(s)" is the total number of threads.
        
@@ -120,9 +121,9 @@ B.2) Replicating experiment results:
        Table 2 where each benchmark is run only once takes around 2.5 hours. Similarly generating Table 3 using a single thread will take around 6 hours, whereas using
        3 threads will reduce the running time to 2 hours.
        
-    6. For few MDP and CTMDP models shell scripts have been provided to generate the plots of those models. These shell scripts are named "pacman.sh", "zero-conf.sh",
+    6. For few MDP and CTMDP models shell scripts have been provided to generate the plots of those models. These shell scripts are named "pacman.sh", "zeroconf.sh",
        "queuingsystem.sh" and "sjs3.sh". They generate plots similar to Figure 1 in the paper. Run any of these scripts and copy the directory "individual_results" to
-       host machine, once the shell scripts are done executing. They will have the plots for these benchmarks. Each of this script will take at most 1 hour to finish
+       host machine, once the shell scripts are done executing. They will have the plots for these benchmarks. Each script will take at most 1 hour to finish
        execution.
        
        
@@ -131,9 +132,9 @@ B.3) Running individual models:
     Once the bash is up and ready, type ls to see the list of directories. The directory "data" contains MDP and CTMDP models within it. Use the following instructions
     to run any particular model inside the data directory.
 
-    1. For example, the following command will find the mean-payoff of ij.3.prism model. 
+    1. For example, the following command will find the mean-payoff of blackbox ij.3.prism model using greybox equations. 
     
-       ./gradlew -p ./ run --args=’meanPayoff -m data/models/ij.3.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000 --outputPath ./result_ij3.txt’
+       ./gradlew -p ./ run --args='meanPayoff -m data/models/ij.3.prism --informationLevel BLACKBOX --updateMethod GREYBOX --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000 --outputPath ./result_ij3.txt'
     
     The precision, revisitThreshold, errorTolerance, iterSample are parameters which can be changed and one can check the performance of the algorithm. Other parameters
     maxReward, pMin, maxSuccessors are unique to each model and those should not be changed. The output will be written to the file specified in the outputPath. For
@@ -148,6 +149,25 @@ B.3) Running individual models:
        
        In the file the first line shows the timestamps and the second and third line shows the lower bound and upper bound recorded at those timestamps respectively.
        
+    
+    3. To compute mean-payoff for a model (MDP/CTMDP) that is not already present inside the "data/" directory, first place the model inside either the "data/models"
+       directory or "data/ctmdpModels" directory depening on the type of the model. For computing the mean-payoff the tool needs maxReward and pMin. pMin is the minimum
+       transition probability in the whole model. maxSuccessors is an optional parameter which can be ignored. pMin can be found by running a script. For example assume
+       a new MDP model is placed inside "data/models/" directory and is named new_model.prism. Now do the following to compute the pMin of that model.
+    
+       ./gradlew -p ./ run --args='modelInfo -m /data/models/new_model.prism'
+       
+       This will output the minimum transition probability pMin of that model. Use that info to execute step 1. maxRewards parameter can be found by manually going
+       through the rewards module of the 'new_models.prism' file. If there are multiple reward models and undefined constants in the prism file, use the following
+       command,
+       
+       ./gradlew -p ./ run --args='modelInfo -m /data/models/new_model.prism -r #reward-module-name -c #constantValues'
+       
+       Say 'new_models.prism' has two reward modules "r1" and "r2" and it also has an undefined constant K. Then the following will use the reward module "r1" and
+       assign a value of 5 to K.
+       
+       ./gradlew -p ./ run --args='modelInfo -m /data/models/new_model.prism -r r1 -c K=5'
+       
 
 
 C) Running Tool from source code:
@@ -156,11 +176,11 @@ C) Running Tool from source code:
     
     1. Cloning: Clone the source code of the tool using
     
-       git clone https://github.com/pazhamalai/partial-exploration
+       git clone -b mean-payoff-ctmdp https://gitlab.lrz.de/i7/partial-exploration.git/
     
-    2. Populate the submodule lib/models by
+    2. Populate the submodule lib/models from the partial-exploration directory by
     
-       git submodule update --init --recursive from the partial-exploration directory
+       git submodule update --init --recursive 
     
     3. Change directory to prism by running
     
@@ -178,13 +198,16 @@ C) Running Tool from source code:
     be created in the root directory of the project itself.
     
     
+    
 
 D) Source code details:
 
     Algorithm 1 implemented in our paper can be traced by following the implementation of "run" function in class "OnDemandValueIterator.java". This class can be found
-    in path "/src/main/java/de.tum.in.pet/implementation meanPayoff". This procedure computes mean-payoff for whitebox mdp models. For blackbox mdp and ctmdp models,
+    in path "/src/main/java/de.tum.in.pet/implementation/meanPayoff". This procedure computes mean-payoff for whitebox mdp models. For blackbox mdp and ctmdp models,
     this algorithm is extended and implemented in "BlackOnDemandValueIterator.java" and "CTMDPBlackOnDemandValueIterator.java". BlackOnDemandValueIterator.java also
     contains other functions like "updateMec" which implements "UPDATE_MEC_VALUE" procedure in Algorithm 1 and "update" function which implements both the "UPDATE" and
-    "DEFLATE" procedures from Algorithm 1.
+    "DEFLATE" procedures from Algorithm 1. 
+    
+    =================================== SIMULATE, FIND_MECS ===========================================
 
 
