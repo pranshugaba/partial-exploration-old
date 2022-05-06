@@ -208,6 +208,8 @@ D) Source code details:
     contains other functions like "updateMec" which implements "UPDATE_MEC_VALUE" procedure in Algorithm 1 and "update" function which implements both the "UPDATE" and
     "DEFLATE" procedures from Algorithm 1. 
     
-    =================================== SIMULATE, FIND_MECS ===========================================
+    The implementation of the SIMULATE procedure used in Algorithm 1 can be found in "BlackExplorer.java" which is located in "/lib/models/src/main/java/de/tum/in
+    /probmodels/explorer/" inside function simulateMecRepeatedly2. The procedure "FIND_MECS" in Algorithm 1 is used in "handleComponents" function in
+    BlackOnDemandValueIterator.java
 
 
