@@ -1,5 +1,5 @@
 mdp_max_rewards = {"zeroconf_rewards": 1, "sensors": 1, "investor": 1, "cs_nfail3": 1, "consensus.2": 1,
-                   "ij.10": 1, "ij.3": 1, "pacman": 1, "pnueli-zuck.3": 1, "wlan.0": 1, "virus": 1,
+                   "ij.10": 1, "ij.3": 1, "pacman": 1, "pnueli-zuck.3": 1, "rabin-3_rewards": 1, "wlan-0_rewards": 1, "consensus-2_rewards": 1, "pacman_rewards": 1, "wlan.0": 1, "virus": 1,
                    "phil-nofair3": 1, "blackjack": 1.5, "counter": 10, "recycling": 2, "busyRing4": 1, "busyRingMC4": 1}
 
 
