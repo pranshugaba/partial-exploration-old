@@ -1,4 +1,0 @@
-// maximum probability that either station's backoff counter reaches k
-const int k;
-Pmax=? [ true U bc1=k | bc2=k ];
-
