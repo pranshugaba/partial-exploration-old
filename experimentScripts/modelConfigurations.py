@@ -1,4 +1,12 @@
 mdpConfigs = [
+#    "meanPayoff -m data/mdpReachRewardModels/consensus/consensus-2_rewards.prism --maxReward 1 --pMin 0.1083 --const K=2 --rewardModule disagree",
+    "meanPayoff -m data/mdpReachRewardModels/pacman/pacman_rewards.prism --maxReward 1 --pMin 0.08 --const MAXSTEPS=5 --rewardModule crash",
+    "meanPayoff -m data/mdpReachRewardModels/rabin-3/rabin-3_rewards.prism --maxReward 1 --pMin 0.03125 --rewardModule live",
+    "meanPayoff -m data/mdpReachRewardModels/wlan-0/wlan-0_rewards.prism --maxReward 1 --pMin 0.0625 --const COL=0 --rewardModule sent",
+    "meanPayoff -m data/mdpReachRewardModels/zeroconf/zeroconf_rewards.prism --maxReward 1 --pMin 0.0002 --const N=40,K=10,reset=false --rewardModule correct_max",
+]
+
+mdpConfigsOld = [
     "meanPayoff -m data/models/zeroconf_rewards.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0002 --maxSuccessors 6 --iterSample 10000 --const N=40,K=10,reset=false --rewardModule reach",
     "meanPayoff -m data/models/sensors.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.05 --maxSuccessors 2 --iterSample 10000 --const K=3",
     "meanPayoff -m data/models/investor.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.016 --maxSuccessors 8 --iterSample 10000",
