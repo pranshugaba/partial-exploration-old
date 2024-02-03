@@ -2,7 +2,7 @@ In this repository, we copy over all MDP benchmarks from CAV'19,
 and adapt them so they can be used with MeanPayoffChecker.
 
 consensus                disagree            agrees with CAV'19
-csma-2-2                 some_before         (need pMin value)
+csma-2-2                 some_before         agrees with CAV'19
 firewire                 deadline            bounded reachability
 ij-10                    stable              bounded reachability
 ij-3                     stable              bounded reachability

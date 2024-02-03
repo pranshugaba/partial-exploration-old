@@ -1,5 +1,6 @@
 mdpConfigs = [
     "meanPayoff -m data/mdpReachRewardModels/consensus/consensus-2_rewards.prism --maxReward 1 --pMin 0.1083 --const K=2 --rewardModule disagree",
+    "meanPayoff -m data/mdpReachRewardModels/csma/csma.2-2_rewards.prism --maxReward 1 --pMin 0.25 --rewardModule some_before",
     "meanPayoff -m data/mdpReachRewardModels/pacman/pacman_rewards.prism --maxReward 1 --pMin 0.08 --const MAXSTEPS=5 --rewardModule crash",
     "meanPayoff -m data/mdpReachRewardModels/rabin-3/rabin-3_rewards.prism --maxReward 1 --pMin 0.03125 --rewardModule live",
     "meanPayoff -m data/mdpReachRewardModels/wlan-0/wlan-0_rewards.prism --maxReward 1 --pMin 0.0625 --const COL=0 --rewardModule sent",
