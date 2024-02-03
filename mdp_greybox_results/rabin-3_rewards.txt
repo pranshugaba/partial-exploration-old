@@ -1,0 +1,13 @@
+Execution time: 21.642
+Lower bound: 1.0
+Upper bound: 1.0
+Iteration number: 0
+Num states explored: 2071
+
+
+
+Average Lower Bound: 1.0
+Average Upper Bound: 1.0
+Average Run time: 21.642
+Precision: 0.0
+Average number of states explored: 2071.0

@@ -1,0 +1,5 @@
+-m data/mdpReachRewardModels/rabin-3/rabin-3_rewards.prism --maxReward 1 --pMin 0.03125 --rewardModule live --informationLevel BLACKBOX --updateMethod GREYBOX -o /home/pranshu/partial-exploration/mdp_greybox_results/iteration0/3 
+1705838370229 1705838379767 1705838391871 
+0.0 0.4437488082171526 1.0 
+1.0 1.0 1.0 
+2071
