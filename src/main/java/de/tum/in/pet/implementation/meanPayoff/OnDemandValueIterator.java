@@ -145,6 +145,7 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
       }
     }
 
+    System.out.print("-> [" + values.bounds(boundedMecQuotient.representative(initialState)).lowerBound() + "-" + values.bounds(boundedMecQuotient.representative(initialState)).upperBound() + "], ");
     onSamplingFinished(initialState);
   }
 

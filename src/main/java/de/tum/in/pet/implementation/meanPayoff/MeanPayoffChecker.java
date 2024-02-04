@@ -151,6 +151,7 @@ public final class MeanPayoffChecker {
     Bounds bounds = valueIterator.bounds(initState);
 
     logger.log(Level.INFO, "Explored states {0}", new Object[] {explorer.exploredStateCount()});
+    System.out.print(explorer.exploredStateCount() + ", ");
 
     timeVBound.addAll(valueIterator.timeVBound);
     additionalWriteInfo.addAll(valueIterator.additionalWriteInfo);
@@ -215,6 +216,10 @@ public final class MeanPayoffChecker {
       logger.log(Level.INFO, "Time to parse, construct model, and compute {0}", new Object[]{endTime - startTime1});
       logger.log(Level.INFO, "Time to compute {0}", new Object[]{endTime - startTime2});
       logger.log(Level.INFO, "Result is {0}", new Object[]{meanPayoff});
+
+      // statesExplored, value, timeTaken
+      System.out.print(meanPayoff + ", ");
+      System.out.println(((double)endTime - (double)startTime2) / (double)1000);
     }
   }
 
