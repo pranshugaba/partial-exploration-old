@@ -1,690 +1,690 @@
 {
-    "./gradlew run --args meanPayoff -m ./data/models/ij.3.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.5 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+    "meanPayoff -m data/models/virus.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.1 --maxSuccessors 2 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX": [
         {
             "run": 1,
             "bounds": [
-                0.9999586922263228,
-                1.0
+                0.0,
+                0.008594246812723244
             ],
-            "value": 0.9999793461131614,
-            "states_explored": 7,
-            "time_taken": 0.347
+            "value": 0.004297123406361622,
+            "states_explored": 809,
+            "time_taken": 166.64
         },
         {
             "run": 2,
             "bounds": [
-                0.99996666505221,
-                1.0
+                0.0,
+                0.00807594717603217
             ],
-            "value": 0.9999833325261049,
-            "states_explored": 7,
-            "time_taken": 0.346
+            "value": 0.004037973588016085,
+            "states_explored": 809,
+            "time_taken": 147.956
         },
         {
             "run": 3,
             "bounds": [
-                0.9999817054728575,
-                1.0
+                0.0,
+                0.007758063642252514
             ],
-            "value": 0.9999908527364287,
-            "states_explored": 7,
-            "time_taken": 0.34
+            "value": 0.003879031821126257,
+            "states_explored": 809,
+            "time_taken": 149.691
         },
         {
             "run": 4,
             "bounds": [
-                0.9999589595382388,
-                1.0
+                0.0,
+                0.009249628652194173
             ],
-            "value": 0.9999794797691194,
-            "states_explored": 7,
-            "time_taken": 0.349
+            "value": 0.0046248143260970865,
+            "states_explored": 809,
+            "time_taken": 149.935
         },
         {
             "run": 5,
             "bounds": [
-                0.9999773643627093,
+                0.0,
+                0.008254638423867056
+            ],
+            "value": 0.004127319211933528,
+            "states_explored": 809,
+            "time_taken": 138.828
+        }
+    ],
+    "meanPayoff -m data/models/cs_nfail3.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.1 --maxSuccessors 2 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+        {
+            "run": 1,
+            "bounds": [
+                0.33244007220711325,
+                0.34224369839433266
+            ],
+            "value": 0.33734188530072295,
+            "states_explored": 183,
+            "time_taken": 108.564
+        },
+        {
+            "run": 2,
+            "bounds": [
+                0.33244007220711236,
+                0.33775916153369223
+            ],
+            "value": 0.3350996168704023,
+            "states_explored": 184,
+            "time_taken": 80.696
+        },
+        {
+            "run": 3,
+            "bounds": [
+                0.3324400722071123,
+                0.3394706030462979
+            ],
+            "value": 0.3359553376267051,
+            "states_explored": 184,
+            "time_taken": 87.7
+        },
+        {
+            "run": 4,
+            "bounds": [
+                0.33244007220711247,
+                0.33802385860552914
+            ],
+            "value": 0.33523196540632083,
+            "states_explored": 184,
+            "time_taken": 93.12
+        },
+        {
+            "run": 5,
+            "bounds": [
+                0.33244007220711314,
+                0.33725733263589547
+            ],
+            "value": 0.33484870242150433,
+            "states_explored": 184,
+            "time_taken": 85.703
+        }
+    ],
+    "meanPayoff -m data/models/investor.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.016 --maxSuccessors 8 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+        {
+            "run": 1,
+            "bounds": [
+                0.9453492289799766,
+                0.9548629389409592
+            ],
+            "value": 0.9501060839604679,
+            "states_explored": 5834,
+            "time_taken": 242.127
+        },
+        {
+            "run": 2,
+            "bounds": [
+                0.9451130763209805,
+                0.954638027361595
+            ],
+            "value": 0.9498755518412878,
+            "states_explored": 5861,
+            "time_taken": 246.563
+        },
+        {
+            "run": 3,
+            "bounds": [
+                0.9454045902638062,
+                0.9550237361535513
+            ],
+            "value": 0.9502141632086787,
+            "states_explored": 5801,
+            "time_taken": 237.793
+        },
+        {
+            "run": 4,
+            "bounds": [
+                0.9453161732063358,
+                0.954840054086209
+            ],
+            "value": 0.9500781136462724,
+            "states_explored": 5863,
+            "time_taken": 245.981
+        },
+        {
+            "run": 5,
+            "bounds": [
+                0.9452373101411939,
+                0.9547554332280596
+            ],
+            "value": 0.9499963716846267,
+            "states_explored": 5867,
+            "time_taken": 258.976
+        }
+    ],
+    "meanPayoff -m data/models/zeroconf_rewards.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0002 --maxSuccessors 6 --iterSample 10000 --const N=40,K=10,reset=false --rewardModule reach --informationLevel BLACKBOX --updateMethod GREYBOX": [
+        {
+            "run": 1,
+            "bounds": [
+                0.9901067298925686,
                 1.0
             ],
-            "value": 0.9999886821813546,
+            "value": 0.9950533649462843,
+            "states_explored": 339,
+            "time_taken": 64.159
+        },
+        {
+            "run": 2,
+            "bounds": [
+                0.9901085699425426,
+                1.0
+            ],
+            "value": 0.9950542849712714,
+            "states_explored": 396,
+            "time_taken": 85.685
+        },
+        {
+            "run": 3,
+            "bounds": [
+                0.9901046682837114,
+                1.0
+            ],
+            "value": 0.9950523341418557,
+            "states_explored": 346,
+            "time_taken": 64.87
+        },
+        {
+            "run": 4,
+            "bounds": [
+                0.9900216291820153,
+                1.0
+            ],
+            "value": 0.9950108145910077,
+            "states_explored": 407,
+            "time_taken": 84.431
+        },
+        {
+            "run": 5,
+            "bounds": [
+                0.9900199752038412,
+                1.0
+            ],
+            "value": 0.9950099876019206,
+            "states_explored": 450,
+            "time_taken": 86.272
+        }
+    ],
+    "meanPayoff -m data/models/sensors.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.05 --maxSuccessors 2 --iterSample 10000 --const K=3 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+        {
+            "run": 1,
+            "bounds": [
+                0.3318589086994154,
+                0.33529234295761273
+            ],
+            "value": 0.3335756258285141,
+            "states_explored": 189,
+            "time_taken": 63.521
+        },
+        {
+            "run": 2,
+            "bounds": [
+                0.3327269967104237,
+                0.3366159260975708
+            ],
+            "value": 0.3346714614039973,
+            "states_explored": 189,
+            "time_taken": 63.017
+        },
+        {
+            "run": 3,
+            "bounds": [
+                0.331809655474892,
+                0.33627162521174186
+            ],
+            "value": 0.33404064034331693,
+            "states_explored": 189,
+            "time_taken": 23.598
+        },
+        {
+            "run": 4,
+            "bounds": [
+                0.331830657769192,
+                0.33632126945347957
+            ],
+            "value": 0.3340759636113358,
+            "states_explored": 189,
+            "time_taken": 31.739
+        },
+        {
+            "run": 5,
+            "bounds": [
+                0.33217745692565614,
+                0.336376813714579
+            ],
+            "value": 0.3342771353201176,
+            "states_explored": 188,
+            "time_taken": 68.405
+        }
+    ],
+    "meanPayoff -m data/models/consensus.2.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000 -c K=2 --rewardModule custom --informationLevel BLACKBOX --updateMethod GREYBOX": [
+        {
+            "run": 1,
+            "bounds": [
+                0.10366145347364718,
+                0.1136493898892594
+            ],
+            "value": 0.10865542168145328,
+            "states_explored": 272,
+            "time_taken": 120.343
+        },
+        {
+            "run": 2,
+            "bounds": [
+                0.10311795300153258,
+                0.11309420635054411
+            ],
+            "value": 0.10810607967603834,
+            "states_explored": 272,
+            "time_taken": 126.799
+        },
+        {
+            "run": 3,
+            "bounds": [
+                0.1033525382655289,
+                0.11331997850677412
+            ],
+            "value": 0.10833625838615152,
+            "states_explored": 272,
+            "time_taken": 122.303
+        },
+        {
+            "run": 4,
+            "bounds": [
+                0.1035300779231099,
+                0.1135118468104213
+            ],
+            "value": 0.1085209623667656,
+            "states_explored": 272,
+            "time_taken": 122.565
+        },
+        {
+            "run": 5,
+            "bounds": [
+                0.10423102569164952,
+                0.11422032582396317
+            ],
+            "value": 0.10922567575780634,
+            "states_explored": 272,
+            "time_taken": 114.791
+        }
+    ],
+    "meanPayoff -m data/models/ij.10.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+        {
+            "run": 1,
+            "bounds": [
+                0.9999885825420365,
+                1.0
+            ],
+            "value": 0.9999942912710182,
+            "states_explored": 1023,
+            "time_taken": 12.105
+        },
+        {
+            "run": 2,
+            "bounds": [
+                0.9999890709456427,
+                1.0
+            ],
+            "value": 0.9999945354728214,
+            "states_explored": 1023,
+            "time_taken": 12.122
+        },
+        {
+            "run": 3,
+            "bounds": [
+                0.9999891657681911,
+                1.0
+            ],
+            "value": 0.9999945828840955,
+            "states_explored": 1023,
+            "time_taken": 12.203
+        },
+        {
+            "run": 4,
+            "bounds": [
+                0.9999899141646394,
+                1.0
+            ],
+            "value": 0.9999949570823197,
+            "states_explored": 1023,
+            "time_taken": 12.014
+        },
+        {
+            "run": 5,
+            "bounds": [
+                0.9999902441918005,
+                1.0
+            ],
+            "value": 0.9999951220959002,
+            "states_explored": 1023,
+            "time_taken": 11.856
+        }
+    ],
+    "meanPayoff -m data/models/ij.3.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+        {
+            "run": 1,
+            "bounds": [
+                0.9999774520525345,
+                1.0
+            ],
+            "value": 0.9999887260262672,
+            "states_explored": 7,
+            "time_taken": 0.338
+        },
+        {
+            "run": 2,
+            "bounds": [
+                0.9999652824019475,
+                1.0
+            ],
+            "value": 0.9999826412009738,
             "states_explored": 7,
             "time_taken": 0.344
-        }
-    ],
-    "./gradlew run --args meanPayoff -m ./data/models/ij.10.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.5 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX": [
-        {
-            "run": 1,
-            "bounds": [
-                0.9999880798633958,
-                1.0
-            ],
-            "value": 0.9999940399316979,
-            "states_explored": 1023,
-            "time_taken": 11.581
-        },
-        {
-            "run": 2,
-            "bounds": [
-                0.9999869904636807,
-                1.0
-            ],
-            "value": 0.9999934952318403,
-            "states_explored": 1023,
-            "time_taken": 11.789
         },
         {
             "run": 3,
             "bounds": [
-                0.999999999999999,
-                0.999999999999999
+                0.9999817255089143,
+                1.0
             ],
-            "value": 0.999999999999999,
-            "states_explored": 1023,
-            "time_taken": 12.134
+            "value": 0.9999908627544571,
+            "states_explored": 7,
+            "time_taken": 0.355
         },
         {
             "run": 4,
             "bounds": [
-                0.9999883379798074,
+                0.9999806780054882,
                 1.0
             ],
-            "value": 0.9999941689899037,
-            "states_explored": 1023,
-            "time_taken": 11.459
+            "value": 0.999990339002744,
+            "states_explored": 7,
+            "time_taken": 0.344
         },
         {
             "run": 5,
             "bounds": [
-                0.9999880836560611,
+                0.9999812614335645,
                 1.0
             ],
-            "value": 0.9999940418280305,
-            "states_explored": 1023,
-            "time_taken": 11.943
+            "value": 0.9999906307167823,
+            "states_explored": 7,
+            "time_taken": 0.348
         }
     ],
-    "./gradlew run --args meanPayoff -m ./data/models/virus.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.1 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+    "meanPayoff -m data/models/pacman.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.08 --maxSuccessors 6 --iterSample 10000 -c MAXSTEPS=5 --informationLevel BLACKBOX --updateMethod GREYBOX": [
         {
             "run": 1,
             "bounds": [
-                0.0,
-                0.07977302756041986
+                0.5480875634726133,
+                0.5580847645469765
             ],
-            "value": 0.03988651378020993,
-            "states_explored": 809,
-            "time_taken": 134.792
+            "value": 0.5530861640097949,
+            "states_explored": 498,
+            "time_taken": 141.202
         },
         {
             "run": 2,
             "bounds": [
-                0.0,
-                0.047222540236202815
+                0.547804954349513,
+                0.557802730012283
             ],
-            "value": 0.023611270118101407,
-            "states_explored": 809,
-            "time_taken": 116.341
+            "value": 0.5528038421808981,
+            "states_explored": 498,
+            "time_taken": 136.081
         },
         {
             "run": 3,
             "bounds": [
-                0.0,
-                0.08597158336688078
+                0.5473074623759618,
+                0.5572782582007978
             ],
-            "value": 0.04298579168344039,
-            "states_explored": 809,
-            "time_taken": 107.115
+            "value": 0.5522928602883799,
+            "states_explored": 496,
+            "time_taken": 138.228
         },
         {
             "run": 4,
             "bounds": [
-                0.0,
-                0.06946504441226248
+                0.5470307974688741,
+                0.5570063885175539
             ],
-            "value": 0.03473252220613124,
-            "states_explored": 809,
-            "time_taken": 138.239
+            "value": 0.552018592993214,
+            "states_explored": 496,
+            "time_taken": 137.7
         },
         {
             "run": 5,
             "bounds": [
-                0.0,
-                0.09655840220390295
+                0.547505664348955,
+                0.5575047431341437
             ],
-            "value": 0.048279201101951476,
-            "states_explored": 809,
-            "time_taken": 141.834
+            "value": 0.5525052037415493,
+            "states_explored": 496,
+            "time_taken": 137.91
         }
     ],
-    "./gradlew run --args meanPayoff -m ./data/models/cs_nfail3.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.1 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+    "meanPayoff -m data/models/wlan.0.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0625 --maxSuccessors 16 --iterSample 10000 -c COL=0 --rewardModule default --informationLevel BLACKBOX --updateMethod GREYBOX": [
         {
             "run": 1,
             "bounds": [
-                0.3142098944000007,
-                0.3749150745477013
+                1.0,
+                1.0
             ],
-            "value": 0.34456248447385096,
-            "states_explored": 184,
-            "time_taken": 32.107
+            "value": 1.0,
+            "states_explored": 2944,
+            "time_taken": 9.403
         },
         {
             "run": 2,
             "bounds": [
-                0.3142098944000004,
-                0.3699593460808091
+                1.0,
+                1.0
             ],
-            "value": 0.34208462024040476,
-            "states_explored": 184,
-            "time_taken": 33.44
+            "value": 1.0,
+            "states_explored": 2935,
+            "time_taken": 9.505
         },
         {
             "run": 3,
             "bounds": [
-                0.3142098944000007,
-                0.37143318617339993
+                1.0,
+                1.0
             ],
-            "value": 0.3428215402867003,
-            "states_explored": 184,
-            "time_taken": 27.869
+            "value": 1.0,
+            "states_explored": 2939,
+            "time_taken": 9.545
         },
         {
             "run": 4,
             "bounds": [
-                0.3142098944000005,
-                0.39651023100195326
+                1.0,
+                1.0
             ],
-            "value": 0.35536006270097686,
-            "states_explored": 184,
-            "time_taken": 24.605
+            "value": 1.0,
+            "states_explored": 2932,
+            "time_taken": 9.535
         },
         {
             "run": 5,
             "bounds": [
-                0.31420989440000074,
-                0.36253957833631406
+                1.0,
+                1.0
             ],
-            "value": 0.3383747363681574,
-            "states_explored": 184,
-            "time_taken": 24.359
+            "value": 1.0,
+            "states_explored": 2941,
+            "time_taken": 9.276
         }
     ],
-    "./gradlew run --args meanPayoff -m ./data/models/investor.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.1 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX": [
-        {
-            "run": 1,
-            "bounds": [
-                0.9350118085608825,
-                1.0
-            ],
-            "value": 0.9675059042804413,
-            "states_explored": 2388,
-            "time_taken": 6.299
-        },
-        {
-            "run": 2,
-            "bounds": [
-                0.934449216697354,
-                1.0
-            ],
-            "value": 0.9672246083486771,
-            "states_explored": 2288,
-            "time_taken": 5.997
-        },
-        {
-            "run": 3,
-            "bounds": [
-                0.9352410542868546,
-                1.0
-            ],
-            "value": 0.9676205271434273,
-            "states_explored": 2289,
-            "time_taken": 5.962
-        },
-        {
-            "run": 4,
-            "bounds": [
-                0.9337432886133081,
-                1.0
-            ],
-            "value": 0.9668716443066541,
-            "states_explored": 2408,
-            "time_taken": 6.249
-        },
-        {
-            "run": 5,
-            "bounds": [
-                0.935076541298014,
-                1.0
-            ],
-            "value": 0.967538270649007,
-            "states_explored": 2312,
-            "time_taken": 6.201
-        }
-    ],
-    "./gradlew run --args meanPayoff -m ./data/models/zeroconf_rewards.prism --const N=40,K=10,reset=false --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.001 --maxReward 1 --rewardModule reach --informationLevel BLACKBOX --updateMethod GREYBOX": [
-        {
-            "run": 1,
-            "bounds": [
-                0.9107172867965989,
-                1.0
-            ],
-            "value": 0.9553586433982995,
-            "states_explored": 255,
-            "time_taken": 1.246
-        },
-        {
-            "run": 2,
-            "bounds": [
-                0.9120964324096451,
-                1.0
-            ],
-            "value": 0.9560482162048225,
-            "states_explored": 216,
-            "time_taken": 1.02
-        },
-        {
-            "run": 3,
-            "bounds": [
-                0.9115214219352475,
-                1.0
-            ],
-            "value": 0.9557607109676238,
-            "states_explored": 230,
-            "time_taken": 1.103
-        },
-        {
-            "run": 4,
-            "bounds": [
-                0.9126337039021067,
-                1.0
-            ],
-            "value": 0.9563168519510534,
-            "states_explored": 177,
-            "time_taken": 1.035
-        },
-        {
-            "run": 5,
-            "bounds": [
-                0.9123212506112875,
-                1.0
-            ],
-            "value": 0.9561606253056438,
-            "states_explored": 176,
-            "time_taken": 1.081
-        }
-    ],
-    "./gradlew run --args meanPayoff -m ./data/models/sensors.prism --const K=3 --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.05 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX": [
-        {
-            "run": 1,
-            "bounds": [
-                0.325148804007189,
-                0.3507675382532417
-            ],
-            "value": 0.3379581711302153,
-            "states_explored": 189,
-            "time_taken": 41.37
-        },
-        {
-            "run": 2,
-            "bounds": [
-                0.3259029437146627,
-                0.3400156430118224
-            ],
-            "value": 0.3329592933632426,
-            "states_explored": 189,
-            "time_taken": 26.897
-        },
-        {
-            "run": 3,
-            "bounds": [
-                0.3259350115439679,
-                0.3404212572942883
-            ],
-            "value": 0.33317813441912814,
-            "states_explored": 189,
-            "time_taken": 70.109
-        },
-        {
-            "run": 4,
-            "bounds": [
-                0.3258605948491258,
-                0.3432611534237554
-            ],
-            "value": 0.3345608741364406,
-            "states_explored": 189,
-            "time_taken": 9.227
-        },
-        {
-            "run": 5,
-            "bounds": [
-                0.3258932444412893,
-                0.3408967075607722
-            ],
-            "value": 0.33339497600103074,
-            "states_explored": 189,
-            "time_taken": 19.775
-        }
-    ],
-    "./gradlew run --args meanPayoff -m ./data/models/consensus.2.prism --const K=2 --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.5 --maxReward 1 --rewardModule steps --informationLevel BLACKBOX --updateMethod GREYBOX": [
-        {
-            "run": 1,
-            "bounds": [
-                0.9999999829763094,
-                1.0
-            ],
-            "value": 0.9999999914881548,
-            "states_explored": 272,
-            "time_taken": 2.004
-        },
-        {
-            "run": 2,
-            "bounds": [
-                0.9999997795475492,
-                1.0
-            ],
-            "value": 0.9999998897737745,
-            "states_explored": 272,
-            "time_taken": 1.977
-        },
-        {
-            "run": 3,
-            "bounds": [
-                0.9999998870775219,
-                1.0
-            ],
-            "value": 0.999999943538761,
-            "states_explored": 272,
-            "time_taken": 2.012
-        },
-        {
-            "run": 4,
-            "bounds": [
-                0.9999999123257677,
-                1.0
-            ],
-            "value": 0.9999999561628838,
-            "states_explored": 272,
-            "time_taken": 1.962
-        },
-        {
-            "run": 5,
-            "bounds": [
-                0.9999999421831394,
-                1.0
-            ],
-            "value": 0.9999999710915697,
-            "states_explored": 272,
-            "time_taken": 2.048
-        }
-    ],
-    "./gradlew run --args meanPayoff -m ./data/models/pacman.prism --const MAXSTEPS=3 --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX": [
-        {
-            "run": 1,
-            "bounds": [
-                0.5216394074100144,
-                0.6138840178061077
-            ],
-            "value": 0.567761712608061,
-            "states_explored": 121,
-            "time_taken": 410.171
-        },
-        {
-            "run": 2,
-            "bounds": [
-                0.5221472486053893,
-                0.6143004475787261
-            ],
-            "value": 0.5682238480920577,
-            "states_explored": 121,
-            "time_taken": 351.862
-        },
-        {
-            "run": 3,
-            "bounds": [
-                0.5178763575317045,
-                0.6102578455649872
-            ],
-            "value": 0.5640671015483458,
-            "states_explored": 121,
-            "time_taken": 414.045
-        },
-        {
-            "run": 4,
-            "bounds": [
-                0.5195384959982019,
-                0.6118453711028015
-            ],
-            "value": 0.5656919335505017,
-            "states_explored": 121,
-            "time_taken": 418.853
-        },
-        {
-            "run": 5,
-            "bounds": [
-                0.5209221674251598,
-                0.6130489940712598
-            ],
-            "value": 0.5669855807482098,
-            "states_explored": 121,
-            "time_taken": 405.227
-        }
-    ],
-    "./gradlew run --args meanPayoff -m ./data/models/wlan.0.prism --const COL=0 --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.0625 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+    "meanPayoff -m data/models/blackjack.prism --precision 0.01 --maxReward 1.5 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.076 --maxSuccessors 10 --iterSamples 10000 --informationLevel BLACKBOX --updateMethod GREYBOX": [
         {
             "run": 1,
             "bounds": [
                 0.0,
-                0.06059940995137765
+                0.0031315182023146193
             ],
-            "value": 0.030299704975688825,
-            "states_explored": 2954,
-            "time_taken": 52.307
-        },
-        {
-            "run": 2,
-            "bounds": [
-                0.0,
-                0.009089660527576036
-            ],
-            "value": 0.004544830263788018,
-            "states_explored": 2954,
-            "time_taken": 53.448
-        },
-        {
-            "run": 3,
-            "bounds": [
-                0.0,
-                0.08012212990849057
-            ],
-            "value": 0.04006106495424529,
-            "states_explored": 2954,
-            "time_taken": 51.107
-        },
-        {
-            "run": 4,
-            "bounds": [
-                0.0,
-                0.009013436154550095
-            ],
-            "value": 0.004506718077275047,
-            "states_explored": 2954,
-            "time_taken": 56.348
-        },
-        {
-            "run": 5,
-            "bounds": [
-                0.0,
-                0.017551793318556084
-            ],
-            "value": 0.008775896659278042,
-            "states_explored": 2954,
-            "time_taken": 55.952
-        }
-    ],
-    "./gradlew run --args meanPayoff -m ./data/models/blackjack.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.076 --maxReward 1.5 --informationLevel BLACKBOX --updateMethod GREYBOX": [
-        {
-            "run": 1,
-            "bounds": [
-                0.0,
-                0.06451378339812586
-            ],
-            "value": 0.04838533754859439,
+            "value": 0.0023486386517359644,
             "states_explored": 3829,
-            "time_taken": 41.698
+            "time_taken": 51.706
         },
         {
             "run": 2,
             "bounds": [
                 0.0,
-                0.06662508674371245
+                0.0033072661908773063
             ],
-            "value": 0.04996881505778434,
+            "value": 0.0024804496431579796,
             "states_explored": 3829,
-            "time_taken": 39.018
+            "time_taken": 46.453
         },
         {
             "run": 3,
             "bounds": [
                 0.0,
-                0.05696566026609107
+                0.002670817466906937
             ],
-            "value": 0.0427242451995683,
+            "value": 0.0020031131001802026,
             "states_explored": 3829,
-            "time_taken": 37.848
+            "time_taken": 55.787
         },
         {
             "run": 4,
             "bounds": [
                 0.0,
-                0.05868903278554463
+                0.003239607208956167
             ],
-            "value": 0.044016774589158474,
+            "value": 0.002429705406717125,
             "states_explored": 3829,
-            "time_taken": 39.866
+            "time_taken": 48.846
         },
         {
             "run": 5,
             "bounds": [
                 0.0,
-                0.0530354283546989
+                0.006648840617875814
             ],
-            "value": 0.03977657126602417,
+            "value": 0.00498663046340686,
             "states_explored": 3829,
-            "time_taken": 40.468
+            "time_taken": 47.721
         }
     ],
-    "./gradlew run --args meanPayoff -m ./data/models/counter.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.3333333333333333 --maxReward 10 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+    "meanPayoff -m data/models/counter.prism --precision 0.01 --maxReward 10 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.333 --maxSuccessors 2 --iterSamples 10000 --informationLevel BLACKBOX --updateMethod GREYBOX": [
         {
             "run": 1,
             "bounds": [
-                0.49985721343366696,
-                0.500000078581175
+                0.4999823878438065,
+                0.5000000085953531
             ],
-            "value": 4.9992864600742095,
+            "value": 4.9999119821957985,
             "states_explored": 8,
-            "time_taken": 5.83
+            "time_taken": 17.389
         },
         {
             "run": 2,
             "bounds": [
-                0.4995119340685349,
-                0.5000006054327273
+                0.4999779195870417,
+                0.500000003507975
             ],
-            "value": 4.997562697506311,
+            "value": 4.999889615475084,
             "states_explored": 8,
-            "time_taken": 13.579
+            "time_taken": 18.384
         },
         {
             "run": 3,
             "bounds": [
-                0.49950807898486005,
-                0.5000005911834251
+                0.49997792213733305,
+                0.5000000035540978
             ],
-            "value": 4.9975433508414255,
+            "value": 4.999889628457154,
             "states_explored": 8,
-            "time_taken": 9.615
+            "time_taken": 14.095
         },
         {
             "run": 4,
             "bounds": [
-                0.49989547916707266,
-                0.5000000479505957
+                0.0,
+                0.0
             ],
-            "value": 4.999477635588342,
+            "value": 0.0,
             "states_explored": 8,
-            "time_taken": 5.758
+            "time_taken": 0.646
         },
         {
             "run": 5,
             "bounds": [
-                0.4995113927850511,
-                0.5000005913672595
+                0.4999881477164337,
+                0.5000000012771011
             ],
-            "value": 4.997559920761553,
+            "value": 4.999940744967674,
             "states_explored": 8,
-            "time_taken": 9.753
+            "time_taken": 21.231
         }
     ],
-    "./gradlew run --args meanPayoff -m ./data/models/recycling.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.19999999999999996 --maxReward 2 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+    "meanPayoff -m data/models/recycling.prism --precision 0.01 --maxReward 2 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.199 --maxSuccessors 2 --iterSamples 10000 --informationLevel BLACKBOX --updateMethod GREYBOX": [
         {
             "run": 1,
             "bounds": [
-                0.720652963182058,
-                0.7286116960033118
+                0.726535148737308,
+                0.727762061429865
             ],
-            "value": 1.4492646591853697,
+            "value": 1.454297210167173,
             "states_explored": 5,
-            "time_taken": 0.411
+            "time_taken": 0.436
         },
         {
             "run": 2,
             "bounds": [
-                0.7205721388040356,
-                0.7284163285532541
+                0.7262860221023937,
+                0.7274930721694242
             ],
-            "value": 1.4489884673572897,
+            "value": 1.4537790942718178,
             "states_explored": 5,
-            "time_taken": 0.422
+            "time_taken": 0.449
         },
         {
             "run": 3,
             "bounds": [
-                0.7204705771541198,
-                0.7283480394791315
+                0.7266971603472712,
+                0.7279336177267179
             ],
-            "value": 1.4488186166332513,
+            "value": 1.454630778073989,
             "states_explored": 5,
-            "time_taken": 0.415
+            "time_taken": 0.44
         },
         {
             "run": 4,
             "bounds": [
-                0.7203617370975897,
-                0.7282945086578643
+                0.7265485974372058,
+                0.7277036171180971
             ],
-            "value": 1.448656245755454,
+            "value": 1.4542522145553027,
             "states_explored": 5,
-            "time_taken": 0.428
+            "time_taken": 0.44
         },
         {
             "run": 5,
             "bounds": [
-                0.7201923982674456,
-                0.7281938164765211
+                0.7262852190450992,
+                0.7275249825617802
             ],
-            "value": 1.4483862147439668,
+            "value": 1.4538102016068795,
             "states_explored": 5,
-            "time_taken": 0.434
+            "time_taken": 0.445
         }
     ],
-    "./gradlew run --args meanPayoff -m ./data/models/busyRing4.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.0625 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+    "meanPayoff -m data/models/busyRing4.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.125 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX": [
         {
             "run": 1,
             "bounds": [
-                0.999999999999999,
-                0.999999999999999
+                0.9999999999999989,
+                1.0
             ],
-            "value": 0.999999999999999,
-            "states_explored": 1708,
-            "time_taken": 11.756
+            "value": 0.9999999999999994,
+            "states_explored": 1554,
+            "time_taken": 19.313
         },
         {
             "run": 2,
@@ -693,28 +693,28 @@
                 0.999999999999999
             ],
             "value": 0.999999999999999,
-            "states_explored": 1674,
-            "time_taken": 10.113
+            "states_explored": 1513,
+            "time_taken": 12.705
         },
         {
             "run": 3,
             "bounds": [
-                0.999999999999999,
-                0.999999999999999
+                0.9999999999999989,
+                1.0
             ],
-            "value": 0.999999999999999,
-            "states_explored": 1697,
-            "time_taken": 9.633
+            "value": 0.9999999999999994,
+            "states_explored": 1546,
+            "time_taken": 11.823
         },
         {
             "run": 4,
             "bounds": [
-                0.9999999999999986,
+                0.9999999999999988,
                 1.0
             ],
             "value": 0.9999999999999993,
-            "states_explored": 1679,
-            "time_taken": 11.138
+            "states_explored": 1558,
+            "time_taken": 24.143
         },
         {
             "run": 5,
@@ -723,11 +723,11 @@
                 0.999999999999999
             ],
             "value": 0.999999999999999,
-            "states_explored": 1641,
-            "time_taken": 11.048
+            "states_explored": 1537,
+            "time_taken": 13.277
         }
     ],
-    "./gradlew run --args meanPayoff -m ./data/models/busyRingMC4.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.0625 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX": [
+    "meanPayoff -m data/models/busyRingMC4.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0625 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX": [
         {
             "run": 1,
             "bounds": [
@@ -735,8 +735,8 @@
                 0.999999999999999
             ],
             "value": 0.999999999999999,
-            "states_explored": 2533,
-            "time_taken": 41.474
+            "states_explored": 2527,
+            "time_taken": 56.191
         },
         {
             "run": 2,
@@ -745,18 +745,18 @@
                 0.999999999999999
             ],
             "value": 0.999999999999999,
-            "states_explored": 2525,
-            "time_taken": 46.211
+            "states_explored": 2515,
+            "time_taken": 49.748
         },
         {
             "run": 3,
             "bounds": [
-                0.9999999999999991,
-                0.9999999999999991
+                0.999999999999999,
+                0.999999999999999
             ],
-            "value": 0.9999999999999991,
-            "states_explored": 2518,
-            "time_taken": 84.764
+            "value": 0.999999999999999,
+            "states_explored": 2512,
+            "time_taken": 88.601
         },
         {
             "run": 4,
@@ -765,8 +765,8 @@
                 0.999999999999999
             ],
             "value": 0.999999999999999,
-            "states_explored": 2522,
-            "time_taken": 39.234
+            "states_explored": 2509,
+            "time_taken": 64.367
         },
         {
             "run": 5,
@@ -775,8 +775,8 @@
                 0.999999999999999
             ],
             "value": 0.999999999999999,
-            "states_explored": 2520,
-            "time_taken": 57.15
+            "states_explored": 2509,
+            "time_taken": 76.492
         }
     ]
 }

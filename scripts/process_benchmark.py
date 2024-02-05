@@ -11,7 +11,7 @@ with open(
     )
 
     for k, v in result.items():
-        model_name = "".join(k.split(" ")[5].split("/")[-1].split(".")[:-1])
+        model_name = "".join(k.split(" ")[2].split("/")[-1].split(".")[:-1])
 
         lower_bound = 0
         upper_bound = 0

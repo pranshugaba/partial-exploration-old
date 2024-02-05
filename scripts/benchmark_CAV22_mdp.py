@@ -4,96 +4,21 @@ import json
 RUNS_COUNT = 5
 
 COMMANDS = [
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/ij.3.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.5 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/ij.10.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.5 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/virus.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.1 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/cs_nfail3.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.1 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/investor.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.1 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/zeroconf_rewards.prism --const N=40,K=10,reset=false --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.001 --maxReward 1 --rewardModule reach --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/sensors.prism --const K=3 --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.05 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/consensus.2.prism --const K=2 --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.5 --maxReward 1 --rewardModule steps --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/pacman.prism --const MAXSTEPS=3 --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/wlan.0.prism --const COL=0 --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.0625 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/blackjack.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.076 --maxReward 1.5 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/counter.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.3333333333333333 --maxReward 10 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/recycling.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.19999999999999996 --maxReward 2 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/busyRing4.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.0625 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
-    [
-        "./gradlew",
-        "run",
-        "--args",
-        "meanPayoff -m ./data/models/busyRingMC4.prism --revisitThreshold 6 --errorTolerance 0.01 --iterSamples 10000 --precision 0.1 -pMin 0.0625 --maxReward 1 --informationLevel BLACKBOX --updateMethod GREYBOX",
-    ],
+    "meanPayoff -m data/models/virus.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.1 --maxSuccessors 2 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/cs_nfail3.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.1 --maxSuccessors 2 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/investor.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.016 --maxSuccessors 8 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/zeroconf_rewards.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0002 --maxSuccessors 6 --iterSample 10000 --const N=40,K=10,reset=false --rewardModule reach --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/sensors.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.05 --maxSuccessors 2 --iterSample 10000 --const K=3 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/consensus.2.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000 -c K=2 --rewardModule custom --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/ij.10.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/ij.3.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.5 --maxSuccessors 2 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/pacman.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.08 --maxSuccessors 6 --iterSample 10000 -c MAXSTEPS=5 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/wlan.0.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0625 --maxSuccessors 16 --iterSample 10000 -c COL=0 --rewardModule default --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/blackjack.prism --precision 0.01 --maxReward 1.5 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.076 --maxSuccessors 10 --iterSamples 10000 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/counter.prism --precision 0.01 --maxReward 10 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.333 --maxSuccessors 2 --iterSamples 10000 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/recycling.prism --precision 0.01 --maxReward 2 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.199 --maxSuccessors 2 --iterSamples 10000 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/busyRing4.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.125 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX",
+    "meanPayoff -m data/models/busyRingMC4.prism --precision 0.01 --maxReward 1 --revisitThreshold 6 --errorTolerance 0.1 --pMin 0.0625 --iterSample 10000 --informationLevel BLACKBOX --updateMethod GREYBOX",
 ]
 
 result = {}
@@ -126,14 +51,16 @@ def extract_info(command, input_string, run_count):
 for command in range(len(COMMANDS)):
     for run in range(RUNS_COUNT):
         command_result = subprocess.run(
-            COMMANDS[command], text=True, capture_output=True
+            ["./gradlew", "run", "--args", COMMANDS[command]],
+            text=True,
+            capture_output=True,
         )
         if command_result.returncode != 0:
-            print(f'Error running: "{COMMANDS[command][-1].split(' ')[2]}"')
+            print(f'Error running: "{COMMANDS[command].split(' ')[2]}"')
             break
 
-        extract_info(" ".join(COMMANDS[command]), command_result.stdout, run + 1)
-        print(f'Finished with "{COMMANDS[command][-1].split(' ')[2]}", run {run + 1}')
+        extract_info(COMMANDS[command], command_result.stdout, run + 1)
+        print(f'Finished with "{COMMANDS[command].split(' ')[2]}", run {run + 1}')
 
 
 with open("benchmark_CAV22_mdp.json", "w") as file:
