@@ -1,0 +1,168 @@
+// N-processor mutual exclusion [Rab82]
+// gxn/dxp 03/12/08
+
+// to remove the need for fairness constraints for this model it is sufficent
+// to remove the self loops from the model 
+
+// the step corresponding to a process making a draw has been split into two steps
+// to allow us to identify states where a process will draw without knowing the value
+// randomly drawn
+// to correctly model the protocol and prevent erroneous behaviour, the two steps are atomic
+// (i.e. no other process can move one the first step has been made)
+// as for example otherwise an adversary can prevent the process from actually drawing
+// in the current round by not scheduling it after it has performed the first step
+
+mdp
+
+// size of shared counter
+const int K = 6; // 4+ceil(log_2 N)
+
+// global variables (all modules can read and write)
+global c : [0..1]; // 0/1 critical section free/taken
+global b : [0..K]; // current highest draw
+global r : [1..2]; // current round
+
+// formula for process 1 drawing
+formula draw = p1=1 & (b<b1 | r!=r1);
+
+// formula to keep drawing phase atomic
+// (a process can only move if no other process is in the middle of drawing)
+formula go = (draw2=0&draw3=0);
+
+module process1
+
+	p1 : [0..2]; // local state
+	//  0 remainder
+	//  1 trying
+	//  2 critical section
+	b1 : [0..K]; // current draw: bi
+	r1 : [0..2]; // current round: ri
+	draw1 : [0..1]; // performed first step of drawing phase
+
+	// remain in remainder
+	// [] (draw2=0&draw3=0) & p1=0 -> (p1'=0);
+	// enter trying
+	[] (draw2=0&draw3=0) & p1=0 -> (p1'=1);
+	// make a draw
+	[] (draw2=0&draw3=0) & (p1=1 & (b<b1 | r!=r1)) & draw1=0 -> (draw1'=1);
+	[] draw1=1 -> 0.5 : (b1'=1) & (r1'=r) & (b'=max(b,1)) & (draw1'=0)
+	         + 0.25 : (b1'=2) & (r1'=r) & (b'=max(b,2)) & (draw1'=0)
+	         + 0.125 : (b1'=3) & (r1'=r) & (b'=max(b,3)) & (draw1'=0)
+	         + 0.0625 : (b1'=4) & (r1'=r) & (b'=max(b,4)) & (draw1'=0)
+	         + 0.03125 : (b1'=5) & (r1'=r) & (b'=max(b,5)) & (draw1'=0)
+	         + 0.03125 : (b1'=6) & (r1'=r) & (b'=max(b,6)) & (draw1'=0);
+	// enter critical section and randomly set r to 1 or 2
+	[] (draw2=0&draw3=0) & p1=1 & b=b1 & r=r1 & c=0 -> 0.5 : (r'=1) & (c'=1) & (b'=0) & (b1'=0) & (r1'=0) & (p1'=2)
+	                                  + 0.5 : (r'=2) & (c'=1) & (b'=0) & (b1'=0) & (r1'=0) & (p1'=2);
+	// loop when trying and cannot make a draw or enter critical section
+	// [] (draw2=0&draw3=0) & p1=1 & r1=r & b1<=b & ((c=0 & b1!=b) | c=1) -> (p1'=p1);
+	// leave crictical section
+	//[] (draw2=0&draw3=0) & p1=2 -> (p1'=0) & (c'=0);
+	// stay in critical section
+	// [] (draw2=0&draw3=0) & p1=2 -> (p1'=2);
+
+	// not interested in behaviour once reaches critical section
+	[] p1=2 -> true;
+
+endmodule
+
+// construct further modules through renaming
+// module process2 = process1 [p1=p2, b1=b2, r1=r2, draw1=draw2, draw2=draw1 ] endmodule
+
+module process2
+
+	p2 : [0..2]; // local state
+	//  0 remainder
+	//  1 trying
+	//  2 critical section
+	b2 : [0..K]; // current draw: bi
+	r2 : [0..2]; // current round: ri
+	draw2 : [0..1]; // performed first step of drawing phase
+
+	// remain in remainder
+	// [] (draw1=0&draw3=0) & p2=0 -> (p2'=0);
+	// enter trying
+	[] (draw1=0&draw3=0) & p2=0 -> (p2'=1);
+	// make a draw
+	[] (draw1=0&draw3=0) & (p2=1 & (b<b2 | r!=r2)) & draw2=0 -> (draw2'=1);
+	[] draw2=1 -> 0.5 : (b2'=1) & (r2'=r) & (b'=max(b,1)) & (draw2'=0)
+	         + 0.25 : (b2'=2) & (r2'=r) & (b'=max(b,2)) & (draw2'=0)
+	         + 0.125 : (b2'=3) & (r2'=r) & (b'=max(b,3)) & (draw2'=0)
+	         + 0.0625 : (b2'=4) & (r2'=r) & (b'=max(b,4)) & (draw2'=0)
+	         + 0.03125 : (b2'=5) & (r2'=r) & (b'=max(b,5)) & (draw2'=0)
+	         + 0.03125 : (b2'=6) & (r2'=r) & (b'=max(b,6)) & (draw2'=0);
+	// enter critical section and randomly set r to 1 or 2
+	[] (draw1=0&draw3=0) & p2=1 & b=b2 & r=r2 & c=0 -> 0.5 : (r'=1) & (c'=1) & (b'=0) & (b2'=0) & (r2'=0) & (p2'=2)
+	                                  + 0.5 : (r'=2) & (c'=1) & (b'=0) & (b2'=0) & (r2'=0) & (p2'=2);
+	// loop when trying and cannot make a draw or enter critical section
+	// [] (draw1=0&draw3=0) & p2=1 & r2=r & b2<=b & ((c=0 & b2!=b) | c=1) -> (p2'=p2);
+	// leave crictical section
+	//[] (draw1=0&draw3=0) & p2=2 -> (p2'=0) & (c'=0);
+	// stay in critical section
+	// [] (draw1=0&draw3=0) & p2=2 -> (p2'=2);
+
+	// not interested in behaviour once reaches critical section
+	[] p2=2 -> true;
+
+endmodule
+
+
+
+// module process3 = process1 [p1=p3, b1=b3, r1=r3, draw1=draw3, draw3=draw1 ] endmodule
+module process3
+
+	p3 : [0..2]; // local state
+	//  0 remainder
+	//  1 trying
+	//  2 critical section
+	b3 : [0..K]; // current draw: bi
+	r3 : [0..2]; // current round: ri
+	draw3 : [0..1]; // performed first step of drawing phase
+
+	// remain in remainder
+	// [] (draw2=0&draw1=0) & p3=0 -> (p3'=0);
+	// enter trying
+	[] (draw2=0&draw1=0) & p3=0 -> (p3'=1);
+	// make a draw
+	[] (draw2=0&draw1=0) & (p3=1 & (b<b3 | r!=r3)) & draw3=0 -> (draw3'=1);
+	[] draw3=1 -> 0.5 : (b3'=1) & (r3'=r) & (b'=max(b,1)) & (draw3'=0)
+	         + 0.25 : (b3'=2) & (r3'=r) & (b'=max(b,2)) & (draw3'=0)
+	         + 0.125 : (b3'=3) & (r3'=r) & (b'=max(b,3)) & (draw3'=0)
+	         + 0.0625 : (b3'=4) & (r3'=r) & (b'=max(b,4)) & (draw3'=0)
+	         + 0.03125 : (b3'=5) & (r3'=r) & (b'=max(b,5)) & (draw3'=0)
+	         + 0.03125 : (b3'=6) & (r3'=r) & (b'=max(b,6)) & (draw3'=0);
+	// enter critical section and randomly set r to 1 or 2
+	[] (draw2=0&draw1=0) & p3=1 & b=b3 & r=r3 & c=0 -> 0.5 : (r'=1) & (c'=1) & (b'=0) & (b3'=0) & (r3'=0) & (p3'=2)
+	                                  + 0.5 : (r'=2) & (c'=1) & (b'=0) & (b3'=0) & (r3'=0) & (p3'=2);
+	// loop when trying and cannot make a draw or enter critical section
+	// [] (draw2=0&draw1=0) & p3=1 & r3=r & b3<=b & ((c=0 & b3!=b) | c=1) -> (p3'=p3);
+	// leave crictical section
+	//[] (draw2=0&draw1=0) & p3=2 -> (p3'=0) & (c'=0);
+	// stay in critical section
+	// [] (draw2=0&draw1=0) & p3=2 -> (p3'=2);
+
+	// not interested in behaviour once reaches critical section
+	[] p3=2 -> true;
+
+endmodule
+
+// formulas/labels for use in properties:
+
+// number of processes in critical section
+formula num_procs_in_crit = (p1=2?1:0)+(p2=2?1:0)+(p3=2?1:0);
+
+// one of the processes is trying
+label "one_trying" = p1=1|p2=1|p3=1;
+
+// one of the processes is in the critical section
+label "one_critical" = p1=2|p2=2|p3=2;
+
+// maximum current draw of the processes
+formula maxb = max(b1,b2,b3);
+
+
+
+// "live": Pmax=? [ F "one_critical" ]
+rewards "live"
+	p1=2|p2=2|p3=2: 1;
+endrewards
