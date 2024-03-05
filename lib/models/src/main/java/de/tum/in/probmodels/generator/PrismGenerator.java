@@ -12,7 +12,7 @@ import prism.ModelGenerator;
 import prism.PrismException;
 
 public abstract class PrismGenerator implements Generator<State> {
-  private final ModelGenerator generator;
+  public final ModelGenerator generator;
 
   public PrismGenerator(ModelGenerator generator) {
     this.generator = generator;

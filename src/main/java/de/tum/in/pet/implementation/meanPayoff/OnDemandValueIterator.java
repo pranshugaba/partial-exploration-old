@@ -199,6 +199,12 @@ public class OnDemandValueIterator<S, M extends Model> implements Iterator<S, M>
         explore(currentState);  // action choices etc. are populated in the partial model. The bounds of currentState are also initialised.
       }
 
+      // check if the current state is the target state
+      if (explorer.isLabelTrue(currentState, "target")) { // ???: get the target state label from command line argument
+        // given state is the target state
+        logger.log(Level.INFO, "Reached Target State: " + currentState);
+      }
+
       int nextState = values.sampleNextState(currentState, choices(currentState));
 
       // This is true when the currentState doesn't have any choices from it, i.e. it is a sink state.

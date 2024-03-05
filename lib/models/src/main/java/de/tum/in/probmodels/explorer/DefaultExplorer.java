@@ -2,6 +2,7 @@ package de.tum.in.probmodels.explorer;
 
 import de.tum.in.probmodels.generator.Choice;
 import de.tum.in.probmodels.generator.Generator;
+import de.tum.in.probmodels.generator.MdpGenerator;
 import de.tum.in.probmodels.model.Action;
 import de.tum.in.probmodels.model.Distribution;
 import de.tum.in.probmodels.model.Distributions;
@@ -15,6 +16,9 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import parser.State;
+import prism.PrismException;
+
 import java.util.List;
 
 public class DefaultExplorer<S, M extends Model> implements Explorer<S, M> {
@@ -23,7 +27,7 @@ public class DefaultExplorer<S, M extends Model> implements Explorer<S, M> {
   // All states which are in the partial model and explored
   private final IntSet exploredStates = new IntOpenHashSet();
   private final M model;
-  private final Generator<S> generator;
+  public final Generator<S> generator;
   private final boolean removeSelfLoops;
 
   // Creates and returns a default explorer object from a generator. Explores all initial states
@@ -85,6 +89,13 @@ public class DefaultExplorer<S, M extends Model> implements Explorer<S, M> {
       model.addChoice(stateId, Action.of(distribution, choice.label()));
     }
     return state;
+  }
+
+  @Override
+  public boolean isLabelTrue(int stateId, String label) throws PrismException {
+    S state = stateMap.getState(stateId);
+    ((MdpGenerator)generator).generator.exploreState((State) state);
+    return ((MdpGenerator)generator).generator.isLabelTrue(label);
   }
 
   @Override

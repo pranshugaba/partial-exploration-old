@@ -131,6 +131,12 @@ public class BlackOnDemandValueIterator<S, M extends Model> extends OnDemandValu
           explore(currentState);  // action choices etc. are populated in the partial model. The bounds of currentState are also initialised.
         }
 
+        // check if the current state is the target state
+        if (explorer.isLabelTrue(currentState, "target")) { // ???: get the target state label from command line argument
+          // given state is the target state
+          logger.log(Level.INFO, "Reached Target State: " + currentState);
+        }
+
         List<Distribution> choices = choices(currentState);
         if (choices.isEmpty()){
           break;

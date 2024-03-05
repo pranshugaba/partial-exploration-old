@@ -2,6 +2,7 @@ package de.tum.in.probmodels.explorer;
 
 import de.tum.in.probmodels.generator.Choice;
 import de.tum.in.probmodels.generator.Generator;
+import de.tum.in.probmodels.generator.MdpGenerator;
 import de.tum.in.probmodels.graph.Mec;
 import de.tum.in.probmodels.model.*;
 import de.tum.in.probmodels.util.Sample;
@@ -9,6 +10,8 @@ import de.tum.in.probmodels.util.Util;
 import it.unimi.dsi.fastutil.ints.*;
 import it.unimi.dsi.fastutil.objects.*;
 import prism.Pair;
+import prism.PrismException;
+import parser.State;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +30,7 @@ public class BlackExplorer<S, M extends Model> implements Explorer<S, M>{
   // All states which are in the partial model and explored
   protected final IntSet exploredStates = new IntOpenHashSet();
   protected final M model;
-  protected final Generator<S> generator;
+  public final Generator<S> generator;
   protected final boolean removeSelfLoops;
   protected final long timeout;
 
@@ -213,6 +216,13 @@ public class BlackExplorer<S, M extends Model> implements Explorer<S, M>{
     exploredActionsCount += stateChoices.size();
 
     return state;
+  }
+
+  @Override
+  public boolean isLabelTrue(int stateId, String label) throws PrismException {
+    S state = stateMap.getState(stateId);
+    ((MdpGenerator)generator).generator.exploreState((State) state);
+    return ((MdpGenerator)generator).generator.isLabelTrue(label);
   }
 
   /**

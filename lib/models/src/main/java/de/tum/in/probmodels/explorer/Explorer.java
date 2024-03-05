@@ -13,7 +13,11 @@ public interface Explorer<S, M extends Model> {
 
   S exploreState(int stateId) throws PrismException;
 
-  boolean isExploredState(int stateId);
+  default boolean isLabelTrue(int stateId, String label) throws PrismException {
+      return false;
+  }
+
+    boolean isExploredState(int stateId);
 
   List<Action> getActions(int stateId);
 
