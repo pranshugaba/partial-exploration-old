@@ -3,6 +3,7 @@ package de.tum.in.pet;
 import de.tum.in.naturals.set.NatBitSets;
 import de.tum.in.naturals.set.RoaringNatBitSetFactory;
 import de.tum.in.pet.Converter.PETConverter;
+import de.tum.in.pet.Converter.ReachToMeanpayoffConverter;
 import de.tum.in.pet.implementation.core.CoreChecker;
 import de.tum.in.pet.implementation.meanPayoff.MeanPayoffChecker;
 import de.tum.in.pet.implementation.meanPayoff.RestrictedValueIteratorChecker;
@@ -78,6 +79,9 @@ public final class Main {
         break;
       case "pet-convert":
         PETConverter.main(subArgs);
+        break;
+      case "reachability-to-meanpayoff":
+        ReachToMeanpayoffConverter.main(subArgs);
         break;
       default:
         System.out.println("Unknown tool " + args[0]);
